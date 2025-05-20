@@ -1,7 +1,7 @@
 import React from "react";
 import { ShoppingCart } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { useCart } from "@/lib/context/CartContext";
+import { useCart } from "@/context/CartContext";
 
 const CartIndicator = () => {
   const navigate = useNavigate();
