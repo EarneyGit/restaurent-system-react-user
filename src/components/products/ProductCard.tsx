@@ -11,6 +11,11 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   const { addToCart, updateQuantity, getItemQuantity } = useCart();
   const quantity = getItemQuantity(product.id);
 
+  // Helper function to get category name
+  const getCategoryName = (category: string | { name: string }): string => {
+    return typeof category === 'object' ? category.name : category;
+  };
+
   return (
     <div className="bg-white rounded-lg shadow-sm overflow-hidden hover:shadow-md transition-shadow">
       <div className="relative aspect-square">
@@ -20,7 +25,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
           className="w-full h-full object-cover"
         />
         <div className="absolute top-2 right-2 bg-white/90 backdrop-blur-sm px-2 py-1 rounded-full text-xs font-medium">
-          {product.category}
+          {getCategoryName(product.category)}
         </div>
       </div>
       <div className="p-4">
