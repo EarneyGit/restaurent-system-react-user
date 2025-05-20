@@ -1,5 +1,5 @@
 import React from "react";
-import { Product } from "@/services/api";
+import { Product, BASE_URL } from "@/services/api";
 import { useCart } from "@/context/CartContext";
 import { Minus, Plus } from "lucide-react";
 
@@ -16,13 +16,21 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
     return typeof category === 'object' ? category.name : category;
   };
 
+  // Helper function to get first image URL
+  const getFirstImageUrl = (images: string[]): string => {
+    if (!images || !images.length) return "/placeholder.svg";
+    return images[0];
+  };
+
+  {console.log("product",product)}
+
   return (
-    <div className="bg-white rounded-lg shadow-sm overflow-hidden hover:shadow-md transition-shadow">
-      <div className="relative aspect-square">
+    <div className="bg-white rounded-lg shadow-sm border overflow-hidden transition-shadow">
+      <div className="relative ">
         <img
-          src={product.imageUrl || "/placeholder.svg"}
+          src={getFirstImageUrl(product.images)}
           alt={product.name}
-          className="w-full h-full object-cover"
+          className="w-full h-[30vh] object-cover"
         />
         <div className="absolute top-2 right-2 bg-white/90 backdrop-blur-sm px-2 py-1 rounded-full text-xs font-medium">
           {getCategoryName(product.category)}
@@ -36,7 +44,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
           {quantity === 0 ? (
             <button 
               onClick={() => addToCart(product)}
-              className="bg-primary text-white px-4 py-2 rounded-full text-sm hover:bg-primary/90 transition-colors"
+              className="bg-green-600 text-white px-4 py-2 rounded-md text-sm hover:bg-green-600/90 transition-colors"
             >
               Add to Cart
             </button>

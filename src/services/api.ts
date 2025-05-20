@@ -40,7 +40,7 @@ export interface Product {
   weight: string;
   calorificValue: number;
   calorieDetails: string;
-  imageUrl?: string;
+  images: string[];
 }
 
 interface ApiResponse<T> {
@@ -121,9 +121,9 @@ export const getProducts = async (categoryId?: string): Promise<Product[]> => {
         category: typeof product.category === 'object' 
           ? product.category.name 
           : String(product.category),
-        imageUrl: product.imageUrl 
-          ? `${BASE_URL}${product.imageUrl}` 
-          : '/placeholder.svg'
+        images: (product.images || []).map(img => 
+          img.startsWith('http') ? img : `${BASE_URL}${img}`
+        )
       };
       console.log('Cleaned product:', cleanProduct);
       return cleanProduct;
