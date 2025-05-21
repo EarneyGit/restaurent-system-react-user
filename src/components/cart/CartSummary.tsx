@@ -22,7 +22,7 @@ const CartSummary: React.FC<CartSummaryProps> = ({ className }) => {
       
       <button
         onClick={() => setIsDrawerOpen(true)}
-        className={`bg-foodyman-lime text-white rounded-full shadow-sm md:px-3 md:py-3 px-2 py-2 flex items-center text-sm ${className}`}
+        className={`bg-green-600 text-white rounded-full shadow-sm md:px-3 md:py-3 px-2 py-2 flex items-center text-sm ${className}`}
         aria-label={`Open cart with ${itemCount} items`}
       >
         <div className="relative">

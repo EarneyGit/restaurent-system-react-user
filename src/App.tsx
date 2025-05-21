@@ -7,7 +7,7 @@ import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import NotFoundPage from './pages/NotFoundPage';
 import ProductListingPage from './pages/ProductListingPage';
-import WelcomePage from './pages/WelcomePage';
+import Welcome from './pages/Welcome';
 import OrderMethodPage from './pages/OrderMethodPage';
 import OffersPage from './pages/OffersPage';
 import SpecialAboutPage from './pages/SpecialAboutPage';
@@ -33,7 +33,7 @@ const App = () => {
           <Route path="/register" element={<RegisterPage />} />
           
           {/* Welcome Flow Routes */}
-          <Route path="/" element={<WelcomePage />} />
+          <Route path="/" element={<Welcome />} />
           <Route path="/order-method" element={<OrderMethodPage />} />
           <Route path="/offers" element={<OffersPage />} />
           <Route path="/special-about" element={<SpecialAboutPage />} />

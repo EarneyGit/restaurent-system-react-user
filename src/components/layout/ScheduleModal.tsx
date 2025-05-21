@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { X, } from "lucide-react";
+import { X } from "lucide-react";
+import usePreventScroll from "../../hooks/usePreventScroll";
 
 interface ScheduleModalProps {
   isOpen: boolean;
@@ -18,6 +19,7 @@ const ScheduleModal: React.FC<ScheduleModalProps> = ({
   onClose,
   onSave,
 }) => {
+  usePreventScroll(isOpen);
   // Generate date options (today + next 4 days)
   const [dateOptions, setDateOptions] = useState<DateOption[]>([]);
   const [selectedDateIndex, setSelectedDateIndex] = useState(0);

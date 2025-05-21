@@ -1,5 +1,6 @@
 import React from "react";
 import { X, Check } from "lucide-react";
+import usePreventScroll from "../../hooks/usePreventScroll";
 
 interface LanguageModalProps {
   isOpen: boolean;
@@ -22,6 +23,7 @@ const languages = [
 ];
 
 const LanguageModal = ({ isOpen, onClose }: LanguageModalProps) => {
+  usePreventScroll(isOpen);
   const [selectedLanguage, setSelectedLanguage] = React.useState("en");
 
   if (!isOpen) return null;

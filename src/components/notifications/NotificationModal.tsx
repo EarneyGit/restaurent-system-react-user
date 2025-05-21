@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { X } from "lucide-react";
+import usePreventScroll from "../../hooks/usePreventScroll";
 
 interface NotificationModalProps {
   isOpen: boolean;
@@ -10,6 +11,7 @@ const NotificationModal: React.FC<NotificationModalProps> = ({
   isOpen,
   onClose,
 }) => {
+  usePreventScroll(isOpen);
   const [activeTab, setActiveTab] = useState("all");
   const [isRendered, setIsRendered] = useState(false);
 

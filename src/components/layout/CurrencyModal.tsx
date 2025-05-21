@@ -1,5 +1,6 @@
 import React from "react";
 import { X, Check } from "lucide-react";
+import usePreventScroll from "../../hooks/usePreventScroll";
 
 interface CurrencyModalProps {
   isOpen: boolean;
@@ -22,6 +23,7 @@ const currencies = [
 ];
 
 const CurrencyModal = ({ isOpen, onClose }: CurrencyModalProps) => {
+  usePreventScroll(isOpen);
   const [selectedCurrency, setSelectedCurrency] = React.useState("USD");
 
   if (!isOpen) return null;

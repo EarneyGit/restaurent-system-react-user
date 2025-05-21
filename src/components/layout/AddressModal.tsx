@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { X, Search, Plus, Minus, ArrowUpRight, Star } from "lucide-react";
+import usePreventScroll from "../../hooks/usePreventScroll";
 
 interface AddressModalProps {
   isOpen: boolean;
@@ -61,6 +62,7 @@ const stores: Store[] = [
 ];
 
 const AddressModal = ({ isOpen, onClose }: AddressModalProps) => {
+  usePreventScroll(isOpen);
   const [activeFilter, setActiveFilter] = useState<string | null>("Near you");
   const [searchValue, setSearchValue] = useState("27 Chilonzor ko'chasi, Tashkent 100115, Uzbekistan");
   const [viewAsList, setViewAsList] = useState(false);
