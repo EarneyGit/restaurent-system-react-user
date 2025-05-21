@@ -3,11 +3,13 @@ import { Product } from '@/services/api';
 
 interface CartItem extends Product {
   quantity: number;
+  selectedOptions?: Record<string, string>;
+  specialRequirements?: string;
 }
 
 interface CartContextType {
   cartItems: CartItem[];
-  addToCart: (product: Product) => void;
+  addToCart: (product: Product & { selectedOptions?: Record<string, string>; specialRequirements?: string }) => void;
   removeFromCart: (productId: string) => void;
   updateQuantity: (productId: string, quantity: number) => void;
   increaseQuantity: (productId: string) => void;
@@ -23,16 +25,22 @@ const CartContext = createContext<CartContextType | undefined>(undefined);
 export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
 
-  const addToCart = useCallback((product: Product) => {
+  const addToCart = useCallback((product: Product & { selectedOptions?: Record<string, string>; specialRequirements?: string }) => {
     setCartItems(prevItems => {
-      const existingItem = prevItems.find(item => item.id === product.id);
-      if (existingItem) {
-        return prevItems.map(item =>
-          item.id === product.id
+      // For products with options, we treat them as unique items
+      const existingItemIndex = prevItems.findIndex(item => 
+        item.id === product.id && 
+        JSON.stringify(item.selectedOptions) === JSON.stringify(product.selectedOptions)
+      );
+
+      if (existingItemIndex >= 0) {
+        return prevItems.map((item, index) =>
+          index === existingItemIndex
             ? { ...item, quantity: item.quantity + 1 }
             : item
         );
       }
+
       return [...prevItems, { ...product, quantity: 1 }];
     });
   }, []);
@@ -77,7 +85,9 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const getItemQuantity = useCallback((productId: string) => {
-    return cartItems.find(item => item.id === productId)?.quantity || 0;
+    return cartItems.reduce((total, item) => 
+      item.id === productId ? total + item.quantity : total, 0
+    );
   }, [cartItems]);
 
   const clearCart = useCallback(() => {
@@ -116,4 +126,6 @@ export const useCart = () => {
     throw new Error('useCart must be used within a CartProvider');
   }
   return context;
-}; 
+};
+
+export default CartContext; 

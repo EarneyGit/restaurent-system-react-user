@@ -9,7 +9,7 @@ interface CartDrawerProps {
 }
 
 const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
-  const { cartItems, removeFromCart, increaseQuantity, decreaseQuantity, getCartTotal } = useCart();
+  const { cartItems, removeFromCart, updateQuantity, getCartTotal } = useCart();
 
   if (!isOpen) return null;
 
@@ -56,7 +56,7 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
               <div className="p-4 max-h[40vh] overflow-y-auto" >  
                 <ul className="space-y-4">
                   {cartItems.map((item) => (
-                    <li key={item.id} className="flex border-b border-gray-300 pb-4">
+                    <li key={`${item.id}-${JSON.stringify(item.selectedOptions)}`} className="flex border-b border-gray-300 pb-4">
                       <div className="h-20 w-20 flex-shrink-0 overflow-hidden rounded-lg bg-gray-100">
                         <img
                           src={item.images && item.images.length > 0 ? item.images[0] : '/placeholder-food.jpg'}
@@ -71,10 +71,30 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
                           <p className="ml-4">${(item.price * item.quantity).toFixed(2)}</p>
                         </div>
                         
+                        {/* Selected Options */}
+                        {item.selectedOptions && Object.entries(item.selectedOptions).length > 0 && (
+                          <div className="mt-1 text-sm text-gray-500">
+                            {Object.entries(item.selectedOptions).map(([optionId, choiceId]) => (
+                              <div key={optionId} className="flex items-center gap-1">
+                                <span className="font-medium">{optionId}:</span>
+                                <span>{choiceId}</span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                        
+                        {/* Special Requirements */}
+                        {item.specialRequirements && (
+                          <div className="mt-1 text-sm text-gray-500">
+                            <p className="font-medium">Special Requirements:</p>
+                            <p className="italic">{item.specialRequirements}</p>
+                          </div>
+                        )}
+                        
                         <div className="flex items-center justify-between mt-2">
                           <div className="flex items-center border border-gray-200 rounded-full">
                             <button
-                              onClick={() => decreaseQuantity(item.id)}
+                              onClick={() => updateQuantity(item.id, item.quantity - 1)}
                               className="p-1 rounded-full hover:bg-gray-100"
                               disabled={item.quantity <= 1}
                             >
@@ -82,7 +102,7 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
                             </button>
                             <span className="px-3 text-sm">{item.quantity}</span>
                             <button
-                              onClick={() => increaseQuantity(item.id)}
+                              onClick={() => updateQuantity(item.id, item.quantity + 1)}
                               className="p-1 rounded-full hover:bg-gray-100"
                             >
                               <Plus size={16} className="text-gray-600" />
@@ -122,7 +142,7 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
                 </div>
               </div>
               
-              <button className="w-full bg-foodyman-lime text-white py-3 px-4 rounded-lg font-medium hover:bg-foodyman-lime/80 transition-colors">
+              <button className="w-full bg-green-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-foodyman-lime/80 transition-colors">
                 Proceed to Checkout
               </button>
             </div>

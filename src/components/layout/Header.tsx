@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Menu, Search, Heart, Bell } from "lucide-react";
+import { Menu, Search, Heart, Bell, LogIn } from "lucide-react";
 import { Link } from "react-router-dom";
 import Sidebar from "./Sidebar";
 import NotificationModal from "../notifications/NotificationModal";
@@ -42,7 +42,7 @@ const Header = () => {
       />
 
       <header className="sticky top-0 md:px-6 py-3 bg-white z-10">
-        <div className="flex justify-between items-center border-b border-gray-300">  
+        <div className="flex justify-between items-center border-b border-gray-300">
           {" "}
           {/* Top navigation row */}
           <div className="flex items-center justify-between px-4 py-3">
@@ -55,13 +55,13 @@ const Header = () => {
                 <div className="h-8 w-8 bg-gradient-to-r from-foodyman-lime to-foodyman-green rounded-full flex items-center justify-center">
                   <span className="text-white font-bold text-sm">R</span>
                 </div>
-                <span className="ml-2 font-mono uppercase font-semibold text-xl md:block hidden text-gray-800">
+                <span className="ml-2 uppercase font-mono  font-semibold text-2xl md:block hidden text-gray-800">
                   Restroman
                 </span>
               </Link>
             </div>
           </div>
-          <div className="flex items-center gap-3 md:pr-0 pr-4"> 
+          <div className="flex items-center gap-3 md:pr-0 pr-4">
             <CartSummary />
             <Link
               to="/liked"
@@ -79,38 +79,12 @@ const Header = () => {
             </button>
             <Link
               to="/login"
-              className="flex items-center text-gray-700 hover:text-black transition-colors"
+              className="flex items-center border border-gray-300 rounded-md px-3 py-2 text-gray-700 hover:text-black hover:border-black transition-colors"
             >
-              <span className="hidden md:inline mr-2 text-sm">Login</span>
-              <svg
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path
-                  d="M14 4L22 12L14 20"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-                <path
-                  d="M22 12H9"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-                <path
-                  d="M9 21H5C3.89543 21 3 20.1046 3 19V5C3 3.89543 3.89543 3 5 3H9"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
+              <span className="hidden md:inline mr-2 text-base font-semibold">
+                Login
+              </span>
+              <LogIn size={20} />
             </Link>
           </div>
         </div>

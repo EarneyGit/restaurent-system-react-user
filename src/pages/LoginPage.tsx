@@ -28,7 +28,9 @@ const LoginPage = () => {
               <div className="h-8 w-8 bg-gradient-to-r from-foodyman-lime to-foodyman-green rounded-full flex items-center justify-center">
                 <span className="text-white font-bold text-sm">R</span>
               </div>
-              <span className="ml-2 font-semibold text-gray-800">Restroman</span>
+              <span className="ml-2 uppercase font-mono  font-semibold text-2xl md:block hidden text-gray-800">
+                Restroman
+              </span>
             </Link>
           </div>   
 

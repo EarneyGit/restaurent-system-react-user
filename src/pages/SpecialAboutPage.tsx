@@ -50,7 +50,7 @@ const SpecialAboutPage = () => {
     setBranches(branchesData);
   }, []);
 
-  const primaryColor = '#1D8348'; // Green tone
+  const primaryColor = '#1D8348';
 
   return (
     <div className="min-h-screen bg-[#f8f5f2] text-gray-800">
@@ -62,26 +62,26 @@ const SpecialAboutPage = () => {
         <h1 className="ml-4 text-xl font-mono text-[#1D8348] font-semibold">ABOUT US</h1>
       </div>
 
-      <div className="max-w-2xl mx-auto px-4 py-6">
+      <div className="max-w-2xl mx-auto px-4 py-8">
         {/* Description */}
-        <h2 className="text-2xl text-[#1D8348] font-semibold mb-1">RESTROMAN</h2>
-        <p className="text-gray-600 mb-4 leading-relaxed">
+        <h2 className="text-3xl text-[#1D8348] font-semibold mb-4">RESTROMAN</h2>
+        <p className="text-gray-600 mb-6 leading-relaxed text-base">
           Discover the warmth of authentic cuisine and personalized service. At Restroman, every dish tells a story, and every guest is family.
         </p>
 
         {/* Website */}
-        <div className="flex items-center mb-6 text-sm text-gray-700">
+        <div className="flex items-center mb-8 text-sm text-gray-700">
           <Globe className="mr-2 text-[#1D8348]" size={18} />
           www.restroman.com
         </div>
 
         {/* Branches */}
         {branches.map((branch, i) => (
-          <div key={i} className="mb-8 bg-white border rounded-lg shadow-sm p-4">
-            <h3 className="text-lg font-semibold  uppercase mb-2">{branch.name}</h3>
+          <div key={i} className="mb-10 bg-white border rounded-lg shadow-sm p-5">
+            <h3 className="text-lg font-semibold uppercase mb-3">{branch.name}</h3>
 
             {/* Address & Phone */}
-            <div className="space-y-1 text-sm text-gray-700 mb-4">
+            <div className="space-y-2 text-sm text-gray-700 mb-5">
               <p className="flex items-start">
                 <MapPin className="w-4 h-4 mt-0.5 mr-2 text-[#1D8348]" />
                 <span>
@@ -97,8 +97,8 @@ const SpecialAboutPage = () => {
             </div>
 
             {/* Hours */}
-            <div className="bg-[#1D8348]/5 border border-[#1D8348]/20 rounded-md p-3">
-              <div className="flex items-center mb-2 text-sm font-medium text-gray-800">
+            <div className="bg-[#1D8348]/5 border border-[#1D8348]/20 rounded-md p-4">
+              <div className="flex items-center mb-3 text-sm font-medium text-gray-800">
                 <Clock className="w-4 h-4 mr-2 text-[#1D8348]" />
                 Opening Hours
               </div>
@@ -106,8 +106,8 @@ const SpecialAboutPage = () => {
                 <tbody>
                   {Object.entries(branch.hours).map(([day, times]) => (
                     <tr key={day}>
-                      <td className="py-0.5 w-1/3 font-medium">{day}</td>
-                      <td className="py-0.5">{times.length ? times.join(', ') : 'Closed'}</td>
+                      <td className="py-1 w-1/3 font-medium">{day}</td>
+                      <td className="py-1">{times?.length ? times.join(', ') : 'Closed'}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -117,7 +117,7 @@ const SpecialAboutPage = () => {
         ))}
 
         {/* Note */}
-        <div className="bg-[#1D8348]/10 p-4 text-sm rounded-md text-gray-700">
+        <div className="bg-[#1D8348]/10 p-5 text-sm rounded-md text-gray-700">
           <strong>Note:</strong> Kitchen closes 30 minutes before closing. Please ensure last orders are placed accordingly.
         </div>
       </div>

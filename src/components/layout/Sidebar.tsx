@@ -93,7 +93,7 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
               {/* Buttons */}
               <div className="px-4 mt-4 space-y-3">
                 <Link 
-                  to="/signup" 
+                  to="/register" 
                   className="flex justify-center items-center bg-gray-800 text-white py-3 px-4 rounded-md font-medium w-full"
                   onClick={handleLinkClick}
                 >

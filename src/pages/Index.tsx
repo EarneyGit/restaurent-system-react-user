@@ -9,10 +9,10 @@ const Index = () => {
     <div className="flex-grow bg-white">
       <div className="container mx-auto px-4">
         {/* Welcome Message */}
-        <div className="py-6">
+        {/* <div className="py-6">
           <h1 className="md:text-3xl text-2xl font-bold text-foodyman-green">Welcome to Restroman</h1>
           <p className="text-green-800 mt-1">Choose from our delicious menu</p>
-        </div>
+        </div> */}
 
         {/* Categories Section */}
         <section className="">

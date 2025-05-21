@@ -18,7 +18,7 @@ const OrderMethodPage = () => {
         className="absolute top-4 left-4 px-4 py-2 font-semibold rounded-md border border-green-900 flex items-center space-x-1 text-foodyman-line  hover:text-foodyman-green transition-colors"
       >
         <ArrowLeft className="w-5 h-5" />
-        <span className="text-base ">Back</span>
+        <span className="text-base uppercase ">Back</span>
       </button>
 
       {/* Decorative SVG blobs - softly blurred */}
@@ -57,21 +57,11 @@ const OrderMethodPage = () => {
         />
       </svg>
 
-      {/* Logo & Title Section */}
-      <div className="flex items-center mb-8 relative z-20">
-        <div className="h-8 w-8 bg-gradient-to-r from-foodyman-lime to-foodyman-green rounded-full flex items-center justify-center shadow-md">
-          <span className="text-white font-bold text-base select-none">R</span>
-        </div>
-        <span className="ml-3 font-semibold text-xl md:block hidden text-gray-900 select-none">
-          Restroman
-        </span>
-      </div>
-
       {/* Main Card Container */}
       <div className="max-w-md w-full space-y-8 relative z-20">
         {/* Header */}
         <div className="text-center mb-4 px-4">
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 leading-tight drop-shadow-sm">
+          <h1 className="text-2xl max-w-sm font-bold text-green-950  drop-shadow-sm">
             How would you like to receive your order?
           </h1>
         </div>
@@ -89,8 +79,8 @@ const OrderMethodPage = () => {
                 <ShoppingBag className="text-white w-8 h-8" />
               </div>
               <div className="ml-5 text-left">
-                <h3 className="font-extrabold text-xl text-gray-900 tracking-wide">
-                  I'LL COLLECT
+                <h3 className="font-bold text-xl text-gray-900 ">
+                  I'll collect
                 </h3>
                 <p className="text-gray-700 mt-1.5 text-base max-w-xs">
                   Pick up your order from our outlet
@@ -116,8 +106,8 @@ const OrderMethodPage = () => {
                 <Truck className="text-white w-8 h-8" />
               </div>
               <div className="ml-5 text-left">
-                <h3 className="font-extrabold text-xl text-gray-900 tracking-wide">
-                  DELIVER TO ME
+                <h3 className="font-bold text-xl text-gray-900 ">
+                  Deliver to me
                 </h3>
                 <p className="text-gray-700 mt-1.5 text-base max-w-xs">
                   Get your order delivered to your location

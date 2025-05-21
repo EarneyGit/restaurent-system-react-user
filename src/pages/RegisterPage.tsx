@@ -1,12 +1,12 @@
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { Eye, EyeOff } from 'lucide-react';
+import React, { useState } from "react";
+import { Link } from "react-router-dom";
+import { Eye, EyeOff } from "lucide-react";
 
 const RegisterPage = () => {
   const [showPassword, setShowPassword] = useState(false);
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [agreeTerms, setAgreeTerms] = useState(false);
 
   const togglePasswordVisibility = () => {
@@ -25,62 +25,81 @@ const RegisterPage = () => {
       <div className="w-full md:w-1/2 lg:w-2/5 p-6 md:p-12 flex flex-col">
         {/* Logo */}
         <div className="flex px-6 py-6">
-            <Link to="/" className="flex items-center">
-              <div className="h-8 w-8 bg-gradient-to-r from-foodyman-lime to-foodyman-green rounded-full flex items-center justify-center">
-                <span className="text-white font-bold text-sm">R</span>
-              </div>
-              <span className="ml-2 font-semibold text-gray-800">Restroman</span>
-            </Link>
-          </div>        
+          <Link to="/" className="flex items-center">
+            <div className="h-8 w-8 bg-gradient-to-r from-foodyman-lime to-foodyman-green rounded-full flex items-center justify-center">
+              <span className="text-white font-bold text-sm">R</span>
+            </div>
+            <span className="ml-2 uppercase font-mono  font-semibold text-2xl md:block hidden text-gray-800">
+              Restroman
+            </span>{" "}
+          </Link>
+        </div>
 
         {/* Registration Form */}
         <div className="flex-grow flex flex-col justify-center max-w-md mx-auto w-full">
-          <h1 className="text-3xl font-medium text-gray-900 mb-2">Create an account</h1>
+          <h1 className="text-3xl font-medium text-gray-900 mb-2">
+            Create an account
+          </h1>
           <p className="text-gray-600 mb-8">
-            Already have an account? <Link to="/login" className="text-foodyman-lime hover:text-foodyman-lime/70 transition-colors">Login</Link>
+            Already have an account?{" "}
+            <Link
+              to="/login"
+              className="text-foodyman-lime hover:text-foodyman-lime/70 transition-colors"
+            >
+              Login
+            </Link>
           </p>
-          
+
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
-              <label htmlFor="name" className="block text-xs uppercase font-medium text-gray-500 mb-2">
+              <label
+                htmlFor="name"
+                className="block text-xs uppercase font-medium text-gray-500 mb-2"
+              >
                 Full Name
               </label>
-              <input 
-                id="name" 
-                type="text" 
+              <input
+                id="name"
+                type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="Enter your full name" 
-                className="w-full border border-gray-300 rounded-md p-3 focus:outline-none focus:ring-2 focus:ring-foodyman-lime focus:border-transparent" 
+                placeholder="Enter your full name"
+                className="w-full border border-gray-300 rounded-md p-3 focus:outline-none focus:ring-2 focus:ring-foodyman-lime focus:border-transparent"
               />
             </div>
 
             <div>
-              <label htmlFor="email" className="block text-xs uppercase font-medium text-gray-500 mb-2">
+              <label
+                htmlFor="email"
+                className="block text-xs uppercase font-medium text-gray-500 mb-2"
+              >
                 Email
               </label>
-              <input 
-                id="email" 
-                type="email" 
+              <input
+                id="email"
+                type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="Enter your email address" 
-                className="w-full border border-gray-300 rounded-md p-3 focus:outline-none focus:ring-2 focus:ring-foodyman-lime focus:border-transparent" 
+                placeholder="Enter your email address"
+                className="w-full border border-gray-300 rounded-md p-3 focus:outline-none focus:ring-2 focus:ring-foodyman-lime focus:border-transparent"
               />
             </div>
-            
+
             <div>
-              <label htmlFor="password" className="block text-xs uppercase font-medium text-gray-500 mb-2">
+              <label
+                htmlFor="password"
+                className="block text-xs uppercase font-medium text-gray-500 mb-2"
+              >
                 Password
               </label>
               <div className="relative">
-                <input 
-                  id="password" 
+                <input
+                  id="password"
                   type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Create a password" 
-                  className="w-full border border-gray-300 rounded-md p-3 pr-10 focus:outline-none focus:ring-2 focus:ring-foodyman-lime focus:border-transparent" 
+                  placeholder="Create a password"
+                  className="w-full border border-gray-300 rounded-md p-3 pr-10 focus:outline-none focus:ring-2 focus:ring-foodyman-lime focus:border-transparent"
                 />
                 <button
                   type="button"
@@ -91,99 +110,163 @@ const RegisterPage = () => {
                 </button>
               </div>
               <p className="text-xs text-gray-500 mt-2">
-                Password must be at least 8 characters long and include a number and uppercase letter.
+                Password must be at least 8 characters long and include a number
+                and uppercase letter.
               </p>
             </div>
-            
+
             <div className="flex items-center">
-              <input 
-                id="terms" 
-                type="checkbox" 
+              <input
+                id="terms"
+                type="checkbox"
                 checked={agreeTerms}
                 onChange={(e) => setAgreeTerms(e.target.checked)}
-                className="w-4 h-4 border-gray-300 rounded accent-foodyman-lime" 
+                className="w-4 h-4 border-gray-300 rounded accent-foodyman-lime"
               />
               <label htmlFor="terms" className="ml-2 text-sm text-gray-600">
-                I agree to the <Link to="/terms" className="text-foodyman-lime hover:text-foodyman-lime/70 transition-colors">Terms of Service</Link> and <Link to="/privacy" className="text-foodyman-lime hover:text-foodyman-lime/70 transition-colors">Privacy Policy</Link>
+                I agree to the{" "}
+                <Link
+                  to="/terms"
+                  className="text-foodyman-lime hover:text-foodyman-lime/70 transition-colors"
+                >
+                  Terms of Service
+                </Link>{" "}
+                and{" "}
+                <Link
+                  to="/privacy"
+                  className="text-foodyman-lime hover:text-foodyman-lime/70 transition-colors"
+                >
+                  Privacy Policy
+                </Link>
               </label>
             </div>
-            
-            <button 
-              type="submit" 
+
+            <button
+              type="submit"
               className="w-full bg-foodyman-lime text-white font-medium py-3 rounded-md hover:bg-foodyman-lime/70 transition-colors"
               disabled={!agreeTerms}
             >
               Create Account
             </button>
           </form>
-          
+
           {/* Separator */}
           <div className="my-8 flex items-center">
             <div className="flex-grow border-t border-gray-200"></div>
             <span className="mx-4 text-sm text-gray-500">or sign up with</span>
             <div className="flex-grow border-t border-gray-200"></div>
           </div>
-          
+
           {/* Social login */}
           <div className="grid grid-cols-3 gap-3">
             <button className="border border-gray-200 rounded-md py-2 px-4 flex items-center justify-center hover:bg-gray-50 transition-colors">
-              <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M12 2C6.477 2 2 6.477 2 12C2 17.523 6.477 22 12 22C17.523 22 22 17.523 22 12C22 6.477 17.523 2 12 2Z" fill="#A3A3A3"/>
-                <path d="M14.5 8.5H16.5L13 13.5H11L14.5 8.5Z" fill="white"/>
-                <path d="M9.5 8.5H11.5L8 13.5H6L9.5 8.5Z" fill="white"/>
+              <svg
+                className="w-5 h-5"
+                viewBox="0 0 24 24"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M12 2C6.477 2 2 6.477 2 12C2 17.523 6.477 22 12 22C17.523 22 22 17.523 22 12C22 6.477 17.523 2 12 2Z"
+                  fill="#A3A3A3"
+                />
+                <path d="M14.5 8.5H16.5L13 13.5H11L14.5 8.5Z" fill="white" />
+                <path d="M9.5 8.5H11.5L8 13.5H6L9.5 8.5Z" fill="white" />
               </svg>
               <span className="ml-2">Apple</span>
             </button>
             <button className="border border-gray-200 rounded-md py-2 px-4 flex items-center justify-center hover:bg-gray-50 transition-colors">
-              <svg className="w-5 h-5" viewBox="0 0 24 24" fill="#4267B2" xmlns="http://www.w3.org/2000/svg">
-                <path d="M12.7037 22H7.54074V13H4.59259V8.93333H7.54074V5.93333C7.54074 3.13333 9.18519 1 12.4444 1C13.5556 1 14.837 1.2 14.837 1.2V4H13.3333C11.9259 4 11.4074 4.93333 11.4074 6V8.93333H14.6667L14.1481 13H11.4074V22H12.7037Z"/>
+              <svg
+                className="w-5 h-5"
+                viewBox="0 0 24 24"
+                fill="#4267B2"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path d="M12.7037 22H7.54074V13H4.59259V8.93333H7.54074V5.93333C7.54074 3.13333 9.18519 1 12.4444 1C13.5556 1 14.837 1.2 14.837 1.2V4H13.3333C11.9259 4 11.4074 4.93333 11.4074 6V8.93333H14.6667L14.1481 13H11.4074V22H12.7037Z" />
               </svg>
               <span className="ml-2">Facebook</span>
             </button>
             <button className="border border-gray-200 rounded-md py-2 px-4 flex items-center justify-center hover:bg-gray-50 transition-colors">
-              <svg className="w-5 h-5" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                <path d="M22.06 11.023c0-.8-.071-1.57-.205-2.309H12.217v4.362h5.534a4.723 4.723 0 01-2.054 3.107v2.553h3.317c1.94-1.782 3.046-4.404 3.046-7.713z" fill="#4285F4"/>
-                <path d="M12.217 22c2.773 0 5.098-.918 6.795-2.465l-3.317-2.553c-.92.619-2.1.976-3.478.976-2.67 0-4.929-1.8-5.734-4.221H2.987v2.634A10.198 10.198 0 0012.217 22z" fill="#34A853"/>
-                <path d="M6.482 13.737a6.15 6.15 0 01-.32-1.96c0-.68.116-1.342.32-1.96V7.183H2.987A10.193 10.193 0 002 11.777c0 1.646.394 3.21 1.096 4.594l3.386-2.634z" fill="#FBBC05"/>
-                <path d="M12.217 5.596c1.507 0 2.858.517 3.926 1.535l2.939-2.923C17.273 2.467 14.948 1.5 12.217 1.5a10.198 10.198 0 00-9.23 5.683l3.497 2.7c.804-2.422 3.063-4.287 5.733-4.287z" fill="#EA4335"/>
+              <svg
+                className="w-5 h-5"
+                viewBox="0 0 24 24"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M22.06 11.023c0-.8-.071-1.57-.205-2.309H12.217v4.362h5.534a4.723 4.723 0 01-2.054 3.107v2.553h3.317c1.94-1.782 3.046-4.404 3.046-7.713z"
+                  fill="#4285F4"
+                />
+                <path
+                  d="M12.217 22c2.773 0 5.098-.918 6.795-2.465l-3.317-2.553c-.92.619-2.1.976-3.478.976-2.67 0-4.929-1.8-5.734-4.221H2.987v2.634A10.198 10.198 0 0012.217 22z"
+                  fill="#34A853"
+                />
+                <path
+                  d="M6.482 13.737a6.15 6.15 0 01-.32-1.96c0-.68.116-1.342.32-1.96V7.183H2.987A10.193 10.193 0 002 11.777c0 1.646.394 3.21 1.096 4.594l3.386-2.634z"
+                  fill="#FBBC05"
+                />
+                <path
+                  d="M12.217 5.596c1.507 0 2.858.517 3.926 1.535l2.939-2.923C17.273 2.467 14.948 1.5 12.217 1.5a10.198 10.198 0 00-9.23 5.683l3.497 2.7c.804-2.422 3.063-4.287 5.733-4.287z"
+                  fill="#EA4335"
+                />
               </svg>
               <span className="ml-2">Google</span>
             </button>
           </div>
         </div>
       </div>
-      
+
       {/* Right side - Image with overlay and content */}
       <div className="hidden md:block md:w-1/2 lg:w-3/5 bg-gray-100 relative">
         <div className="absolute inset-0 bg-black bg-opacity-50 backdrop-blur-sm z-10"></div>
-        <img 
+        <img
           src="/delivery-courier.jpg"
-          alt="Delivery courier" 
+          alt="Delivery courier"
           className="absolute inset-0 w-full h-full object-cover"
         />
         {/* Content overlay */}
         <div className="absolute inset-0 flex flex-col justify-center items-start z-20 p-12">
           <div className="max-w-xl">
-            <h2 className="text-4xl font-bold text-white mb-6">Join Restroman Today</h2>
+            <h2 className="text-4xl font-bold text-white mb-6">
+              Join Restroman Today
+            </h2>
             <p className="text-white/90 text-lg mb-8">
-              Get access to exclusive restaurants and enjoy premium food delivery right to your door. Sign up now and get 20% off your first order.
+              Get access to exclusive restaurants and enjoy premium food
+              delivery right to your door. Sign up now and get 20% off your
+              first order.
             </p>
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-8">
               <div className="bg-black/30 backdrop-blur-sm p-4 rounded-lg">
-                <h3 className="text-foodyman-lime font-bold text-xl mb-2">Fast Delivery</h3>
-                <p className="text-white/80">Get your food delivered within 30 minutes of ordering</p>
+                <h3 className="text-foodyman-lime font-bold text-xl mb-2">
+                  Fast Delivery
+                </h3>
+                <p className="text-white/80">
+                  Get your food delivered within 30 minutes of ordering
+                </p>
               </div>
               <div className="bg-black/30 backdrop-blur-sm p-4 rounded-lg">
-                <h3 className="text-foodyman-lime font-bold text-xl mb-2">Premium Selection</h3>
-                <p className="text-white/80">Access to high-quality restaurants curated just for you</p>
+                <h3 className="text-foodyman-lime font-bold text-xl mb-2">
+                  Premium Selection
+                </h3>
+                <p className="text-white/80">
+                  Access to high-quality restaurants curated just for you
+                </p>
               </div>
               <div className="bg-black/30 backdrop-blur-sm p-4 rounded-lg">
-                <h3 className="text-foodyman-lime font-bold text-xl mb-2">Loyalty Rewards</h3>
-                <p className="text-white/80">Earn points with every order that can be redeemed for discounts</p>
+                <h3 className="text-foodyman-lime font-bold text-xl mb-2">
+                  Loyalty Rewards
+                </h3>
+                <p className="text-white/80">
+                  Earn points with every order that can be redeemed for
+                  discounts
+                </p>
               </div>
               <div className="bg-black/30 backdrop-blur-sm p-4 rounded-lg">
-                <h3 className="text-foodyman-lime font-bold text-xl mb-2">Exclusive Offers</h3>
-                <p className="text-white/80">Get access to special promotions and restaurant deals</p>
+                <h3 className="text-foodyman-lime font-bold text-xl mb-2">
+                  Exclusive Offers
+                </h3>
+                <p className="text-white/80">
+                  Get access to special promotions and restaurant deals
+                </p>
               </div>
             </div>
           </div>
@@ -193,4 +276,4 @@ const RegisterPage = () => {
   );
 };
 
-export default RegisterPage; 
+export default RegisterPage;
