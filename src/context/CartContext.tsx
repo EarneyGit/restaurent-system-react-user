@@ -10,6 +10,8 @@ interface CartContextType {
   addToCart: (product: Product) => void;
   removeFromCart: (productId: string) => void;
   updateQuantity: (productId: string, quantity: number) => void;
+  increaseQuantity: (productId: string) => void;
+  decreaseQuantity: (productId: string) => void;
   getItemQuantity: (productId: string) => number;
   clearCart: () => void;
   getCartCount: () => number;
@@ -50,6 +52,30 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
   }, []);
 
+  const increaseQuantity = useCallback((productId: string) => {
+    setCartItems(prevItems => 
+      prevItems.map(item => 
+        item.id === productId 
+          ? { ...item, quantity: item.quantity + 1 }
+          : item
+      )
+    );
+  }, []);
+
+  const decreaseQuantity = useCallback((productId: string) => {
+    setCartItems(prevItems => {
+      const item = prevItems.find(item => item.id === productId);
+      if (item && item.quantity === 1) {
+        return prevItems.filter(item => item.id !== productId);
+      }
+      return prevItems.map(item =>
+        item.id === productId 
+          ? { ...item, quantity: item.quantity - 1 }
+          : item
+      );
+    });
+  }, []);
+
   const getItemQuantity = useCallback((productId: string) => {
     return cartItems.find(item => item.id === productId)?.quantity || 0;
   }, [cartItems]);
@@ -72,6 +98,8 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
       addToCart,
       removeFromCart,
       updateQuantity,
+      increaseQuantity,
+      decreaseQuantity,
       getItemQuantity,
       clearCart,
       getCartCount,

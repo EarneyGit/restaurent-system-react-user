@@ -7,14 +7,15 @@ import BottomNavigation from './BottomNavigation';
 const Layout = () => {
   const location = useLocation();
   const isAuthPage = location.pathname === '/login' || location.pathname === '/register';
+  const isReservationPage = location.pathname === '/reservation';
 
   return (
     <div className="min-h-screen flex flex-col">
-      {!isAuthPage && <Header />}
+      {!isAuthPage && !isReservationPage && <Header />}
       <main className="flex-grow">
         <Outlet />
       </main>
-      {!isAuthPage && (
+      {!isAuthPage && !isReservationPage && (
         <>
           <BottomNavigation />
           <Footer />

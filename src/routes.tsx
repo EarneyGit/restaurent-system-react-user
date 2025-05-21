@@ -6,6 +6,8 @@ import ProductListingPage from './pages/ProductListingPage';
 import CheckoutPage from './pages/CheckoutPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
+import LikedProductsPage from './pages/LikedProductsPage';
+import ReservationPage from './pages/ReservationPage';
 import NotFound from './pages/NotFound';
 
 // Wrapper component to handle category parameter
@@ -23,6 +25,8 @@ const AppRoutes = () => {
         <Route path="/category" element={<Navigate to="/products/All" replace />} />
         <Route path="/category/:category" element={<CategoryRedirect />} />
         <Route path="/checkout" element={<CheckoutPage />} />
+        <Route path="/liked" element={<LikedProductsPage />} />
+        <Route path="/reservation" element={<ReservationPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
         <Route path="*" element={<NotFound />} />

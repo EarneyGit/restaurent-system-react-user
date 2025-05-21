@@ -1,114 +1,205 @@
 import React, { useState } from "react";
-import { Menu, Search, MapPin, Globe, CreditCard, Calendar } from "lucide-react";
+import { Menu, Search, Heart, Bell } from "lucide-react";
 import { Link } from "react-router-dom";
 import Sidebar from "./Sidebar";
-import AddressModal from "./AddressModal";
-import LanguageModal from "./LanguageModal";
-import CurrencyModal from "./CurrencyModal";
-import CartIndicator from "./CartIndicator";
-import ReservationModal from "./ReservationModal";
+import NotificationModal from "../notifications/NotificationModal";
+import CartSummary from "../cart/CartSummary";
+import ScheduleModal from "./ScheduleModal";
 
 const Header = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [isAddressModalOpen, setIsAddressModalOpen] = useState(false);
-  const [isLanguageModalOpen, setIsLanguageModalOpen] = useState(false);
-  const [isCurrencyModalOpen, setIsCurrencyModalOpen] = useState(false);
-  const [isReservationModalOpen, setIsReservationModalOpen] = useState(false);
+  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+  const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
+  const [scheduleInfo, setScheduleInfo] = useState<{
+    date: string;
+    timeSlot: string;
+  } | null>(null);
 
   const openSidebar = () => setIsSidebarOpen(true);
   const closeSidebar = () => setIsSidebarOpen(false);
-  
-  const openAddressModal = () => setIsAddressModalOpen(true);
-  const closeAddressModal = () => setIsAddressModalOpen(false);
-  
-  const openLanguageModal = () => setIsLanguageModalOpen(true);
-  const closeLanguageModal = () => setIsLanguageModalOpen(false);
-  
-  const openCurrencyModal = () => setIsCurrencyModalOpen(true);
-  const closeCurrencyModal = () => setIsCurrencyModalOpen(false);
-  
-  const openReservationModal = () => setIsReservationModalOpen(true);
-  const closeReservationModal = () => setIsReservationModalOpen(false);
-  
+
+  const openNotifications = () => setIsNotificationsOpen(true);
+  const closeNotifications = () => setIsNotificationsOpen(false);
+
+  const openScheduleModal = () => setIsScheduleModalOpen(true);
+  const closeScheduleModal = () => setIsScheduleModalOpen(false);
+
+  const handleScheduleSave = (date: string, timeSlot: string) => {
+    setScheduleInfo({ date, timeSlot });
+  };
+
   return (
     <>
       <Sidebar isOpen={isSidebarOpen} onClose={closeSidebar} />
-      <AddressModal isOpen={isAddressModalOpen} onClose={closeAddressModal} />
-      <LanguageModal isOpen={isLanguageModalOpen} onClose={closeLanguageModal} />
-      <CurrencyModal isOpen={isCurrencyModalOpen} onClose={closeCurrencyModal} />
-      <ReservationModal isOpen={isReservationModalOpen} onClose={closeReservationModal} />
-      
-      <header className="bg-white shadow-sm sticky top-0 z-10 px-4 py-3">
-        <div className="flex items-center gap-3">
-          <button className="p-1" onClick={openSidebar}>
-            <Menu size={24} />
-          </button>
-          
-          <Link to="/" className="flex items-center">
-            <div className="h-8 w-8 bg-gradient-to-r from-foodyman-lime to-foodyman-green rounded-full flex items-center justify-center">
-              <span className="text-white font-bold text-sm">R</span>
-            </div>
-            <span className="ml-2 font-semibold text-gray-800">Restroman</span>
-          </Link>
+      <NotificationModal
+        isOpen={isNotificationsOpen}
+        onClose={closeNotifications}
+      />
+      <ScheduleModal
+        isOpen={isScheduleModalOpen}
+        onClose={closeScheduleModal}
+        onSave={handleScheduleSave}
+      />
 
-          <div className="relative w-48 md:w-64 lg:w-auto lg:flex-grow mx-2">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
-            <input
-              type="text"
-              placeholder="Search restaurant..."
-              className="pl-9 pr-3 py-1.5 border rounded-lg w-full focus:outline-none focus:ring-1 focus:ring-foodyman-lime text-sm"
-            />
+      <header className="sticky top-0 md:px-6 py-3 bg-white z-10">
+        <div className="flex justify-between items-center border-b border-gray-300">  
+          {" "}
+          {/* Top navigation row */}
+          <div className="flex items-center justify-between px-4 py-3">
+            <button className="p-1" onClick={openSidebar} aria-label="Menu">
+              <Menu size={30} />
+            </button>
+
+            <div className="flex justify-center flex-1">
+              <Link to="/" className="mx-auto flex items-center">
+                <div className="h-8 w-8 bg-gradient-to-r from-foodyman-lime to-foodyman-green rounded-full flex items-center justify-center">
+                  <span className="text-white font-bold text-sm">R</span>
+                </div>
+                <span className="ml-2 font-mono uppercase font-semibold text-xl md:block hidden text-gray-800">
+                  Restroman
+                </span>
+              </Link>
+            </div>
+          </div>
+          <div className="flex items-center gap-3 md:pr-0 pr-4"> 
+            <CartSummary />
+            <Link
+              to="/liked"
+              aria-label="Favorites"
+              className="text-gray-700 hover:text-black transition-colors"
+            >
+              <Heart size={22} />
+            </Link>
+            <button
+              onClick={openNotifications}
+              aria-label="Notifications"
+              className="text-gray-700 hover:text-black transition-colors p-0 bg-transparent border-0"
+            >
+              <Bell size={22} />
+            </button>
+            <Link
+              to="/login"
+              className="flex items-center text-gray-700 hover:text-black transition-colors"
+            >
+              <span className="hidden md:inline mr-2 text-sm">Login</span>
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M14 4L22 12L14 20"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+                <path
+                  d="M22 12H9"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+                <path
+                  d="M9 21H5C3.89543 21 3 20.1046 3 19V5C3 3.89543 3.89543 3 5 3H9"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </Link>
+          </div>
+        </div>
+
+        {/* Bottom navigation row */}
+        <div className="flex items-center justify-between px-4 py-4 border-b">
+          <div className="flex items-center overflow-x-auto flex-1 scrollbar-hide">
+            <button
+              onClick={openScheduleModal}
+              className="flex items-center gap-2 whitespace-nowrap bg-transparent border-none p-0 cursor-pointer"
+            >
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M8 2V5"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                />
+                <path
+                  d="M16 2V5"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                />
+                <path
+                  d="M3 8H21"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                />
+                <rect
+                  x="3"
+                  y="4"
+                  width="18"
+                  height="18"
+                  rx="2"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                />
+              </svg>
+              <div className="flex flex-col items-start">
+                <span className="font-medium">Schedule</span>
+                {scheduleInfo && (
+                  <span className="text-sm font-semibold text-green-600">
+                    {scheduleInfo.date}, {scheduleInfo.timeSlot}
+                  </span>
+                )}
+              </div>
+            </button>
+
+            <div className="flex items-center ml-4 md:ml-6 pl-4 md:pl-6 border-l whitespace-nowrap">
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+                className="mr-2"
+              >
+                <path
+                  d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                />
+                <circle
+                  cx="12"
+                  cy="10"
+                  r="3"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                />
+              </svg>
+              <span className="font-medium">Branch: Noma Haus</span>
+            </div>
           </div>
 
-          <div className="flex items-center gap-2 md:gap-3 ml-auto">
-            <button 
-              className="hidden md:flex items-center gap-1 text-xs border border-gray-300 px-2 py-1.5 rounded hover:bg-gray-50"
-              onClick={openReservationModal}
+          <div className="flex items-center ml-4">
+            <button
+              aria-label="Search"
+              className="text-gray-700 hover:text-black transition-colors"
             >
-              <Calendar size={14} />
-              <span>Reservation</span>
+              <Search size={24} />
             </button>
-          
-            <button 
-              className="hidden md:flex items-center gap-1 text-xs border border-gray-300 px-2 py-1.5 rounded hover:bg-gray-50"
-              onClick={openLanguageModal}
-            >
-              <Globe size={14} />
-              <span>EN</span>
-            </button>
-            
-            <button 
-              className="hidden md:flex items-center gap-1 text-xs border border-gray-300 px-2 py-1.5 rounded hover:bg-gray-50"
-              onClick={openCurrencyModal}
-            >
-              <CreditCard size={14} />
-              <span>USD</span>
-            </button>
-            
-            <div 
-              className="flex flex-col text-xs cursor-pointer hover:text-foodyman-lime transition-colors group"
-              onClick={openAddressModal}
-            >
-              <span className="font-semibold flex items-center">
-                <MapPin size={14} className="inline-block mr-1 text-foodyman-lime" />
-                <span className="hidden md:inline">Delivery address</span>
-              </span>
-              <span className="text-gray-500 hidden md:block">San Francisco 14 St.</span>
-              <div className="hidden group-hover:block absolute top-full right-0 mt-1 bg-white shadow-lg rounded-md p-2 text-xs text-gray-800 md:hidden">
-                Click to set delivery address
-              </div>
-            </div>
-            
-            <div className="hidden md:flex flex-col text-xs text-foodyman-lime">
-              <span className="font-semibold">Delivery on</span>
-              <span>30-40 35min</span>
-            </div>
-            
-            <CartIndicator />
-            
-            <Link to="/login" className="border border-gray-300 px-3 py-1.5 rounded text-sm hover:bg-gray-50">
-              Login
-            </Link>
           </div>
         </div>
       </header>

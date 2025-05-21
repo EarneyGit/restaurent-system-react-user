@@ -1,329 +1,192 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { Eye, EyeOff, Mail, Lock, User, Phone } from 'lucide-react';
-
-interface RegisterFormData {
-  name: string;
-  email: string;
-  phone: string;
-  password: string;
-  confirmPassword: string;
-}
-
-interface ValidationErrors {
-  name?: string;
-  email?: string;
-  phone?: string;
-  password?: string;
-  confirmPassword?: string;
-}
+import { Link } from 'react-router-dom';
+import { Eye, EyeOff } from 'lucide-react';
 
 const RegisterPage = () => {
-  const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [formData, setFormData] = useState<RegisterFormData>({
-    name: '',
-    email: '',
-    phone: '',
-    password: '',
-    confirmPassword: '',
-  });
-  const [errors, setErrors] = useState<ValidationErrors>({});
-  const [isLoading, setIsLoading] = useState(false);
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [agreeTerms, setAgreeTerms] = useState(false);
 
-  const validateForm = (): boolean => {
-    const newErrors: ValidationErrors = {};
-
-    // Name validation
-    if (!formData.name) {
-      newErrors.name = 'Name is required';
-    } else if (formData.name.length < 2) {
-      newErrors.name = 'Name must be at least 2 characters long';
-    } else if (!/^[a-zA-Z\s]*$/.test(formData.name)) {
-      newErrors.name = 'Name can only contain letters and spaces';
-    }
-
-    // Email validation with comprehensive regex
-    if (!formData.email) {
-      newErrors.email = 'Email is required';
-    } else if (!/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i.test(formData.email)) {
-      newErrors.email = 'Please enter a valid email address';
-    }
-
-    // Phone validation with international format
-    if (!formData.phone) {
-      newErrors.phone = 'Phone number is required';
-    } else if (!/^\+?[1-9]\d{1,14}$/.test(formData.phone.replace(/\s+/g, ''))) {
-      newErrors.phone = 'Please enter a valid phone number';
-    }
-
-    // Password validation with strong requirements
-    if (!formData.password) {
-      newErrors.password = 'Password is required';
-    } else if (formData.password.length < 8) {
-      newErrors.password = 'Password must be at least 8 characters long';
-    } else if (!/(?=.*[a-z])/.test(formData.password)) {
-      newErrors.password = 'Password must contain at least one lowercase letter';
-    } else if (!/(?=.*[A-Z])/.test(formData.password)) {
-      newErrors.password = 'Password must contain at least one uppercase letter';
-    } else if (!/(?=.*\d)/.test(formData.password)) {
-      newErrors.password = 'Password must contain at least one number';
-    } else if (!/(?=.*[!@#$%^&*])/.test(formData.password)) {
-      newErrors.password = 'Password must contain at least one special character (!@#$%^&*)';
-    }
-
-    // Confirm password validation
-    if (!formData.confirmPassword) {
-      newErrors.confirmPassword = 'Please confirm your password';
-    } else if (formData.password !== formData.confirmPassword) {
-      newErrors.confirmPassword = 'Passwords do not match';
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+  const togglePasswordVisibility = () => {
+    setShowPassword(!showPassword);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!validateForm()) return;
-
-    setIsLoading(true);
-    try {
-      // Here you would typically make an API call to register
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      navigate('/login');
-    } catch (error) {
-      console.error('Registration failed:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
-    // Clear error when user starts typing
-    if (errors[name as keyof ValidationErrors]) {
-      setErrors(prev => ({
-        ...prev,
-        [name]: undefined
-      }));
-    }
+    // Handle registration logic
+    console.log({ name, email, password, agreeTerms });
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8 bg-white p-6 sm:p-8 rounded-xl shadow-md">
-        <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            Create your account
-          </h2>
-          <p className="mt-2 text-center text-sm text-gray-600">
-            Already have an account?{' '}
-            <Link to="/login" className="font-medium text-green-600 hover:text-green-500">
-              Sign in
+    <div className="flex min-h-screen bg-white">
+      {/* Left side - Form */}
+      <div className="w-full md:w-1/2 lg:w-2/5 p-6 md:p-12 flex flex-col">
+        {/* Logo */}
+        <div className="flex px-6 py-6">
+            <Link to="/" className="flex items-center">
+              <div className="h-8 w-8 bg-gradient-to-r from-foodyman-lime to-foodyman-green rounded-full flex items-center justify-center">
+                <span className="text-white font-bold text-sm">R</span>
+              </div>
+              <span className="ml-2 font-semibold text-gray-800">Restroman</span>
             </Link>
-          </p>
-        </div>
+          </div>        
 
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          <div className="space-y-4">
-            {/* Name field */}
+        {/* Registration Form */}
+        <div className="flex-grow flex flex-col justify-center max-w-md mx-auto w-full">
+          <h1 className="text-3xl font-medium text-gray-900 mb-2">Create an account</h1>
+          <p className="text-gray-600 mb-8">
+            Already have an account? <Link to="/login" className="text-foodyman-lime hover:text-foodyman-lime/70 transition-colors">Login</Link>
+          </p>
+          
+          <form onSubmit={handleSubmit} className="space-y-6">
             <div>
-              <label htmlFor="name" className="block text-sm font-medium text-gray-700">
+              <label htmlFor="name" className="block text-xs uppercase font-medium text-gray-500 mb-2">
                 Full Name
               </label>
-              <div className="mt-1 relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <User className="h-5 w-5 text-gray-400" />
-                </div>
-                <input
-                  id="name"
-                  name="name"
-                  type="text"
-                  autoComplete="name"
-                  required
-                  value={formData.name}
-                  onChange={handleInputChange}
-                  className={`appearance-none block w-full pl-10 pr-3 py-2 border ${
-                    errors.name ? 'border-red-300' : 'border-gray-300'
-                  } rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-green-500 focus:border-green-500`}
-                  placeholder="John Doe"
-                />
-              </div>
-              {errors.name && (
-                <p className="mt-1 text-sm text-red-600">{errors.name}</p>
-              )}
+              <input 
+                id="name" 
+                type="text" 
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Enter your full name" 
+                className="w-full border border-gray-300 rounded-md p-3 focus:outline-none focus:ring-2 focus:ring-foodyman-lime focus:border-transparent" 
+              />
             </div>
 
-            {/* Email field */}
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-                Email address
+              <label htmlFor="email" className="block text-xs uppercase font-medium text-gray-500 mb-2">
+                Email
               </label>
-              <div className="mt-1 relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Mail className="h-5 w-5 text-gray-400" />
-                </div>
-                <input
-                  id="email"
-                  name="email"
-                  type="email"
-                  autoComplete="email"
-                  required
-                  value={formData.email}
-                  onChange={handleInputChange}
-                  className={`appearance-none block w-full pl-10 pr-3 py-2 border ${
-                    errors.email ? 'border-red-300' : 'border-gray-300'
-                  } rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-green-500 focus:border-green-500`}
-                  placeholder="you@example.com"
-                />
-              </div>
-              {errors.email && (
-                <p className="mt-1 text-sm text-red-600">{errors.email}</p>
-              )}
+              <input 
+                id="email" 
+                type="email" 
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="Enter your email address" 
+                className="w-full border border-gray-300 rounded-md p-3 focus:outline-none focus:ring-2 focus:ring-foodyman-lime focus:border-transparent" 
+              />
             </div>
-
-            {/* Phone field */}
+            
             <div>
-              <label htmlFor="phone" className="block text-sm font-medium text-gray-700">
-                Phone Number
-              </label>
-              <div className="mt-1 relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Phone className="h-5 w-5 text-gray-400" />
-                </div>
-                <input
-                  id="phone"
-                  name="phone"
-                  type="tel"
-                  autoComplete="tel"
-                  required
-                  value={formData.phone}
-                  onChange={handleInputChange}
-                  className={`appearance-none block w-full pl-10 pr-3 py-2 border ${
-                    errors.phone ? 'border-red-300' : 'border-gray-300'
-                  } rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-green-500 focus:border-green-500`}
-                  placeholder="+1234567890"
-                />
-              </div>
-              {errors.phone && (
-                <p className="mt-1 text-sm text-red-600">{errors.phone}</p>
-              )}
-            </div>
-
-            {/* Password field */}
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+              <label htmlFor="password" className="block text-xs uppercase font-medium text-gray-500 mb-2">
                 Password
               </label>
-              <div className="mt-1 relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Lock className="h-5 w-5 text-gray-400" />
-                </div>
-                <input
-                  id="password"
-                  name="password"
-                  type={showPassword ? 'text' : 'password'}
-                  autoComplete="new-password"
-                  required
-                  value={formData.password}
-                  onChange={handleInputChange}
-                  className={`appearance-none block w-full pl-10 pr-10 py-2 border ${
-                    errors.password ? 'border-red-300' : 'border-gray-300'
-                  } rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-green-500 focus:border-green-500`}
-                  placeholder="••••••••"
+              <div className="relative">
+                <input 
+                  id="password" 
+                  type={showPassword ? "text" : "password"}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Create a password" 
+                  className="w-full border border-gray-300 rounded-md p-3 pr-10 focus:outline-none focus:ring-2 focus:ring-foodyman-lime focus:border-transparent" 
                 />
                 <button
                   type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                  onClick={togglePasswordVisibility}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
                 >
-                  {showPassword ? (
-                    <EyeOff className="h-5 w-5 text-gray-400" />
-                  ) : (
-                    <Eye className="h-5 w-5 text-gray-400" />
-                  )}
+                  {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                 </button>
               </div>
-              {errors.password && (
-                <p className="mt-1 text-sm text-red-600">{errors.password}</p>
-              )}
+              <p className="text-xs text-gray-500 mt-2">
+                Password must be at least 8 characters long and include a number and uppercase letter.
+              </p>
             </div>
-
-            {/* Confirm Password field */}
-            <div>
-              <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">
-                Confirm Password
+            
+            <div className="flex items-center">
+              <input 
+                id="terms" 
+                type="checkbox" 
+                checked={agreeTerms}
+                onChange={(e) => setAgreeTerms(e.target.checked)}
+                className="w-4 h-4 border-gray-300 rounded accent-foodyman-lime" 
+              />
+              <label htmlFor="terms" className="ml-2 text-sm text-gray-600">
+                I agree to the <Link to="/terms" className="text-foodyman-lime hover:text-foodyman-lime/70 transition-colors">Terms of Service</Link> and <Link to="/privacy" className="text-foodyman-lime hover:text-foodyman-lime/70 transition-colors">Privacy Policy</Link>
               </label>
-              <div className="mt-1 relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Lock className="h-5 w-5 text-gray-400" />
-                </div>
-                <input
-                  id="confirmPassword"
-                  name="confirmPassword"
-                  type={showConfirmPassword ? 'text' : 'password'}
-                  autoComplete="new-password"
-                  required
-                  value={formData.confirmPassword}
-                  onChange={handleInputChange}
-                  className={`appearance-none block w-full pl-10 pr-10 py-2 border ${
-                    errors.confirmPassword ? 'border-red-300' : 'border-gray-300'
-                  } rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-green-500 focus:border-green-500`}
-                  placeholder="••••••••"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center"
-                >
-                  {showConfirmPassword ? (
-                    <EyeOff className="h-5 w-5 text-gray-400" />
-                  ) : (
-                    <Eye className="h-5 w-5 text-gray-400" />
-                  )}
-                </button>
-              </div>
-              {errors.confirmPassword && (
-                <p className="mt-1 text-sm text-red-600">{errors.confirmPassword}</p>
-              )}
             </div>
-          </div>
-
-          <div>
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            
+            <button 
+              type="submit" 
+              className="w-full bg-foodyman-lime text-white font-medium py-3 rounded-md hover:bg-foodyman-lime/70 transition-colors"
+              disabled={!agreeTerms}
             >
-              {isLoading ? (
-                <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-              ) : (
-                'Create Account'
-              )}
+              Create Account
+            </button>
+          </form>
+          
+          {/* Separator */}
+          <div className="my-8 flex items-center">
+            <div className="flex-grow border-t border-gray-200"></div>
+            <span className="mx-4 text-sm text-gray-500">or sign up with</span>
+            <div className="flex-grow border-t border-gray-200"></div>
+          </div>
+          
+          {/* Social login */}
+          <div className="grid grid-cols-3 gap-3">
+            <button className="border border-gray-200 rounded-md py-2 px-4 flex items-center justify-center hover:bg-gray-50 transition-colors">
+              <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 2C6.477 2 2 6.477 2 12C2 17.523 6.477 22 12 22C17.523 22 22 17.523 22 12C22 6.477 17.523 2 12 2Z" fill="#A3A3A3"/>
+                <path d="M14.5 8.5H16.5L13 13.5H11L14.5 8.5Z" fill="white"/>
+                <path d="M9.5 8.5H11.5L8 13.5H6L9.5 8.5Z" fill="white"/>
+              </svg>
+              <span className="ml-2">Apple</span>
+            </button>
+            <button className="border border-gray-200 rounded-md py-2 px-4 flex items-center justify-center hover:bg-gray-50 transition-colors">
+              <svg className="w-5 h-5" viewBox="0 0 24 24" fill="#4267B2" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12.7037 22H7.54074V13H4.59259V8.93333H7.54074V5.93333C7.54074 3.13333 9.18519 1 12.4444 1C13.5556 1 14.837 1.2 14.837 1.2V4H13.3333C11.9259 4 11.4074 4.93333 11.4074 6V8.93333H14.6667L14.1481 13H11.4074V22H12.7037Z"/>
+              </svg>
+              <span className="ml-2">Facebook</span>
+            </button>
+            <button className="border border-gray-200 rounded-md py-2 px-4 flex items-center justify-center hover:bg-gray-50 transition-colors">
+              <svg className="w-5 h-5" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path d="M22.06 11.023c0-.8-.071-1.57-.205-2.309H12.217v4.362h5.534a4.723 4.723 0 01-2.054 3.107v2.553h3.317c1.94-1.782 3.046-4.404 3.046-7.713z" fill="#4285F4"/>
+                <path d="M12.217 22c2.773 0 5.098-.918 6.795-2.465l-3.317-2.553c-.92.619-2.1.976-3.478.976-2.67 0-4.929-1.8-5.734-4.221H2.987v2.634A10.198 10.198 0 0012.217 22z" fill="#34A853"/>
+                <path d="M6.482 13.737a6.15 6.15 0 01-.32-1.96c0-.68.116-1.342.32-1.96V7.183H2.987A10.193 10.193 0 002 11.777c0 1.646.394 3.21 1.096 4.594l3.386-2.634z" fill="#FBBC05"/>
+                <path d="M12.217 5.596c1.507 0 2.858.517 3.926 1.535l2.939-2.923C17.273 2.467 14.948 1.5 12.217 1.5a10.198 10.198 0 00-9.23 5.683l3.497 2.7c.804-2.422 3.063-4.287 5.733-4.287z" fill="#EA4335"/>
+              </svg>
+              <span className="ml-2">Google</span>
             </button>
           </div>
-        </form>
-
-        <div className="mt-6">
-          <p className="text-xs text-center text-gray-500">
-            By creating an account, you agree to our{' '}
-            <Link to="/terms" className="text-green-600 hover:text-green-500">
-              Terms of Service
-            </Link>{' '}
-            and{' '}
-            <Link to="/privacy" className="text-green-600 hover:text-green-500">
-              Privacy Policy
-            </Link>
-          </p>
+        </div>
+      </div>
+      
+      {/* Right side - Image with overlay and content */}
+      <div className="hidden md:block md:w-1/2 lg:w-3/5 bg-gray-100 relative">
+        <div className="absolute inset-0 bg-black bg-opacity-50 backdrop-blur-sm z-10"></div>
+        <img 
+          src="/delivery-courier.jpg"
+          alt="Delivery courier" 
+          className="absolute inset-0 w-full h-full object-cover"
+        />
+        {/* Content overlay */}
+        <div className="absolute inset-0 flex flex-col justify-center items-start z-20 p-12">
+          <div className="max-w-xl">
+            <h2 className="text-4xl font-bold text-white mb-6">Join Restroman Today</h2>
+            <p className="text-white/90 text-lg mb-8">
+              Get access to exclusive restaurants and enjoy premium food delivery right to your door. Sign up now and get 20% off your first order.
+            </p>
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-8">
+              <div className="bg-black/30 backdrop-blur-sm p-4 rounded-lg">
+                <h3 className="text-foodyman-lime font-bold text-xl mb-2">Fast Delivery</h3>
+                <p className="text-white/80">Get your food delivered within 30 minutes of ordering</p>
+              </div>
+              <div className="bg-black/30 backdrop-blur-sm p-4 rounded-lg">
+                <h3 className="text-foodyman-lime font-bold text-xl mb-2">Premium Selection</h3>
+                <p className="text-white/80">Access to high-quality restaurants curated just for you</p>
+              </div>
+              <div className="bg-black/30 backdrop-blur-sm p-4 rounded-lg">
+                <h3 className="text-foodyman-lime font-bold text-xl mb-2">Loyalty Rewards</h3>
+                <p className="text-white/80">Earn points with every order that can be redeemed for discounts</p>
+              </div>
+              <div className="bg-black/30 backdrop-blur-sm p-4 rounded-lg">
+                <h3 className="text-foodyman-lime font-bold text-xl mb-2">Exclusive Offers</h3>
+                <p className="text-white/80">Get access to special promotions and restaurant deals</p>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>

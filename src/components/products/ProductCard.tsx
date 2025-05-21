@@ -1,5 +1,5 @@
 import React from "react";
-import { Product, BASE_URL } from "@/services/api";
+import { Product } from "@/services/api";
 import { useCart } from "@/context/CartContext";
 import { Minus, Plus } from "lucide-react";
 
@@ -22,29 +22,29 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
     return images[0];
   };
 
-  {console.log("product",product)}
-
   return (
-    <div className="bg-white rounded-lg shadow-sm border overflow-hidden transition-shadow">
-      <div className="relative ">
+    <div className="bg-white rounded-lg border border-gray-300 shadow-sm overflow-hidden transition-all hover:shadow-md">
+      <div className="relative">
         <img
           src={getFirstImageUrl(product.images)}
           alt={product.name}
-          className="w-full h-[30vh] object-cover"
+          className="w-full h-48 object-cover"
         />
-        <div className="absolute top-2 right-2 bg-white/90 backdrop-blur-sm px-2 py-1 rounded-full text-xs font-medium">
+        <div className="absolute top-2 right-2 bg-[#e8f5e9] px-2 py-1 rounded-full text-xs font-medium text-[#2e7d32]">
           {getCategoryName(product.category)}
         </div>
       </div>
       <div className="p-4">
-        <h3 className="font-medium text-gray-900">{product.name}</h3>
-        <p className="text-sm text-gray-500 mt-1 line-clamp-2">{product.description}</p>
-        <div className="mt-2 flex items-center justify-between">
-          <span className="text-lg font-semibold">${product.price.toFixed(2)}</span>
+        <h3 className="font-medium text-black">{product.name}</h3>
+        <p className="text-sm text-gray-700 mt-1 line-clamp-2">{product.description}</p>
+        <div className="mt-4 flex items-center justify-between">
+          <span className="text-lg font-bold text-black">
+            ${product.price.toFixed(2)}
+          </span>
           {quantity === 0 ? (
             <button 
               onClick={() => addToCart(product)}
-              className="bg-green-600 text-white px-4 py-2 rounded-md text-sm hover:bg-green-600/90 transition-colors"
+              className="bg-[#4caf50] text-white px-4 py-2 rounded-lg hover:bg-[#2e7d32] transition-colors"
             >
               Add to Cart
             </button>
@@ -52,14 +52,16 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
             <div className="flex items-center gap-2">
               <button 
                 onClick={() => updateQuantity(product.id, quantity - 1)}
-                className="w-8 h-8 flex items-center justify-center border border-gray-300 rounded-full hover:bg-gray-100"
+                className="w-8 h-8 flex items-center justify-center border-2 border-[#4caf50] rounded-full hover:bg-[#e8f5e9] text-[#2e7d32] transition-colors"
+                aria-label="Decrease quantity"
               >
                 <Minus size={16} />
               </button>
-              <span className="w-8 text-center font-medium">{quantity}</span>
+              <span className="w-8 text-center font-medium text-[#2e7d32]">{quantity}</span>
               <button 
                 onClick={() => updateQuantity(product.id, quantity + 1)}
-                className="w-8 h-8 flex items-center justify-center border border-gray-300 rounded-full hover:bg-gray-100"
+                className="w-8 h-8 flex items-center justify-center border-2 border-[#4caf50] rounded-full hover:bg-[#e8f5e9] text-[#2e7d32] transition-colors"
+                aria-label="Increase quantity"
               >
                 <Plus size={16} />
               </button>
@@ -67,7 +69,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
           )}
         </div>
         {product.calorificValue && (
-          <div className="mt-2 text-xs text-gray-500">
+          <div className="text-xs text-gray-700">
             {product.calorificValue} kcal
           </div>
         )}
