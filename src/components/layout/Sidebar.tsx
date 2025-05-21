@@ -8,6 +8,10 @@ interface SidebarProps {
 }
 
 const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
+  const handleLinkClick = () => {
+    onClose();
+  };
+
   return (
     <>
       {/* Overlay */}
@@ -43,7 +47,11 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
             <div className="py-4">
               {/* Menu Items */}
               <div className="px-4 pb-4">
-                <Link to="/liked" className="flex items-center justify-between py-3 border-b">
+                <Link 
+                  to="/liked" 
+                  className="flex items-center justify-between py-3 border-b"
+                  onClick={handleLinkClick}
+                >
                   <div className="flex items-center gap-3">
                     <Heart size={24} />
                     <span>Liked</span>
@@ -53,7 +61,11 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
                   </div>
                 </Link>
                 
-                <Link to="/languages" className="flex items-center justify-between py-3 border-b">
+                <Link 
+                  to="/languages" 
+                  className="flex items-center justify-between py-3 border-b"
+                  onClick={handleLinkClick}
+                >
                   <div className="flex items-center gap-3">
                     <Globe size={24} />
                     <span>Languages</span>
@@ -63,7 +75,11 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
                   </div>
                 </Link>
                 
-                <Link to="/currency" className="flex items-center justify-between py-3 border-b">
+                <Link 
+                  to="/currency" 
+                  className="flex items-center justify-between py-3 border-b"
+                  onClick={handleLinkClick}
+                >
                   <div className="flex items-center gap-3">
                     <CreditCard size={24} />
                     <span>Currency</span>
@@ -76,10 +92,18 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
 
               {/* Buttons */}
               <div className="px-4 mt-4 space-y-3">
-                <Link to="/signup" className="flex justify-center items-center bg-gray-800 text-white py-3 px-4 rounded-md font-medium w-full">
+                <Link 
+                  to="/signup" 
+                  className="flex justify-center items-center bg-gray-800 text-white py-3 px-4 rounded-md font-medium w-full"
+                  onClick={handleLinkClick}
+                >
                   Sign up
                 </Link>
-                <Link to="/login" className="flex justify-center items-center border border-gray-300 text-gray-800 py-3 px-4 rounded-md font-medium w-full">
+                <Link 
+                  to="/login" 
+                  className="flex justify-center items-center border border-gray-300 text-gray-800 py-3 px-4 rounded-md font-medium w-full"
+                  onClick={handleLinkClick}
+                >
                   Login
                 </Link>
               </div>

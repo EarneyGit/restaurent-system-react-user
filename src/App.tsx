@@ -13,6 +13,8 @@ import OffersPage from './pages/OffersPage';
 import SpecialAboutPage from './pages/SpecialAboutPage';
 import OutletSelectionPage from './pages/OutletSelectionPage';
 import LikedProductsPage from './pages/LikedProductsPage';
+import ScrollToTop from './components/utils/ScrollToTop';
+import './styles/globals.css';
 
 // Protected route component
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
@@ -27,6 +29,7 @@ const App = () => {
   return (
     <BrowserRouter>
       <CartProvider>
+        <ScrollToTop />
         <Routes>
           {/* Auth Routes */}
           <Route path="/login" element={<LoginPage />} />
