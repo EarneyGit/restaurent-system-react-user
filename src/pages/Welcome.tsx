@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Store, Info, MapPin, User } from "lucide-react";
 
@@ -6,7 +6,7 @@ const Welcome = () => {
   const navigate = useNavigate();
 
   return (
-    <div className="min-h-screen relative xl:pt-10  md:pt-5 pt-3 font-sans">
+    <div className="min-h-screen relative xl:pt-10 md:pt-5 pt-3 font-sans">
       {/* Background Layer */}
       <div className="absolute inset-0">
         <img
@@ -20,7 +20,7 @@ const Welcome = () => {
       {/* Hero Content */}
       <div className="relative flex flex-col items-center justify-center min-h-[80vh] p-6 animate-fade-in">
         {/* Logo */}
-        <div className="w-48 h-48 mb-8 relative">
+        <div className="md:w-48 md:h-48 w-40 h-40 mb-8 relative">
           <div className="absolute inset-0 bg-green-700/20 rounded-full blur-xl"></div>
           <svg viewBox="0 0 200 200" className="w-full h-full relative">
             <defs>

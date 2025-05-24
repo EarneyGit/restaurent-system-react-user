@@ -17,7 +17,7 @@ const Layout = () => {
       </main>
       {!isAuthPage && !isReservationPage && (
         <>
-          <BottomNavigation />
+          {/* <BottomNavigation /> */}
           <Footer />
         </>
       )}

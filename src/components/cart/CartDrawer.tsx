@@ -1,6 +1,8 @@
 import React from 'react';
-import { X, Trash2, Plus, Minus } from 'lucide-react';
+import { X, Trash2, Plus, Minus, UtensilsCrossed } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
+import { useAuth } from '@/context/AuthContext';
+import { useNavigate } from 'react-router-dom';
 import EmptyState from '../shared/EmptyState';
 
 interface CartDrawerProps {
@@ -8,10 +10,47 @@ interface CartDrawerProps {
   onClose: () => void;
 }
 
+const FoodPlaceholderSVG = () => (
+  <svg 
+    viewBox="0 0 24 24" 
+    fill="none" 
+    className="w-12 h-12 mx-auto text-gray-400"
+    stroke="currentColor" 
+    strokeWidth="1.5"
+  >
+    <path 
+      strokeLinecap="round" 
+      strokeLinejoin="round" 
+      d="M18.35 19.85a9.5 9.5 0 1 1 0-15.7"
+    />
+    <path 
+      strokeLinecap="round" 
+      strokeLinejoin="round" 
+      d="M12 6v12M15 8v8M9 8v8"
+    />
+    <path 
+      strokeLinecap="round" 
+      strokeLinejoin="round" 
+      d="M3.5 12h17"
+    />
+  </svg>
+);
+
 const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
   const { cartItems, removeFromCart, updateQuantity, getCartTotal } = useCart();
+  const { isAuthenticated } = useAuth();
+  const navigate = useNavigate();
 
   if (!isOpen) return null;
+
+  const handleCheckout = () => {
+    onClose(); // Close the drawer first
+    if (!isAuthenticated) {
+      navigate('/login');
+    } else {
+      navigate('/checkout');
+    }
+  };
 
   return (
     <div className="fixed inset-0 z-50 overflow-hidden">
@@ -21,7 +60,7 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
         onClick={onClose}
         style={{ opacity: isOpen ? 1 : 0 }}
       />
-      
+
       {/* Drawer with transition */}
       <div 
         className={`fixed top-0 right-0 w-full md:w-[400px] h-[80vh] rounded-xl md:m-3 bg-white shadow-xl transform transition-transform duration-300 ease-in-out ${
@@ -32,7 +71,7 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
           {/* Header */}
           <div className="flex justify-between items-center p-4 border-b border-gray-300">
             <h2 className="text-xl font-semibold">Your Cart</h2>
-            <button 
+            <button
               onClick={onClose}
               className="rounded-full p-2 hover:bg-gray-100 transition-colors"
               aria-label="Close"
@@ -40,7 +79,7 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
               <X size={20} />
             </button>
           </div>
-          
+
           {/* Cart Items */}
           <div className="flex-grow overflow-y-auto">
             {cartItems.length === 0 ? (
@@ -57,14 +96,24 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
                 <ul className="space-y-4">
                   {cartItems.map((item) => (
                     <li key={`${item.id}-${JSON.stringify(item.selectedOptions)}`} className="flex border-b border-gray-300 pb-4">
-                      <div className="h-20 w-20 flex-shrink-0 overflow-hidden rounded-lg bg-gray-100">
-                        <img
-                          src={item.images && item.images.length > 0 ? item.images[0] : '/placeholder-food.jpg'}
-                          alt={item.name}
-                          className="h-full w-full object-cover object-center"
-                        />
+                      <div className="h-20 w-20 flex-shrink-0 overflow-hidden rounded-lg bg-gray-50 flex items-center justify-center">
+                        {item.images && item.images.length > 0 && item.images[0] ? (
+                          <img
+                            src={item.images[0]}
+                            alt={item.name}
+                            className="h-full w-full object-cover object-center"
+                            onError={(e) => {
+                              const target = e.target as HTMLImageElement;
+                              target.style.display = 'none';
+                              target.parentElement?.classList.add('bg-gray-100');
+                              target.parentElement?.appendChild(document.createElement('div')).appendChild(FoodPlaceholderSVG());
+                            }}
+                          />
+                        ) : (
+                          <FoodPlaceholderSVG />
+                        )}
                       </div>
-                      
+
                       <div className="ml-4 flex flex-1 flex-col">
                         <div className="flex justify-between text-base font-medium">
                           <h3>{item.name}</h3>
@@ -123,7 +172,7 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
               </div>
             )}
           </div>
-          
+
           {/* Footer - Order Summary */}
           {cartItems.length > 0 && (
             <div className="border-t border-gray-200 p-4 bg-gray-50">
@@ -142,8 +191,11 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
                 </div>
               </div>
               
-              <button className="w-full bg-green-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-foodyman-lime/80 transition-colors">
-                Proceed to Checkout
+              <button
+                onClick={handleCheckout}
+                className="w-full bg-green-600 text-white py-3 px-4 rounded-lg font-medium hover:opacity-90 transition-opacity"
+              >
+                {isAuthenticated ? 'Proceed to Checkout' : 'Proceed to Checkout'}
               </button>
             </div>
           )}

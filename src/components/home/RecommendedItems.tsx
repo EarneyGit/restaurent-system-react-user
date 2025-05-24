@@ -1,150 +1,270 @@
-import React, { useState } from "react";
-import { ArrowRight, BaggageClaim } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { ArrowRight, Heart, Minus, Plus, Loader2 } from "lucide-react";
 import { Link } from "react-router-dom";
-import ProductOptionsModal from "../modals/ProductOptionsModal";
+import { useCart } from "@/context/CartContext";
+import { toast } from "sonner";
+import { Product as BaseProduct, getProducts } from "@/services/api";
 
-interface ProductProps {
+interface Product extends Omit<BaseProduct, 'category' | 'id'> {
+  originalPrice?: number;
+  category: string;
   id: string;
-  name: string;
-  color: string;
-  description: string;
-  price: number;
 }
 
-const ProductCard: React.FC<ProductProps> = ({
-  id,
-  name,
-  color,
-  description,
-  price,
-}) => {
-  const [isOptionsModalOpen, setIsOptionsModalOpen] = useState(false);
+const API_URL = (import.meta.env.VITE_API_URL || 'http://localhost:5000').replace(/\/?$/, '/');
 
-  // Sample product options - you can replace these with actual product options
-  const productOptions = [
-    {
-      id: "size",
-      name: "Size",
-      choices: [
-        { id: "small", name: "Small", price: 0 },
-        { id: "medium", name: "Medium", price: 2 },
-        { id: "large", name: "Large", price: 4 },
-      ],
-    },
-    {
-      id: "extras",
-      name: "Extra Toppings",
-      choices: [
-        { id: "cheese", name: "Extra Cheese", price: 1.5 },
-        { id: "sauce", name: "Special Sauce", price: 1 },
-        { id: "spicy", name: "Make it Spicy", price: 0.5 },
-      ],
-    },
-  ];
+const VariantPlaceholderSVG = ({ color }: { color: string }) => (
+  <svg 
+    viewBox="0 0 40 40" 
+    className="w-full h-full p-2"
+    xmlns="http://www.w3.org/2000/svg"
+  >
+    <rect width="40" height="40" fill="#f3f4f6" />
+    <path
+      d="M20 10 L30 20 L20 30 L10 20 Z"
+      fill={color.toLowerCase()}
+      stroke="#9ca3af"
+      strokeWidth="1"
+    />
+    <circle
+      cx="20"
+      cy="20"
+      r="6"
+      fill="white"
+      stroke="#9ca3af"
+      strokeWidth="1"
+    />
+  </svg>
+);
 
-  const handleAddToCart = (selectedOptions: Record<string, string>, specialRequirements: string) => {
-    // Calculate additional cost from selected options
-    const additionalCost = Object.entries(selectedOptions).reduce((total, [optionId, choiceId]) => {
-      const option = productOptions.find(opt => opt.id === optionId);
-      const choice = option?.choices.find(c => c.id === choiceId);
-      return total + (choice?.price || 0);
-    }, 0);
+const ProductCard: React.FC<{ product: Product }> = ({ product }) => {
+  const [selectedVariant, setSelectedVariant] = useState(0);
+  const [quantity, setQuantity] = useState(1);
+  const { addToCart, updateCartItemQuantity, cartItems } = useCart();
+  const [imageError, setImageError] = useState(false);
+  const [isAddingToCart, setIsAddingToCart] = useState(false);
 
-    // Create a modified product with selected options and special requirements
-    const modifiedProduct = {
-      id,
-      name,
-      price: price + additionalCost,
-      selectedOptions,
-      specialRequirements,
-    };
+  // Check if product is in cart
+  const cartItem = cartItems.find(item => item.id === product.id);
+  const isInCart = Boolean(cartItem);
 
-    // Here you would typically call your cart context's addToCart function
-    console.log('Adding to cart:', modifiedProduct);
+  const getImageUrl = (url: string | undefined): string | null => {
+    if (!url) return null;
+    try {
+      if (url.startsWith('http')) return url;
+      const cleanUrl = url.trim()
+        .replace(/^\/+/, '')
+        .replace(/\\/g, '/');
+      return `${API_URL}${cleanUrl}`;
+    } catch (error) {
+      console.error('Error processing image URL:', error);
+      return null;
+    }
   };
 
+  const handleQuantityChange = async (newQuantity: number) => {
+    if (isInCart && cartItem) {
+      try {
+        await updateCartItemQuantity(cartItem.id, newQuantity);
+        toast.success('Cart updated');
+      } catch (error) {
+        console.error('Error updating cart:', error);
+        toast.error('Failed to update cart');
+      }
+    } else {
+      setQuantity(newQuantity);
+    }
+  };
+
+  const handleAddToCart = async () => {
+    try {
+      setIsAddingToCart(true);
+      await addToCart({ ...product, quantity });
+      toast.success('Added to cart');
+    } catch (error) {
+      console.error('Error adding to cart:', error);
+      toast.error('Failed to add item to cart');
+    } finally {
+      setIsAddingToCart(false);
+    }
+  };
+
+  const imageUrl = getImageUrl(product.images?.[selectedVariant]);
+  const hasMultipleImages = (product.images?.length || 0) > 1;
+
   return (
-    <>
-      <div className="bg-white rounded-lg overflow-hidden shadow-sm">
-        <div className="relative">
-          <div className={`w-full h-[150px] ${color}`}></div>
-        </div>
-        <div className="p-4">
-          <h3 className="font-medium mb-1">{name}</h3>
-          <p className="text-xs text-gray-500 mb-3">{description}</p>
-          <div className="flex justify-between items-center">
-            <span className="font-semibold">${price.toFixed(2)}</span>
-            <button 
-              onClick={() => setIsOptionsModalOpen(true)}
-              className="bg-green-600 text-white px-4 py-2 rounded-lg transition-colors flex items-center gap-2"
-            >
-              <BaggageClaim size={18} />
-              <span>Add</span>
-            </button>
+    <div className="bg-white rounded-3xl overflow-hidden border border-gray-200 shadow-sm hover:shadow-md transition-all duration-300 relative flex flex-col h-full">
+      {/* Category Badge */}
+      <div className="absolute top-5 left-4 z-10">
+        <span className="px-3 py-1 bg-neutral-900 text-white rounded-full text-xs font-medium">
+          {product.category}
+        </span>
+      </div>
+
+      {/* Main Image */}
+      <div className="relative h-[200px] rounded-lg bg-gray-50">
+        {imageUrl && !imageError ? (
+          <img
+            src={imageUrl}
+            alt={product.name}
+            className="w-full p-3 rounded-xl  h-full object-cover"
+            onError={() => setImageError(true)}
+          />
+        ) : (
+          <div className="w-full h-full bg-gray-100 flex items-center justify-center">
+            <svg className="w-12 h-12 text-gray-400" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M12 2C6.477 2 2 6.477 2 12C2 17.523 6.477 22 12 22C17.523 22 22 17.523 22 12C22 6.477 17.523 2 12 2Z" fill="currentColor" fillOpacity="0.2"/>
+              <path d="M15 8H9C7.895 8 7 8.895 7 10V14C7 15.105 7.895 16 9 16H15C16.105 16 17 15.105 17 14V10C17 8.895 16.105 8 15 8Z" fill="currentColor"/>
+            </svg>
           </div>
+        )}
+      </div>
+
+      {/* Variants - Only show if multiple images exist */}
+      {hasMultipleImages && (
+        <div className="flex gap-2 p-2 overflow-x-auto bg-white border-t border-gray-100">
+          {product.images?.map((image, index) => {
+            const variantImageUrl = getImageUrl(image);
+            return (
+              <button
+                key={index}
+                onClick={() => setSelectedVariant(index)}
+                className={`flex-shrink-0 w-12 h-12 rounded-lg border transition-all ${
+                  selectedVariant === index 
+                    ? 'border-2 border-gray-900' 
+                    : 'border border-gray-200'
+                }`}
+              >
+                {variantImageUrl ? (
+                  <img
+                    src={variantImageUrl}
+                    alt={`${product.name} variant ${index + 1}`}
+                    className="w-full h-full object-cover rounded-lg"
+                  />
+                ) : (
+                  <VariantPlaceholderSVG color="#9ca3af" />
+                )}
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Product Info */}
+      <div className="flex-1 p-4">
+        <h3 className="font-medium text-gray-900">{product.name}</h3>
+        <div className="flex items-baseline gap-2 mt-1">
+          <span className="font-bold text-lg">${product.price.toFixed(2)}</span>
+          {product.originalPrice && (
+            <span className="text-sm text-gray-400 line-through">
+              ${product.originalPrice.toFixed(2)}
+            </span>
+          )}
         </div>
       </div>
 
-      <ProductOptionsModal
-        isOpen={isOptionsModalOpen}
-        onClose={() => setIsOptionsModalOpen(false)}
-        onAddToCart={handleAddToCart}
-        productName={name}
-        options={productOptions}
-      />
-    </>
+      {/* Sticky Cart Controls */}
+      <div className="sticky bottom-0 left-0 right-0 p-4 bg-white border-t border-gray-100">
+        {isInCart ? (
+          <div className="w-full bg-gray-100 rounded-xl flex items-center">
+            <button
+              onClick={() => handleQuantityChange(Math.max(1, (cartItem?.quantity || 1) - 1))}
+              className="p-3 hover:text-gray-700 text-gray-500 flex-shrink-0"
+              disabled={cartItem?.quantity === 1}
+            >
+              <Minus size={20} />
+            </button>
+            <span className="flex-1 text-center font-medium">{cartItem?.quantity || 1}</span>
+            <button
+              onClick={() => handleQuantityChange((cartItem?.quantity || 1) + 1)}
+              className="p-3 hover:text-gray-700 text-gray-500 flex-shrink-0"
+            >
+              <Plus size={20} />
+            </button>
+          </div>
+        ) : (
+          <button
+            onClick={handleAddToCart}
+            disabled={isAddingToCart}
+            className="w-full bg-gray-900 text-white py-3 rounded-xl font-medium hover:bg-gray-800 transition-colors flex items-center justify-center gap-2"
+          >
+            {isAddingToCart ? (
+              <>
+                <Loader2 size={20} className="animate-spin" />
+                Adding...
+              </>
+            ) : (
+              'Add to Cart'
+            )}
+          </button>
+        )}
+      </div>
+    </div>
   );
 };
 
 const RecommendedItems = () => {
-  const items = [
-    {
-      id: "1",
-      name: "Classic Cheesecake",
-      color: "bg-gradient-to-r from-yellow-100 to-yellow-200",
-      description: "Rich and creamy New York style cheesecake",
-      price: 12.99,
-    },
-    {
-      id: "2",
-      name: "Chocolate Truffle",
-      color: "bg-gradient-to-r from-brown-100 to-brown-200",
-      description: "Decadent chocolate truffle cake",
-      price: 15.99,
-    },
-    {
-      id: "3",
-      name: "Strawberry Shortcake",
-      color: "bg-gradient-to-r from-red-100 to-red-200",
-      description: "Light and fluffy with fresh strawberries",
-      price: 14.99,
-    },
-    {
-      id: "4",
-      name: "Matcha Green Tea",
-      color: "bg-gradient-to-r from-green-100 to-green-200",
-      description: "Japanese inspired matcha cake",
-      price: 16.99,
-    },
-  ];
+  const [products, setProducts] = useState<Product[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        setIsLoading(true);
+        const response = await getProducts();
+        // Transform the response to match our Product interface
+        const transformedProducts: Product[] = response.map(product => ({
+          ...product,
+          id: String(product.id), // Convert id to string
+          category: typeof product.category === 'string' 
+            ? product.category 
+            : product.category.name
+        }));
+        setProducts(transformedProducts);
+      } catch (error) {
+        console.error('Error fetching products:', error);
+        setError('Failed to load products');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchProducts();
+  }, []);
+
+  if (isLoading) {
+    return (
+      <div className="mt-10 flex justify-center items-center min-h-[200px]">
+        <Loader2 size={40} className="animate-spin text-gray-500" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="mt-10 text-center text-red-500">
+        {error}
+      </div>
+    );
+  }
 
   return (
-    <div className="my-8">
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="text-xl font-bold">Recommended</h2>
-        <Link
-          to="/all-recommended"
-          className="flex items-center gap-1 text-sm text-gray-500"
-        >
+    <div className="mt-10">
+      <div className="px-4 flex justify-between items-center mb-6">
+        <h2 className="text-2xl font-bold text-neutral-800">Recommended Products</h2>
+        <Link to="/products/All" className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700">
           <span>See all</span>
           <ArrowRight size={16} />
         </Link>
       </div>
-
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 px-4">
-        {items.map((item) => (
-          <ProductCard key={item.id} {...item} />
-        ))}
+      
+      <div className="px-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          {products.map(product => (
+            <ProductCard key={product.id} product={product} />
+          ))}
+        </div>
       </div>
     </div>
   );

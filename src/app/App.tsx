@@ -3,15 +3,19 @@ import { BrowserRouter } from "react-router-dom";
 import AppRoutes from "@/routes";
 import { CartProvider } from "@/context/CartContext";
 import "@/App.css";
+import { Toaster } from "sonner";
 
 const App = () => {
   return (
-    <BrowserRouter>
-      <CartProvider>
-        <AppRoutes />
-      </CartProvider>
-    </BrowserRouter>
+    <>
+      <Toaster position="bottom-right" expand={true} />
+      <BrowserRouter>
+        <CartProvider>
+          <AppRoutes />
+        </CartProvider>
+      </BrowserRouter>
+    </>
   );
 };
 
-export default App; 
+export default App;

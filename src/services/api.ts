@@ -1,7 +1,7 @@
 import axios, { AxiosError } from 'axios';
 
 export const BASE_URL = 'http://localhost:5000';
-const API_URL = `${BASE_URL}/api`;
+export const API_URL = `${BASE_URL}/api`;
 
 // Types
 export interface CategoryReference {
@@ -27,20 +27,19 @@ export interface Category {
 }
 
 export interface Product {
-  _id?: string;
-  id: string;
+  id: string | number;
   name: string;
   description: string;
   price: number;
-  category: string | CategoryReference;
-  hideItem: boolean;
-  delivery: boolean;
-  collection: boolean;
-  dineIn: boolean;
-  weight: string;
-  calorificValue: number;
-  calorieDetails: string;
-  images: string[];
+  originalPrice?: number;
+  images?: string[];
+  category?: string | { id: string | number; name: string };
+  calorificValue?: string | number;
+  brand?: string;
+  rating?: number;
+  selectedOptions?: Record<string, string>;
+  specialRequirements?: string;
+  quantity?: number;
 }
 
 interface ApiResponse<T> {
@@ -100,37 +99,38 @@ export const getCategories = async (): Promise<Category[]> => {
   }
 };
 
-export const getProducts = async (categoryId?: string): Promise<Product[]> => {
+export const getProducts = async (): Promise<Product[]> => {
   try {
-    const url = new URL(`${API_URL}/products`);
-    if (categoryId && categoryId !== 'All') {
-      url.searchParams.append('category', categoryId);
-    }
+    const url = new URL(`${BASE_URL}/api/products`);
+    console.log('Fetching all products from URL:', url.toString());
 
     const response = await axios.get<ApiResponse<Product[]>>(url.toString());
+    console.log('API Response:', response.data);
+
     if (!response.data.success) {
       throw new Error(response.data.message || 'Failed to fetch products');
     }
 
-    console.log('Raw products:', response.data.data);
-
-    // Fix image URLs in products and ensure category is properly handled
-    const productsWithFixedUrls = response.data.data.map(product => {
-      const cleanProduct = {
+    // Clean and normalize the products data
+    const cleanedProducts = response.data.data.map(product => {
+      console.log('Processing product:', product);
+      return {
         ...product,
-        category: typeof product.category === 'object' 
-          ? product.category.name 
-          : String(product.category),
+        // Ensure category is properly handled
+        category: typeof product.category === 'object' && product.category !== null
+          ? product.category
+          : { id: 'unknown', name: String(product.category) },
+        // Clean up image URLs - preserve the full path structure
         images: (product.images || []).map(img => 
-          img.startsWith('http') ? img : `${BASE_URL}${img}`
+          img.startsWith('http') ? img : img.trim().replace(/^\/+/, '')
         )
       };
-      console.log('Cleaned product:', cleanProduct);
-      return cleanProduct;
     });
 
-    return productsWithFixedUrls;
+    console.log('Cleaned products:', cleanedProducts);
+    return cleanedProducts;
   } catch (error) {
+    console.error('Error in getProducts:', error);
     if (error instanceof AxiosError) {
       throw new Error(`Failed to fetch products: ${error.response?.data?.message || error.message}`);
     }

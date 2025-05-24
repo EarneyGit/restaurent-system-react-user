@@ -47,7 +47,7 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
             <div className="py-4">
               {/* Menu Items */}
               <div className="px-4 pb-4">
-                <Link 
+                {/* <Link 
                   to="/liked" 
                   className="flex items-center justify-between py-3 border-b"
                   onClick={handleLinkClick}
@@ -59,7 +59,7 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
                   <div className="text-gray-400">
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-chevron-right"><path d="m9 18 6-6-6-6"/></svg>
                   </div>
-                </Link>
+                </Link> */}
                 
                 <Link 
                   to="/languages" 

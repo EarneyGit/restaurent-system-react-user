@@ -1,140 +1,205 @@
 import React, { useState } from "react";
 import { Product } from "@/services/api";
 import { useCart } from "@/context/CartContext";
-import { BaggageClaim, Minus, Plus } from "lucide-react";
-import ProductOptionsModal from "../modals/ProductOptionsModal";
+import { Minus, Plus, Loader2 } from "lucide-react";
+import { toast } from "sonner";
 
 interface ProductCardProps {
   product: Product;
 }
 
+const VariantPlaceholderSVG = ({ color }: { color: string }) => (
+  <svg 
+    viewBox="0 0 40 40" 
+    className="w-full h-full p-2"
+    xmlns="http://www.w3.org/2000/svg"
+  >
+    <rect width="40" height="40" fill="#f3f4f6" />
+    <path
+      d="M20 10 L30 20 L20 30 L10 20 Z"
+      fill={color.toLowerCase()}
+      stroke="#9ca3af"
+      strokeWidth="1"
+    />
+    <circle
+      cx="20"
+      cy="20"
+      r="6"
+      fill="white"
+      stroke="#9ca3af"
+      strokeWidth="1"
+    />
+  </svg>
+);
+
 const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
-  const { addToCart, updateQuantity, getItemQuantity } = useCart();
-  const quantity = getItemQuantity(product.id);
-  const [isOptionsModalOpen, setIsOptionsModalOpen] = useState(false);
+  const [selectedVariant, setSelectedVariant] = useState(0);
+  const [quantity, setQuantity] = useState(1);
+  const { addToCart, updateCartItemQuantity, cartItems } = useCart();
+  const [imageError, setImageError] = useState(false);
+  const [isAddingToCart, setIsAddingToCart] = useState(false);
 
-  // Sample product options - you can replace these with actual product options
-  const productOptions = [
-    {
-      id: "size",
-      name: "Size",
-      choices: [
-        { id: "small", name: "Small", price: 0 },
-        { id: "medium", name: "Medium", price: 2 },
-        { id: "large", name: "Large", price: 4 },
-      ],
-    },
-    {
-      id: "extras",
-      name: "Extra Toppings",
-      choices: [
-        { id: "cheese", name: "Extra Cheese", price: 1.5 },
-        { id: "sauce", name: "Special Sauce", price: 1 },
-        { id: "spicy", name: "Make it Spicy", price: 0.5 },
-      ],
-    },
-  ];
+  // Check if product is in cart
+  const cartItem = cartItems.find(item => item.id === String(product.id));
+  const isInCart = Boolean(cartItem);
 
-  // Helper function to get category name
-  const getCategoryName = (category: string | { name: string }): string => {
-    return typeof category === "object" ? category.name : category;
+  // Get the API URL from environment variable and ensure it ends with a slash
+  const API_URL = (import.meta.env.VITE_API_URL || 'http://localhost:5000').replace(/\/?$/, '/');
+
+  const getImageUrl = (url: string | undefined): string | null => {
+    if (!url) return null;
+    try {
+      if (url.startsWith('http')) return url;
+      const cleanUrl = url.trim()
+        .replace(/^\/+/, '')
+        .replace(/\\/g, '/');
+      return `${API_URL}${cleanUrl}`;
+    } catch (error) {
+      console.error('Error processing image URL:', error);
+      return null;
+    }
   };
 
-  // Helper function to get first image URL
-  const getFirstImageUrl = (images: string[]): string => {
-    if (!images || !images.length) return "/placeholder.svg";
-    return images[0];
+  const handleQuantityChange = async (newQuantity: number) => {
+    if (isInCart && cartItem) {
+      try {
+        await updateCartItemQuantity(String(cartItem.id), newQuantity);
+        toast.success('Cart updated');
+      } catch (error) {
+        console.error('Error updating cart:', error);
+        toast.error('Failed to update cart');
+      }
+    } else {
+      setQuantity(newQuantity);
+    }
   };
 
-  const handleAddToCart = (selectedOptions: Record<string, string>, specialRequirements: string) => {
-    // Calculate additional cost from selected options
-    const additionalCost = Object.entries(selectedOptions).reduce((total, [optionId, choiceId]) => {
-      const option = productOptions.find(opt => opt.id === optionId);
-      const choice = option?.choices.find(c => c.id === choiceId);
-      return total + (choice?.price || 0);
-    }, 0);
-
-    // Create a modified product with selected options and special requirements
-    const modifiedProduct = {
-      ...product,
-      price: product.price + additionalCost,
-      selectedOptions,
-      specialRequirements,
-    };
-
-    addToCart(modifiedProduct);
+  const handleAddToCart = async () => {
+    try {
+      setIsAddingToCart(true);
+      await addToCart({ ...product, quantity });
+      toast.success('Added to cart');
+    } catch (error) {
+      console.error('Error adding to cart:', error);
+      toast.error('Failed to add item to cart');
+    } finally {
+      setIsAddingToCart(false);
+    }
   };
+
+  const imageUrl = getImageUrl(product.images?.[selectedVariant]);
+  const hasMultipleImages = (product.images?.length || 0) > 1;
+  const category = typeof product.category === 'string' ? product.category : product.category?.name || '';
 
   return (
-    <>
-      <div className="bg-white rounded-lg border border-gray-300 shadow-sm overflow-hidden transition-all hover:shadow-md">
-        <div className="relative">
+    <div className="bg-white rounded-3xl overflow-hidden border border-gray-200 shadow-sm hover:shadow-md transition-all duration-300 relative flex flex-col h-full">
+      {/* Category Badge */}
+      <div className="absolute top-5 left-4 z-10">
+        <span className="px-3 py-1 bg-neutral-900 text-white rounded-full text-xs font-medium">
+          {category}
+        </span>
+      </div>
+
+      {/* Main Image */}
+      <div className="relative h-[200px] rounded-lg bg-gray-50">
+        {imageUrl && !imageError ? (
           <img
-            src={getFirstImageUrl(product.images)}
+            src={imageUrl}
             alt={product.name}
-            className="w-full h-48 object-cover"
+            className="w-full p-3 rounded-xl h-full object-cover"
+            onError={() => setImageError(true)}
           />
-          <div className="absolute top-2 right-2 bg-[#e8f5e9] px-2 py-1 rounded-full text-xs font-medium text-black/80">
-            {getCategoryName(product.category)}
+        ) : (
+          <div className="w-full h-full bg-gray-100 flex items-center justify-center">
+            <svg className="w-12 h-12 text-gray-400" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M12 2C6.477 2 2 6.477 2 12C2 17.523 6.477 22 12 22C17.523 22 22 17.523 22 12C22 6.477 17.523 2 12 2Z" fill="currentColor" fillOpacity="0.2"/>
+              <path d="M15 8H9C7.895 8 7 8.895 7 10V14C7 15.105 7.895 16 9 16H15C16.105 16 17 15.105 17 14V10C17 8.895 16.105 8 15 8Z" fill="currentColor"/>
+            </svg>
           </div>
-        </div>
-        
-        <div className="p-4">
-          <h3 className="font-medium text-black">{product.name}</h3>
-          <p className="text-sm text-gray-700 mt-1 line-clamp-2">
-            {product.description}
-          </p>
-          <div className="mt-4 flex items-center justify-between">
-            <span className="text-lg font-bold text-black">
-              ${product.price.toFixed(2)}
-            </span>
-            {quantity === 0 ? (
+        )}
+      </div>
+
+      {/* Variants - Only show if multiple images exist */}
+      {hasMultipleImages && (
+        <div className="flex gap-2 p-2 overflow-x-auto bg-white border-t border-gray-100">
+          {product.images?.map((image, index) => {
+            const variantImageUrl = getImageUrl(image);
+            return (
               <button
-                onClick={() => setIsOptionsModalOpen(true)}
-                className="bg-green-600 text-white px-4 py-2 rounded-lg transition-colors flex items-center gap-2"
+                key={index}
+                onClick={() => setSelectedVariant(index)}
+                className={`flex-shrink-0 w-12 h-12 rounded-lg border transition-all ${
+                  selectedVariant === index 
+                    ? 'border-2 border-gray-900' 
+                    : 'border border-gray-200'
+                }`}
               >
-                <BaggageClaim size={18} />
-                <span>Add</span>
+                {variantImageUrl ? (
+                  <img
+                    src={variantImageUrl}
+                    alt={`${product.name} variant ${index + 1}`}
+                    className="w-full h-full object-cover rounded-lg"
+                  />
+                ) : (
+                  <VariantPlaceholderSVG color="#9ca3af" />
+                )}
               </button>
-            ) : (
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => updateQuantity(product.id, quantity - 1)}
-                  className="w-8 h-8 flex items-center justify-center border-2 border-[#4caf50] rounded-full hover:bg-[#e8f5e9] text-[#2e7d32] transition-colors"
-                  aria-label="Decrease quantity"
-                >
-                  <Minus size={16} />
-                </button>
-                <span className="w-8 text-center font-medium text-[#2e7d32]">
-                  {quantity}
-                </span>
-                <button
-                  onClick={() => updateQuantity(product.id, quantity + 1)}
-                  className="w-8 h-8 flex items-center justify-center border-2 border-[#4caf50] rounded-full hover:bg-[#e8f5e9] text-[#2e7d32] transition-colors"
-                  aria-label="Increase quantity"
-                >
-                  <Plus size={16} />
-                </button>
-              </div>
-            )}
-          </div>
-          {product.calorificValue && (
-            <div className="text-xs text-gray-700 mt-2">
-              {product.calorificValue} kcal
-            </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Product Info */}
+      <div className="flex-1 p-4">
+        <h3 className="font-medium text-gray-900">{product.name}</h3>
+        <div className="flex items-baseline gap-2 mt-1">
+          <span className="font-bold text-lg">₹{product.price.toFixed(2)}</span>
+          {product.originalPrice && (
+            <span className="text-sm text-gray-400 line-through">
+              ₹{product.originalPrice.toFixed(2)}
+            </span>
           )}
         </div>
       </div>
 
-      <ProductOptionsModal
-        isOpen={isOptionsModalOpen}
-        onClose={() => setIsOptionsModalOpen(false)}
-        onAddToCart={handleAddToCart}
-        productName={product.name}
-        options={productOptions}
-      />
-    </>
+      {/* Sticky Cart Controls */}
+      <div className="sticky bottom-0 left-0 right-0 p-4 bg-white border-t border-gray-100">
+        {isInCart ? (
+          <div className="w-full bg-gray-100 rounded-xl flex items-center">
+            <button
+              onClick={() => handleQuantityChange(Math.max(1, (cartItem?.quantity || 1) - 1))}
+              className="p-3 hover:text-gray-700 text-gray-500 flex-shrink-0"
+              disabled={cartItem?.quantity === 1}
+            >
+              <Minus size={20} />
+            </button>
+            <span className="flex-1 text-center font-medium">{cartItem?.quantity || 1}</span>
+            <button
+              onClick={() => handleQuantityChange((cartItem?.quantity || 1) + 1)}
+              className="p-3 hover:text-gray-700 text-gray-500 flex-shrink-0"
+            >
+              <Plus size={20} />
+            </button>
+          </div>
+        ) : (
+          <button
+            onClick={handleAddToCart}
+            disabled={isAddingToCart}
+            className="w-full bg-gray-900 text-white py-3 rounded-xl font-medium hover:bg-gray-800 transition-colors flex items-center justify-center gap-2"
+          >
+            {isAddingToCart ? (
+              <>
+                <Loader2 size={20} className="animate-spin" />
+                Adding...
+              </>
+            ) : (
+              'Add to Cart'
+            )}
+          </button>
+        )}
+      </div>
+    </div>
   );
 };
 
-export default ProductCard;
+export default React.memo(ProductCard);
