@@ -3,7 +3,7 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Eye, EyeOff, UserCircle2 } from 'lucide-react';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
-import { toast } from 'react-toastify';
+import { toast } from 'sonner';
 import { useAuth } from '../../context/AuthContext';
 import { AUTH_ENDPOINTS } from '../../config/api.config';
 

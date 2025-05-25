@@ -88,7 +88,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   };
 
   const imageUrl = getImageUrl(product.images?.[selectedVariant]);
-  const hasMultipleImages = (product.images?.length || 0) > 1;
+  const hasMultipleImages = (product.images?.length || 0) > 2;
   const category = typeof product.category === 'string' ? product.category : product.category?.name || '';
 
   return (
@@ -106,8 +106,9 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
           <img
             src={imageUrl}
             alt={product.name}
-            className="w-full p-3 rounded-xl h-full object-cover"
+            className="w-full p-3 rounded-xl h-full object-contain"
             onError={() => setImageError(true)}
+            loading="eager"
           />
         ) : (
           <div className="w-full h-full bg-gray-100 flex items-center justify-center">
@@ -119,7 +120,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
         )}
       </div>
 
-      {/* Variants - Only show if multiple images exist */}
+      {/* Variants - Only show if more than 2 images exist */}
       {hasMultipleImages && (
         <div className="flex gap-2 p-2 overflow-x-auto bg-white border-t border-gray-100">
           {product.images?.map((image, index) => {

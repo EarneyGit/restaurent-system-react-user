@@ -1,8 +1,8 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import axios from "../config/axios.config";
 import { useNavigate } from "react-router-dom";
-import { toast } from "react-toastify";
-import { User, RegistrationData, ResetPasswordData, AuthResponse, OTPResponse } from "../types/auth.types";
+import { toast } from 'sonner';
+import { User, RegistrationData, ResetPasswordData, AuthResponse, OTPResponse, AxiosError } from "../types/auth.types";
 import { AUTH_ENDPOINTS } from "../config/api.config";
 
 interface AuthContextType {
@@ -45,9 +45,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const response = await axios.get<AuthResponse>(AUTH_ENDPOINTS.GET_ME);
       console.log('GET_ME response:', response);
       
-      if (response.data.success && response.data.user) {
-        console.log('User details fetched:', response.data.user);
-        setUser(response.data.user);
+      if (response.data.success && response.data) {
+        console.log('User details fetched:', response.data);
+        setUser(response?.data);
         return true;
       }
       
@@ -65,25 +65,39 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Check authentication status on mount and token change
   useEffect(() => {
     const checkAuth = async () => {
-      const token = localStorage.getItem('token');
-      console.log('Checking auth with token:', token);
-      
-      if (token) {
+      try {
+        const token = localStorage.getItem('token');
+        console.log('Checking auth with token:', token);
+        
+        if (!token) {
+          console.log('No token found in localStorage');
+          setUser(null);
+          setIsLoading(false);
+          return;
+        }
+
         // Set token in axios headers
         axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-        console.log('Set Authorization header:', axios.defaults.headers.common['Authorization']);
         
-        const success = await fetchUserDetails(token);
-        console.log('Initial fetch user details success:', success);
+        const response = await axios.get<AuthResponse>(AUTH_ENDPOINTS.GET_ME);
         
-        if (!success) {
+        if (response.data.success && response.data.data) {
+          console.log('User data fetched successfully:', response.data.data);
+          setUser(response.data.data);
+        } else {
+          console.log('Failed to fetch user data - no user in response');
+          setUser(null);
+        }
+      } catch (error) {
+        console.error('Error during auth check:', error);
+        // Only clear token for 401/403 errors
+        if (axios.isAxiosError(error) && (error.response?.status === 401 || error.response?.status === 403)) {
           handleLogout();
         }
-      } else {
-        console.log('No token found in localStorage');
         setUser(null);
+      } finally {
+        setIsLoading(false);
       }
-      setIsLoading(false);
     };
     
     checkAuth();
@@ -98,8 +112,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const login = async (email: string, password: string) => {
     try {
-      console.log('Attempting login with:', { email, password: '****' });
-      
       // Validate inputs
       if (!email || !password) {
         throw new Error('Email and password are required');
@@ -125,12 +137,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       );
       
-      console.log('Login response:', response.data);
-      
       // Check if login was successful and we have a token
       if (response.data.success && response.data.token) {
-        console.log('Login successful, setting token:', response.data.token);
-        
         // Store token first
         localStorage.setItem('token', response.data.token);
         
@@ -138,19 +146,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         axios.defaults.headers.common['Authorization'] = `Bearer ${response.data.token}`;
 
         // Set user data immediately if available in login response
-        if (response.data.user) {
-          console.log('Setting user from login response:', response.data.user);
-          setUser(response.data.user);
+        if (response.data.data) {
+          setUser(response.data.data);
           return;
         }
 
         // If no user data in login response, fetch it
-        console.log('Fetching user details after login');
         const userResponse = await axios.get<AuthResponse>(AUTH_ENDPOINTS.GET_ME);
         
-        if (userResponse.data.success && userResponse.data.user) {
-          console.log('Setting user from GET_ME:', userResponse.data.user);
-          setUser(userResponse.data.user);
+        if (userResponse.data.success && userResponse.data.data) {
+          setUser(userResponse.data.data);
           return;
         }
 
@@ -161,7 +166,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // If we get here, something went wrong
       throw new Error(response.data.message || 'Login failed');
     } catch (error) {
-      console.error('Login error:', error);
       handleLogout(); // Clear any partial auth state
       
       if (axios.isAxiosError(error)) {
@@ -196,8 +200,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return;
       }
       throw new Error(response.data.message || 'Failed to send OTP');
-    } catch (error: any) {
-      const message = error.response?.data?.message || error.message || 'Failed to send OTP';
+    } catch (error: unknown) {
+      const axiosError = error as AxiosError;
+      const message = axiosError.response?.data?.message || axiosError.message || 'Failed to send OTP';
       toast.error(message);
       throw error;
     }
@@ -211,8 +216,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return response.data.token;
       }
       throw new Error(response.data.message || 'OTP verification failed');
-    } catch (error: any) {
-      const message = error.response?.data?.message || error.message || 'OTP verification failed';
+    } catch (error: unknown) {
+      const axiosError = error as AxiosError;
+      const message = axiosError.response?.data?.message || axiosError.message || 'OTP verification failed';
       toast.error(message);
       throw error;
     }
@@ -223,13 +229,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const response = await axios.post<AuthResponse>(AUTH_ENDPOINTS.REGISTER, data);
       if (response.data.success && response.data.token) {
         localStorage.setItem('token', response.data.token);
-        setUser(response.data.user || null);
+        setUser(response.data.data || null);
         toast.success(response.data.message || 'Registration successful');
         return;
       }
       throw new Error(response.data.message || 'Registration failed');
-    } catch (error: any) {
-      const message = error.response?.data?.message || error.message || 'Registration failed';
+    } catch (error: unknown) {
+      const axiosError = error as AxiosError;
+      const message = axiosError.response?.data?.message || axiosError.message || 'Registration failed';
       toast.error(message);
       throw error;
     }
@@ -243,8 +250,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return;
       }
       throw new Error(response.data.message || 'Failed to send reset OTP');
-    } catch (error: any) {
-      const message = error.response?.data?.message || error.message || 'Failed to send reset OTP';
+    } catch (error: unknown) {
+      const axiosError = error as AxiosError;
+      const message = axiosError.response?.data?.message || axiosError.message || 'Failed to send reset OTP';
       toast.error(message);
       throw error;
     }
@@ -258,8 +266,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return response.data.token;
       }
       throw new Error(response.data.message || 'OTP verification failed');
-    } catch (error: any) {
-      const message = error.response?.data?.message || error.message || 'OTP verification failed';
+    } catch (error: unknown) {
+      const axiosError = error as AxiosError;
+      const message = axiosError.response?.data?.message || axiosError.message || 'OTP verification failed';
       toast.error(message);
       throw error;
     }
@@ -273,8 +282,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return;
       }
       throw new Error(response.data.message || 'Password reset failed');
-    } catch (error: any) {
-      const message = error.response?.data?.message || error.message || 'Password reset failed';
+    } catch (error: unknown) {
+      const axiosError = error as AxiosError;
+      const message = axiosError.response?.data?.message || axiosError.message || 'Password reset failed';
       toast.error(message);
       throw error;
     }
@@ -284,7 +294,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const token = localStorage.getItem('token');
       if (!token) {
-        console.log('GetMe - No token found');
         return null;
       }
 
@@ -292,28 +301,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
       
       const response = await axios.get<AuthResponse>(AUTH_ENDPOINTS.GET_ME);
-      console.log('GetMe - Response:', response.data);
 
-      if (response.data.success && response.data.user) {
-        console.log('GetMe - Setting user:', response.data.user);
-        setUser(response.data.user);
-        return response.data.user;
+      if (response.data.success && response.data.data) {
+        setUser(response.data.data);
+        return response.data.data;
       }
 
-      // If we get here but have a successful response, keep the token
-      if (response.data.success) {
-        console.log('GetMe - Successful response but no user data');
-        return null;
-      }
-
-      // Only clear auth state if the response indicates failure
-      console.log('GetMe - Failed response, clearing auth state');
-      handleLogout();
       return null;
     } catch (error) {
       console.error('GetMe error:', error);
-      // Only clear auth state for specific error cases
-      if (axios.isAxiosError(error) && error.response?.status === 401) {
+      // Only clear auth state for 401/403 errors
+      if (axios.isAxiosError(error) && (error.response?.status === 401 || error.response?.status === 403)) {
         handleLogout();
       }
       return null;

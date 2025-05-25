@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { AUTH_ENDPOINTS } from '../../config/api.config';
 import axios from 'axios';
-import { toast } from 'react-toastify';
+import { toast } from 'sonner';
 import { LogOut, User, ShoppingBag, Key, Settings } from 'lucide-react';
 
 const UserAvatar = () => {
@@ -51,20 +51,20 @@ const UserAvatar = () => {
     <div className="relative">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center justify-center w-8 h-8 rounded-full bg-gradient-to-r from-foodyman-lime to-foodyman-green text-white font-semibold hover:opacity-90 transition-all duration-200 transform hover:scale-105 ring-2 ring-offset-2 ring-transparent hover:ring-foodyman-lime/30"
+        className="flex items-center justify-center w-9 h-9 rounded-full bg-gradient-to-br from-black/60 via-neutral-800 to-neutral-800 text-white font-semibold hover:opacity-90 transition-all duration-200 transform hover:scale-105 ring-2 ring-offset-2 ring-transparent ring-foodyman-lime/30"
       >
         {getInitials()}
       </button>
 
       {isOpen && (
         <>
-          <div className="absolute right-0 mt-3 w-64 bg-white rounded-lg shadow-lg py-2 border border-gray-100 z-50 transform transition-all duration-200">
+          <div className="absolute right-0 mt-3 w-64 bg-white rounded-lg shadow-lg border border-gray-100 z-50 transform transition-all duration-200">
             <div className="px-4 py-3 border-b border-gray-100">
               <p className="text-base font-medium text-gray-800">{user.name}</p>
               <p className="text-sm text-gray-500">{user.email}</p>
-              {user.phone && (
+              {/* {user.phone && (
                 <p className="text-sm text-gray-500 mt-1">{user.phone}</p>
-              )}
+              )} */}
             </div>
 
             <Link
@@ -105,7 +105,7 @@ const UserAvatar = () => {
 
             <button
               onClick={handleLogout}
-              className="flex items-center gap-2 w-full px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors border-t border-gray-100"
+              className="flex items-center gap-2 w-full px-4 py-2.5 text-sm text-black font-semibold hover:bg-neutral-100 transition-colors border-t border-gray-100"
             >
               <LogOut size={18} />
               <span>Sign Out</span>

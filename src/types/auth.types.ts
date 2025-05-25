@@ -31,11 +31,22 @@ export interface AuthResponse {
   success: boolean;
   message: string;
   token?: string;
-  user?: User;
+  data?: User;
 }
 
 export interface OTPResponse {
   success: boolean;
   message: string;
   token?: string;
+}
+
+export interface AxiosError {
+  response?: {
+    data?: {
+      message?: string;
+      error?: string;
+    };
+    status?: number;
+  };
+  message: string;
 } 

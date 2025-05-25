@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
-import { toast } from "react-toastify";
+import { toast } from 'sonner';
 import { motion } from "framer-motion";
 
 // NoImage SVG Component
@@ -69,14 +69,14 @@ const CheckoutPage = () => {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        className="min-h-[80vh] flex items-center justify-center px-4 bg-gradient-to-br from-green-50 via-white to-green-50"
+        className="min-h-[70vh] flex items-center justify-center px-4 pb-10 bg-gradient-to-br from-green-50 via-white to-green-50"
       >
         <div className="max-w-md w-full text-center">
           <motion.div
             initial={{ scale: 0.8 }}
             animate={{ scale: 1 }}
             transition={{ delay: 0.2 }}
-            className="relative w-64 h-64 mx-auto mb-8 bg-white rounded-full shadow-xl p-8"
+            className="relative w-64 h-64 mx-auto bg-white"
           >
             <img
               src="/not-found.png"
@@ -91,7 +91,7 @@ const CheckoutPage = () => {
             transition={{ delay: 0.3 }}
             className="text-2xl font-semibold text-gray-900 mb-3"
           >
-            Your cart is empty
+            Unable to proceed to checkout
           </motion.h2>
 
           <motion.p
@@ -100,19 +100,8 @@ const CheckoutPage = () => {
             transition={{ delay: 0.4 }}
             className="text-gray-600 text-base mb-6 max-w-sm mx-auto"
           >
-            Browse our menu to discover delicious options for your next meal.
+            Looks like your cart is empty. Please add items to your cart before proceeding to checkout.
           </motion.p>
-
-          <motion.button
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.5 }}
-            onClick={() => navigate("/app")}
-            className="inline-flex items-center justify-center gap-3 bg-gradient-to-r from-green-600 to-green-500 text-white font-medium px-8 py-4 rounded-full hover:from-green-700 hover:to-green-600 transition-all transform hover:scale-105 shadow-md border hover:shadow-xl"
-          >
-            <ShoppingBag size={20} />
-            Browse Menu
-          </motion.button>
         </div>
       </motion.div>
     );
@@ -167,7 +156,7 @@ const CheckoutPage = () => {
         >
           <button
             onClick={() => navigate(-1)}
-            className="flex items-center border border-gray-200 rounded-md px-4 py-2 mb-4 hover:border-green-600 hover:bg-green-50 text-gray-600 hover:text-gray-900 transition-colors "
+            className="flex text-sm items-center border border-gray-200 rounded-md px-4 py-2 mb-4 hover:border-green-600 hover:bg-green-50 text-gray-600 hover:text-gray-900 transition-colors "
           >
             <ArrowLeft
               size={18}

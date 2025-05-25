@@ -7,20 +7,30 @@ axios.defaults.baseURL = API_BASE_URL;
 // Add request interceptor
 axios.interceptors.request.use(
   (config) => {
+    // Get branchId from localStorage
+    const branchId = localStorage.getItem('selectedBranchId');
+    
+    // Add branchId to query params for GET requests if not already present
+    // and if the request is not for branch-related endpoints
+    if (config.method === 'get' && 
+        branchId && 
+        !config.url?.includes('/branches') && 
+        !config.params?.branchId) {
+      config.params = {
+        ...config.params,
+        branchId: branchId,
+      };
+    }
+
     // Get token from localStorage
     const token = localStorage.getItem('token');
-    console.log('Request interceptor - Token:', token);
     
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
-      console.log('Request interceptor - Setting Authorization header:', config.headers.Authorization);
-    } else {
-      console.log('Request interceptor - No token found');
     }
     return config;
   },
   (error) => {
-    console.error('Request interceptor error:', error);
     return Promise.reject(error);
   }
 );
@@ -28,20 +38,29 @@ axios.interceptors.request.use(
 // Add response interceptor
 axios.interceptors.response.use(
   (response) => {
-    console.log('Response interceptor - Status:', response.status);
     return response;
   },
   (error) => {
-    console.error('Response interceptor error:', error);
+    // Handle branch selection errors
+    if (error.response?.status === 400 && error.response?.data?.message?.includes('Branch ID is required')) {
+      const currentPath = window.location.pathname;
+      if (!currentPath.includes('/outlet-selection')) {
+        window.location.href = '/outlet-selection';
+      }
+    }
     
-    // Only handle 401 errors that are not from the login or GET_ME endpoints
-    if (error.response?.status === 401 && 
-        !error.config.url?.includes('/login') && 
-        !error.config.url?.includes('/me')) {
-      console.log('Response interceptor - Unauthorized access, clearing token');
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      window.location.href = '/login';
+    // Handle unauthorized errors
+    if (error.response?.status === 401) {
+      // Don't clear token for login attempts or token verification
+      const isAuthEndpoint = 
+        error.config.url?.includes('/login') || 
+        error.config.url?.includes('/me') ||
+        error.config.url?.includes('/verify');
+        
+      if (!isAuthEndpoint) {
+        localStorage.removeItem('token');
+        window.location.href = '/login';
+      }
     }
     return Promise.reject(error);
   }

@@ -24,6 +24,9 @@ import RegisterCompletePage from './pages/auth/RegisterCompletePage';
 import ProductPage from './pages/ProductPage';
 import '@/styles/carousel.css';
 import { Toaster } from 'sonner';
+import CartPage from './pages/CartPage';
+import { BranchProvider } from './context/BranchContext';
+import AppRoutes from './routes';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -49,72 +52,81 @@ const App = () => {
   return (
     <Router>
       <AuthProvider>
-        <CartProvider>
-          <ScrollToTop />
-          <Toaster position="bottom-right" expand={true} />
-          <Routes>
-            {/* Public Routes */}
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/register" element={<RegisterPage />} />
-            <Route path="/register/verify" element={<OTPVerificationPage />} />
-            <Route path="/register/complete" element={<RegisterCompletePage />} />
-            <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-            
-            {/* Public Welcome Flow Routes */}
-            <Route path="/" element={<Welcome />} />
-            <Route path="/order-method" element={<OrderMethodPage />} />
-            <Route path="/offers" element={<OffersPage />} />
-            <Route path="/special-about" element={<SpecialAboutPage />} />
-            <Route path="/select-outlet" element={<OutletSelectionPage />} />
-            
-            {/* Main App Routes */}
-            <Route path="/app" element={<Layout />}>
-              <Route index element={<Index />} />
-              <Route path="products/:category" element={<ProductListingPage />} />
+        <BranchProvider>
+          <CartProvider>
+            <ScrollToTop />
+            <Toaster position="bottom-right" expand={true} />
+            <Routes>
+              {/* Public Routes */}
+              <Route path="/login" element={<LoginPage />} />
+              <Route path="/register" element={<RegisterPage />} />
+              <Route path="/register/verify" element={<OTPVerificationPage />} />
+              <Route path="/register/complete" element={<RegisterCompletePage />} />
+              <Route path="/forgot-password" element={<ForgotPasswordPage />} />
               
-              {/* Protected User Routes */}
-              <Route path="profile" element={
-                <ProtectedRouteWrapper>
-                  <div>Profile Page</div>
+              {/* Public Welcome Flow Routes */}
+              <Route path="/" element={<Welcome />} />
+              <Route path="/order-method" element={<OrderMethodPage />} />
+              <Route path="/offers" element={<OffersPage />} />
+              <Route path="/special-about" element={<SpecialAboutPage />} />
+              <Route path="/select-outlet" element={<OutletSelectionPage />} />
+              
+              {/* Main App Routes */}
+              <Route path="/app" element={<Layout />}>
+                <Route index element={<Index />} />
+                <Route path="products/:category" element={<ProductListingPage />} />
+                
+                {/* Protected User Routes */}
+                <Route path="profile" element={
+                  <ProtectedRouteWrapper>
+                    <div>Profile Page</div>
+                  </ProtectedRouteWrapper>
+                } />
+                <Route path="orders" element={
+                  <ProtectedRouteWrapper>
+                    <div>Orders Page</div>
+                  </ProtectedRouteWrapper>
+                } />
+                <Route path="favorites" element={
+                  <ProtectedRouteWrapper>
+                    <div>Favorites Page</div>
+                  </ProtectedRouteWrapper>
+                } />
+              </Route>
+
+              {/* Checkout Route - Allows Guest Access */}
+              <Route path="/checkout" element={
+                <ProtectedRouteWrapper allowGuest={true}>
+                  <Layout />
                 </ProtectedRouteWrapper>
-              } />
-              <Route path="orders" element={
+              }>
+                <Route index element={<CheckoutPage />} />
+              </Route>
+
+              {/* Protected Liked Products Route */}
+              <Route path="/liked" element={
                 <ProtectedRouteWrapper>
-                  <div>Orders Page</div>
+                  <Layout />
                 </ProtectedRouteWrapper>
+              }>
+                <Route index element={<LikedProductsPage />} />
+              </Route>
+
+              {/* App Routes */}
+              <Route path="/app/products/:outletId" element={<ProductPage />} />
+
+              {/* Cart Route */}
+              <Route path="/cart" element={
+                <Layout>
+                  <CartPage />
+                </Layout>
               } />
-              <Route path="favorites" element={
-                <ProtectedRouteWrapper>
-                  <div>Favorites Page</div>
-                </ProtectedRouteWrapper>
-              } />
-            </Route>
 
-            {/* Checkout Route - Allows Guest Access */}
-            <Route path="/checkout" element={
-              <ProtectedRouteWrapper allowGuest={true}>
-                <Layout />
-              </ProtectedRouteWrapper>
-            }>
-              <Route index element={<CheckoutPage />} />
-            </Route>
-
-            {/* Protected Liked Products Route */}
-            <Route path="/liked" element={
-              <ProtectedRouteWrapper>
-                <Layout />
-              </ProtectedRouteWrapper>
-            }>
-              <Route index element={<LikedProductsPage />} />
-            </Route>
-
-            {/* App Routes */}
-            <Route path="/app/products/:outletId" element={<ProductPage />} />
-
-            {/* Catch all route */}
-            <Route path="*" element={<NotFoundPage />} />
-          </Routes>
-        </CartProvider>
+              {/* Catch all route */}
+              <Route path="*" element={<NotFoundPage />} />
+            </Routes>
+          </CartProvider>
+        </BranchProvider>
       </AuthProvider>
     </Router>
   );

@@ -4,7 +4,11 @@ import Header from './Header';
 import Footer from './Footer';
 import BottomNavigation from './BottomNavigation';
 
-const Layout = () => {
+interface LayoutProps {
+  children?: React.ReactNode;
+}
+
+const Layout: React.FC<LayoutProps> = ({ children }) => {
   const location = useLocation();
   const isAuthPage = location.pathname === '/login' || location.pathname === '/register';
   const isReservationPage = location.pathname === '/reservation';
@@ -13,7 +17,7 @@ const Layout = () => {
     <div className="min-h-screen flex flex-col">
       {!isAuthPage && !isReservationPage && <Header />}
       <main className="flex-grow">
-        <Outlet />
+        {children || <Outlet />}
       </main>
       {!isAuthPage && !isReservationPage && (
         <>

@@ -80,10 +80,10 @@ const Welcome = () => {
             care.
           </p>
           <button
-            onClick={() => navigate("/order-method")}
+            onClick={() => navigate("/select-outlet")}
             className="px-8 py-3 rounded-xl text-lg font-semibold bg-gradient-to-r from-[#2e7d32] to-[#4caf50] text-white shadow-md relative overflow-hidden border border-white/10 transition hover:scale-x-95"
           >
-            <span className="relative z-10 uppercase">Time to Dine</span>
+            <span className="relative z-10 uppercase">Start Over</span>
             <div className="absolute inset-0 bg-white opacity-0 hover:opacity-10 transition duration-300"></div>
           </button>
         </div>

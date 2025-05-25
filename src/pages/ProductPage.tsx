@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import axios from 'axios';
 import { useCart } from '@/context/CartContext';
-import { toast } from 'react-toastify';
+import { toast } from 'sonner';
 
 interface Product {
   id: string;

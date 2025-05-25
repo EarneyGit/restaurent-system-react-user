@@ -4,6 +4,11 @@ import { Link } from "react-router-dom";
 import { useCart } from "@/context/CartContext";
 import { toast } from "sonner";
 import { Product as BaseProduct, getProducts } from "@/services/api";
+import { Swiper, SwiperSlide } from 'swiper/react';
+import { Navigation, Autoplay } from 'swiper/modules';
+import 'swiper/css';
+import 'swiper/css/navigation';
+import '@/styles/carousel.css';
 
 interface Product extends Omit<BaseProduct, 'category' | 'id'> {
   originalPrice?: number;
@@ -65,7 +70,7 @@ const ProductCard: React.FC<{ product: Product }> = ({ product }) => {
   const handleQuantityChange = async (newQuantity: number) => {
     if (isInCart && cartItem) {
       try {
-        await updateCartItemQuantity(cartItem.id, newQuantity);
+        await updateCartItemQuantity(String(cartItem.id), newQuantity);
         toast.success('Cart updated');
       } catch (error) {
         console.error('Error updating cart:', error);
@@ -90,10 +95,12 @@ const ProductCard: React.FC<{ product: Product }> = ({ product }) => {
   };
 
   const imageUrl = getImageUrl(product.images?.[selectedVariant]);
-  const hasMultipleImages = (product.images?.length || 0) > 1;
+  const hasMultipleImages = (product.images?.length || 0) > 2;
 
+  console.log("imageUrl",imageUrl)
+  console.log("imageError",imageError)
   return (
-    <div className="bg-white rounded-3xl overflow-hidden border border-gray-200 shadow-sm hover:shadow-md transition-all duration-300 relative flex flex-col h-full">
+    <div className="bg-white rounded-3xl overflow-hidden border border-gray-200 shadow-sm hover:shadow-md transition-all duration-300 relative flex flex-col min-h-[400px] w-full">
       {/* Category Badge */}
       <div className="absolute top-5 left-4 z-10">
         <span className="px-3 py-1 bg-neutral-900 text-white rounded-full text-xs font-medium">
@@ -102,13 +109,14 @@ const ProductCard: React.FC<{ product: Product }> = ({ product }) => {
       </div>
 
       {/* Main Image */}
-      <div className="relative h-[200px] rounded-lg bg-gray-50">
+      <div className="relative h-[200px] w-full rounded-lg bg-gray-50">
         {imageUrl && !imageError ? (
           <img
             src={imageUrl}
             alt={product.name}
-            className="w-full p-3 rounded-xl  h-full object-cover"
+            className="w-full p-3 rounded-xl h-full object-contain"
             onError={() => setImageError(true)}
+            loading="eager"
           />
         ) : (
           <div className="w-full h-full bg-gray-100 flex items-center justify-center">
@@ -120,7 +128,7 @@ const ProductCard: React.FC<{ product: Product }> = ({ product }) => {
         )}
       </div>
 
-      {/* Variants - Only show if multiple images exist */}
+      {/* Variants - Only show if more than 2 images exist */}
       {hasMultipleImages && (
         <div className="flex gap-2 p-2 overflow-x-auto bg-white border-t border-gray-100">
           {product.images?.map((image, index) => {
@@ -151,8 +159,9 @@ const ProductCard: React.FC<{ product: Product }> = ({ product }) => {
       )}
 
       {/* Product Info */}
-      <div className="flex-1 p-4">
-        <h3 className="font-medium text-gray-900">{product.name}</h3>
+      <div  className="flex-1 p-4">
+        <h3 className="font-medium text-left text-neutral-700">{product.name}</h3>
+        <p className=" text-left text-sm text-neutral-500">{product?.description}</p>
         <div className="flex items-baseline gap-2 mt-1">
           <span className="font-bold text-lg">${product.price.toFixed(2)}</span>
           {product.originalPrice && (
@@ -213,10 +222,9 @@ const RecommendedItems = () => {
       try {
         setIsLoading(true);
         const response = await getProducts();
-        // Transform the response to match our Product interface
         const transformedProducts: Product[] = response.map(product => ({
           ...product,
-          id: String(product.id), // Convert id to string
+          id: String(product.id),
           category: typeof product.category === 'string' 
             ? product.category 
             : product.category.name
@@ -253,18 +261,47 @@ const RecommendedItems = () => {
     <div className="mt-10">
       <div className="px-4 flex justify-between items-center mb-6">
         <h2 className="text-2xl font-bold text-neutral-800">Recommended Products</h2>
-        <Link to="/products/All" className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700">
+        {/* <Link to="/products/All" className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700">
           <span>See all</span>
           <ArrowRight size={16} />
-        </Link>
+        </Link> */}
       </div>
       
-      <div className="px-4">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+      <div className="py-4">
+        <Swiper
+          modules={[Navigation, Autoplay]}
+          spaceBetween={24}
+          slidesPerView={1.2}
+          navigation={true}
+          updateOnWindowResize={true}
+          observer={true}
+          observeParents={true}
+          autoplay={{
+            delay: 3000,
+            disableOnInteraction: false,
+          }}
+          breakpoints={{
+            640: {
+              slidesPerView: 2,
+              spaceBetween: 24,
+            },
+            1024: {
+              slidesPerView: 3,
+              spaceBetween: 24,
+            },
+            1280: {
+              slidesPerView: 4,
+              spaceBetween: 24,
+            },
+          }}
+          className="recommended-swiper"
+        >
           {products.map(product => (
-            <ProductCard key={product.id} product={product} />
+            <SwiperSlide key={product.id} className="!h-auto ">
+              <ProductCard product={product} />
+            </SwiperSlide>
           ))}
-        </div>
+        </Swiper>
       </div>
     </div>
   );

@@ -1,14 +1,49 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { X, MapPin } from 'lucide-react';
+import { X, MapPin, Loader2 } from 'lucide-react';
+import axios from '../config/axios.config';
+import { BRANCH_ENDPOINTS } from '../config/api.config';
+import { Branch, BranchResponse } from '../types/branch.types';
+import { toast } from 'sonner';
+import { useBranch } from '../context/BranchContext';
 
 const OutletSelectionPage = () => {
   const navigate = useNavigate();
+  const [branches, setBranches] = useState<Branch[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const { setSelectedBranch } = useBranch();
 
-  const handleOutletSelect = (outlet: string) => {
-    localStorage.setItem('selectedOutlet', outlet);
+  useEffect(() => {
+    fetchBranches();
+  }, []);
+
+  const fetchBranches = async () => {
+    try {
+      const response = await axios.get<BranchResponse>(BRANCH_ENDPOINTS.GET_ALL_BRANCHES);
+      if (response.data.success && response.data.data) {
+        setBranches(response.data.data);
+      }
+    } catch (error) {
+      console.error('Error fetching branches:', error);
+      toast.error('Failed to load outlets. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleOutletSelect = (branch: Branch) => {
+    setSelectedBranch(branch);
+    localStorage.setItem('selectedBranchId', branch.id);
     navigate('/order-method');
   };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-black">
+        <Loader2 size={40} className="text-green-500 animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen relative xl:pt-10 md:pt-5 pt-3 font-sans">
@@ -40,58 +75,64 @@ const OutletSelectionPage = () => {
 
         {/* Outlet Grid */}
         <div className="grid md:grid-cols-2 gap-6">
-          {/* Dunfermline Outlet */}
-          <div className="bg-white/10 backdrop-blur-sm rounded-2xl overflow-hidden border border-white/20 hover:bg-white/20 transition-colors group">
-            <div className="p-6">
-              <div className="flex items-start gap-4">
-                <div className="p-3 rounded-xl bg-green-600/20">
-                  <MapPin size={24} className="text-green-500" />
-                </div>
-                <div className="flex-1">
-                  <h3 className="text-xl font-semibold text-white mb-2">Dunfermline</h3>
-                  <p className="text-white/70 mb-4">123 High Street, Dunfermline KY12 7DR</p>
-                  <div className="flex items-center gap-3 text-sm text-white/60">
-                    <span>Open 9AM - 10PM</span>
-                    <span className="w-1.5 h-1.5 rounded-full bg-white/60"></span>
-                    <span>Delivery Available</span>
+          {branches.map((branch) => (
+            <div 
+              key={branch.id}
+              className="bg-white/10 backdrop-blur-sm rounded-2xl overflow-hidden border border-white/20 hover:bg-white/20 transition-colors group"
+            >
+              <div className="p-6">
+                <div className="flex items-start gap-4">
+                  <div className="p-3 rounded-xl bg-green-600/20">
+                    <MapPin size={24} className="text-green-500" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="text-xl font-semibold text-white mb-2">{branch.name}</h3>
+                    <p className="text-white/70 mb-4">
+                      {branch.address.street}, {branch.address.city} {branch.address.postalCode}
+                    </p>
+                    <div className="flex items-center gap-3 text-sm text-white/60">
+                      <span>{branch.contact.phone}</span>
+                      <span className="w-1.5 h-1.5 rounded-full bg-white/60"></span>
+                      <span>{branch.contact.email}</span>
+                    </div>
+                    {branch.settings && (
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        {branch.settings.isDeliveryEnabled && (
+                          <span className="text-xs bg-green-600/20 text-green-500 px-2 py-1 rounded">
+                            Delivery Available
+                          </span>
+                        )}
+                        {branch.settings.isCollectionEnabled && (
+                          <span className="text-xs bg-blue-600/20 text-blue-500 px-2 py-1 rounded">
+                            Collection Available
+                          </span>
+                        )}
+                        {branch.settings.isTableOrderingEnabled && (
+                          <span className="text-xs bg-purple-600/20 text-purple-500 px-2 py-1 rounded">
+                            Table Ordering
+                          </span>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
+                <button
+                  onClick={() => handleOutletSelect(branch)}
+                  className="mt-6 w-full py-3 bg-green-600 text-white font-medium rounded-xl hover:bg-green-700 transition-colors uppercase tracking-wide"
+                  disabled={!branch.isActive}
+                >
+                  {branch.isActive ? 'Select Outlet' : 'Currently Unavailable'}
+                </button>
               </div>
-              <button
-                onClick={() => handleOutletSelect('Dunfermline')}
-                className="mt-6 w-full py-3 bg-green-600 text-white font-medium rounded-xl hover:bg-green-700 transition-colors uppercase tracking-wide"
-              >
-                Select Outlet
-              </button>
             </div>
-          </div>
-
-          {/* Edinburgh Outlet */}
-          <div className="bg-white/10 backdrop-blur-sm rounded-2xl overflow-hidden border border-white/20 hover:bg-white/20 transition-colors group">
-            <div className="p-6">
-              <div className="flex items-start gap-4">
-                <div className="p-3 rounded-xl bg-green-600/20">
-                  <MapPin size={24} className="text-green-500" />
-                </div>
-                <div className="flex-1">
-                  <h3 className="text-xl font-semibold text-white mb-2">Edinburgh</h3>
-                  <p className="text-white/70 mb-4">456 Princes Street, Edinburgh EH1 2AB</p>
-                  <div className="flex items-center gap-3 text-sm text-white/60">
-                    <span>Open 9AM - 11PM</span>
-                    <span className="w-1.5 h-1.5 rounded-full bg-white/60"></span>
-                    <span>Delivery Available</span>
-                  </div>
-                </div>
-              </div>
-              <button
-                onClick={() => handleOutletSelect('Edinburgh')}
-                className="mt-6 w-full py-3 bg-green-600 text-white font-medium rounded-xl hover:bg-green-700 transition-colors uppercase tracking-wide"
-              >
-                Select Outlet
-              </button>
-            </div>
-          </div>
+          ))}
         </div>
+
+        {branches.length === 0 && (
+          <div className="text-center text-white/70 mt-8">
+            No outlets available at the moment. Please try again later.
+          </div>
+        )}
       </div>
     </div>
   );
