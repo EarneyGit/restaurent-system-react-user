@@ -17,6 +17,7 @@ import { toast } from 'sonner';
 import { motion } from "framer-motion";
 import DeliveryAddressForm from '@/components/cart/DeliveryAddressForm';
 import { useBranch } from '@/context/BranchContext';
+import axios from '@/config/axios.config';
 
 // NoImage SVG Component
 const NoImage = () => (
@@ -99,54 +100,47 @@ const CheckoutPage = () => {
     try {
       setIsProcessing(true);
 
-      // Prepare order data according to API schema
+      // Prepare order data according to backend API schema
       const orderData = {
-        customerId: user?._id, // From authenticated user
         branchId: selectedBranch.id,
-        items: cartItems.map(item => ({
-          productId: item.id,
+        products: cartItems.map(item => ({
+          product: item.id, // Backend expects 'product' not 'productId'
           quantity: item.quantity,
           price: item.price,
-          selectedOptions: item.selectedOptions || {},
-          specialRequirements: item.specialRequirements || ""
+          notes: item.specialRequirements || "",
+          selectedAttributes: [] // Convert selectedOptions to selectedAttributes if needed
         })),
-        orderType: "delivery",
-        deliveryAddress,
+        deliveryMethod: "delivery", // Backend expects 'deliveryMethod' not 'orderType'
+        deliveryAddress: {
+          street: deliveryAddress.street,
+          city: deliveryAddress.city,
+          state: deliveryAddress.state,
+          postalCode: deliveryAddress.zipCode, // Backend expects 'postalCode' not 'zipCode'
+          country: deliveryAddress.country,
+          notes: specialInstructions
+        },
         paymentMethod,
         paymentStatus: "pending",
-        specialInstructions,
-        subtotal,
-        tax,
-        deliveryFee,
-        total
+        customerNotes: specialInstructions,
+        totalAmount: total // Backend expects 'totalAmount' not 'total'
       };
 
-      // Make API call to create order
-      const response = await fetch('/api/orders', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          // Add any auth headers if needed
-        },
-        body: JSON.stringify(orderData)
-      });
+      console.log('Sending order data:', orderData);
 
-      if (!response.ok) {
-        throw new Error('Failed to create order');
-      }
+      // Make API call to create order using axios (includes auth headers automatically)
+      const response = await axios.post('/api/orders', orderData);
 
-      const data = await response.json();
-
-      if (data.success) {
+      if (response.data.success) {
         toast.success("Order placed successfully!");
         clearCart();
         navigate("/app");
       } else {
-        throw new Error(data.message || 'Failed to place order');
+        throw new Error(response.data.message || 'Failed to place order');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Order creation error:', error);
-      toast.error(error.message || "Failed to place order. Please try again.");
+      const errorMessage = error.response?.data?.message || error.message || "Failed to place order. Please try again.";
+      toast.error(errorMessage);
     } finally {
       setIsProcessing(false);
     }
@@ -297,103 +291,50 @@ const CheckoutPage = () => {
                       className="flex items-center gap-4 pb-4 border-b border-gray-100 last:border-0 last:pb-0 group"
                     >
                       <div className="w-20 h-20 bg-gray-50 rounded-xl overflow-hidden transform transition-transform group-hover:scale-105">
-                        {item.images && item.images[0] ? (
-                          <ImageWithFallback
-                            src={item.images[0]}
-                            alt={item.name}
-                          />
-                        ) : (
-                          <NoImage />
-                        )}
+                        <ImageWithFallback
+                          src={item.images?.[0] || "/placeholder-food.jpg"}
+                          alt={item.name}
+                        />
                       </div>
+
                       <div className="flex-1">
-                        <h3 className="text-base font-medium text-gray-900 group-hover:text-green-600 transition-colors">
+                        <h3 className="font-semibold text-gray-900 mb-1">
                           {item.name}
                         </h3>
-                        <p className="text-sm text-gray-500 mt-0.5">
-                          Quantity: {item.quantity}
+                        <p className="text-sm text-gray-500 mb-2">
+                          {item.description}
                         </p>
-                        {item.selectedOptions &&
-                          Object.entries(item.selectedOptions).map(
-                            ([key, value]) => (
-                              <p key={key} className="text-xs text-gray-400">
-                                {key}: {value}
-                              </p>
-                            )
-                          )}
-                      </div>
-                      <div className="text-right">
-                        <p className="text-base font-medium text-gray-900">
-                          ${(item.price * item.quantity).toFixed(2)}
-                        </p>
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm text-gray-600">
+                            Qty: {item.quantity}
+                          </span>
+                          <span className="font-semibold text-green-600">
+                            ${(item.price * item.quantity).toFixed(2)}
+                          </span>
+                        </div>
                       </div>
                     </motion.div>
                   ))}
                 </div>
-
-                <div className="mt-6 pt-4 border-t border-dashed border-gray-200">
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-sm text-gray-600">
-                      <span>Subtotal</span>
-                      <span>${subtotal.toFixed(2)}</span>
-                    </div>
-                    <div className="flex justify-between text-sm text-gray-600">
-                      <span>Delivery fee</span>
-                      <span>${deliveryFee.toFixed(2)}</span>
-                    </div>
-                    <div className="flex justify-between text-sm text-gray-600">
-                      <span>Tax (10%)</span>
-                      <span>${tax.toFixed(2)}</span>
-                    </div>
-                    <div className="flex justify-between text-base font-medium pt-2 border-t border-gray-100">
-                      <span>Total</span>
-                      <span className="text-green-600">
-                        ${total.toFixed(2)}
-                      </span>
-                    </div>
-                  </div>
-                </div>
               </div>
 
-              {/* Delivery Details */}
+              {/* Delivery Address */}
               <div className="bg-white rounded-3xl shadow-md border p-8">
                 <h2 className="text-2xl font-semibold mb-6 flex items-center">
                   <span className="w-8 h-8 rounded-full bg-green-100 text-green-600 flex items-center justify-center text-lg mr-3">
                     2
                   </span>
-                  Delivery Details
+                  Delivery Address
                 </h2>
 
-                <div className="space-y-6">
-                  <DeliveryAddressForm 
-                    address={deliveryAddress}
-                    onChange={handleAddressChange}
-                  />
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Special Instructions (Optional)
-                    </label>
-                    <textarea
-                      value={specialInstructions}
-                      onChange={(e) => setSpecialInstructions(e.target.value)}
-                      className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
-                      placeholder="Any special delivery instructions?"
-                      rows={3}
-                    />
-                  </div>
-                </div>
+                <DeliveryAddressForm
+                  address={deliveryAddress}
+                  onChange={handleAddressChange}
+                />
               </div>
-            </motion.div>
 
-            {/* Payment Section - Right Column */}
-            <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.4 }}
-              className="lg:col-span-1"
-            >
-              <div className="bg-white rounded-3xl shadow-md border p-8 sticky top-24">
+              {/* Payment Method */}
+              <div className="bg-white rounded-3xl shadow-md border p-8">
                 <h2 className="text-2xl font-semibold mb-6 flex items-center">
                   <span className="w-8 h-8 rounded-full bg-green-100 text-green-600 flex items-center justify-center text-lg mr-3">
                     3
@@ -401,140 +342,100 @@ const CheckoutPage = () => {
                   Payment Method
                 </h2>
 
-                <div className="space-y-4">
-                  <label className="block p-4 border-2 rounded-2xl cursor-pointer transition-all hover:border-green-100 hover:bg-green-50/50">
-                    <input
-                      type="radio"
-                      name="paymentMethod"
-                      value="card"
-                      checked={paymentMethod === "card"}
-                      onChange={() => setPaymentMethod("card")}
-                      className="sr-only"
-                    />
-                    <div className="flex items-center">
-                      <div
-                        className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-                          paymentMethod === "card"
-                            ? "border-green-600"
-                            : "border-gray-300"
-                        }`}
-                      >
-                        {paymentMethod === "card" && (
-                          <div className="w-3 h-3 rounded-full bg-green-600"></div>
-                        )}
-                      </div>
-                      <div className="ml-4">
-                        <div className="flex items-center">
-                          <CreditCard
-                            className="text-gray-400 mr-2"
-                            size={20}
-                          />
-                          <span className="font-medium text-gray-900">
-                            Credit/Debit Card
-                          </span>
-                        </div>
-                        <p className="text-sm text-gray-500 mt-1">
-                          Pay securely with your card
-                        </p>
-                      </div>
-                    </div>
-                  </label>
-
-                  <label className="block p-4 border-2 rounded-2xl cursor-pointer transition-all hover:border-green-100 hover:bg-green-50/50">
-                    <input
-                      type="radio"
-                      name="paymentMethod"
-                      value="cash"
-                      checked={paymentMethod === "cash"}
-                      onChange={() => setPaymentMethod("cash")}
-                      className="sr-only"
-                    />
-                    <div className="flex items-center">
-                      <div
-                        className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-                          paymentMethod === "cash"
-                            ? "border-green-600"
-                            : "border-gray-300"
-                        }`}
-                      >
-                        {paymentMethod === "cash" && (
-                          <div className="w-3 h-3 rounded-full bg-green-600"></div>
-                        )}
-                      </div>
-                      <div className="ml-4">
-                        <div className="flex items-center">
-                          <Wallet className="text-gray-400 mr-2" size={20} />
-                          <span className="font-medium text-gray-900">
-                            Cash on Delivery
-                          </span>
-                        </div>
-                        <p className="text-sm text-gray-500 mt-1">
-                          Pay when your order arrives
-                        </p>
-                      </div>
-                    </div>
-                  </label>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {[
+                    { id: "card", label: "Credit Card", icon: CreditCard },
+                    { id: "cash", label: "Cash on Delivery", icon: Wallet },
+                    { id: "online", label: "Online Payment", icon: Check },
+                  ].map(({ id, label, icon: Icon }) => (
+                    <motion.button
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      key={id}
+                      onClick={() => setPaymentMethod(id)}
+                      className={`p-4 rounded-xl border-2 transition-all duration-200 ${
+                        paymentMethod === id
+                          ? "border-green-500 bg-green-50 text-green-700"
+                          : "border-gray-200 hover:border-green-300 text-gray-600"
+                      }`}
+                    >
+                      <Icon size={24} className="mx-auto mb-2" />
+                      <span className="text-sm font-medium">{label}</span>
+                    </motion.button>
+                  ))}
                 </div>
+              </div>
 
-                {paymentMethod === "card" && (
-                  <div className="mt-6 space-y-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Card Number
-                      </label>
-                      <input
-                        type="text"
-                        placeholder="1234 5678 9012 3456"
-                        className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
-                      />
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Expiry Date
-                        </label>
-                        <input
-                          type="text"
-                          placeholder="MM/YY"
-                          className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          CVC
-                        </label>
-                        <input
-                          type="text"
-                          placeholder="123"
-                          className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
-                        />
-                      </div>
+              {/* Special Instructions */}
+              <div className="bg-white rounded-3xl shadow-md border p-8">
+                <h3 className="text-lg font-semibold mb-4">Special Instructions</h3>
+                <textarea
+                  value={specialInstructions}
+                  onChange={(e) => setSpecialInstructions(e.target.value)}
+                  placeholder="Any special requests or instructions for your order..."
+                  className="w-full p-4 border border-gray-200 rounded-xl resize-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  rows={3}
+                />
+              </div>
+            </motion.div>
+
+            {/* Order Total - Right Column */}
+            <motion.div
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.3 }}
+              className="lg:col-span-1"
+            >
+              <div className="bg-white rounded-3xl shadow-md border p-8 sticky top-8">
+                <h3 className="text-xl font-semibold mb-6">Order Total</h3>
+
+                <div className="space-y-4 mb-6">
+                  <div className="flex justify-between text-gray-600">
+                    <span>Subtotal</span>
+                    <span>${subtotal.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between text-gray-600">
+                    <span>Delivery Fee</span>
+                    <span>${deliveryFee.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between text-gray-600">
+                    <span>Tax</span>
+                    <span>${tax.toFixed(2)}</span>
+                  </div>
+                  <div className="border-t pt-4">
+                    <div className="flex justify-between text-xl font-semibold">
+                      <span>Total</span>
+                      <span className="text-green-600">${total.toFixed(2)}</span>
                     </div>
                   </div>
-                )}
+                </div>
 
-                <button
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
                   onClick={handlePlaceOrder}
                   disabled={isProcessing}
-                  className="w-full mt-8 bg-black text-white font-medium py-4 rounded-xl flex items-center justify-center gap-2 hover:bg-gray-800 transition-all transform hover:scale-[1.02] focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-2 shadow-md disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+                  className="w-full bg-green-600 text-white py-4 rounded-xl font-semibold hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
                   {isProcessing ? (
                     <>
                       <Loader2 size={20} className="animate-spin" />
-                      <span>Processing...</span>
+                      Processing...
                     </>
                   ) : (
                     <>
-                      <Check size={20} />
-                      <span>Place Order • ${total.toFixed(2)}</span>
+                      <ShoppingBag size={20} />
+                      Place Order
                     </>
                   )}
-                </button>
+                </motion.button>
 
-                <p className="text-xs text-gray-400 text-center mt-4">
-                  By placing your order, you agree to our Terms of Service and
-                  Privacy Policy
-                </p>
+                <div className="mt-6 text-center">
+                  <div className="flex items-center justify-center gap-2 text-sm text-gray-500">
+                    <Clock size={16} />
+                    <span>Estimated delivery: 30-45 minutes</span>
+                  </div>
+                </div>
               </div>
             </motion.div>
           </div>
@@ -544,4 +445,4 @@ const CheckoutPage = () => {
   );
 };
 
-export default CheckoutPage;
+export default CheckoutPage; 
