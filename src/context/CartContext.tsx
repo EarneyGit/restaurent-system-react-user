@@ -74,7 +74,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return [...prevItems, { ...product, quantity: product.quantity || 1 }];
       });
       
-      toast.success('Added to cart successfully');
+      // toast.success('Added to cart successfully');
     } catch (error) {
       console.error('Error adding to cart:', error);
       toast.error('Failed to add to cart');
@@ -117,7 +117,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const clearCart = () => {
     setCartItems([]);
     localStorage.removeItem('cart');
-    toast.success('Cart cleared');
+    // toast.success('Cart cleared');
   };
 
   const getCartTotal = () => {

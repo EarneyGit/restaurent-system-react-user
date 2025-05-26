@@ -1,9 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 
 interface Option {
   id: string;
   name: string;
+  type: 'single' | 'multiple';
+  requiresSelection: boolean;
+  description?: string;
   choices: {
     id: string;
     name: string;
@@ -28,6 +31,16 @@ const ProductOptionsModal = ({
 }: ProductOptionsModalProps) => {
   const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>({});
   const [specialRequirements, setSpecialRequirements] = useState('');
+  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    // Reset form when modal opens
+    if (isOpen) {
+      setSelectedOptions({});
+      setSpecialRequirements('');
+      setValidationErrors({});
+    }
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -36,14 +49,31 @@ const ProductOptionsModal = ({
       ...prev,
       [optionId]: choiceId
     }));
+    // Clear validation error when option is selected
+    if (validationErrors[optionId]) {
+      setValidationErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors[optionId];
+        return newErrors;
+      });
+    }
+  };
+
+  const validateForm = (): boolean => {
+    const errors: Record<string, string> = {};
+    
+    options.forEach(option => {
+      if (option.requiresSelection && !selectedOptions[option.id]) {
+        errors[option.id] = `Please select a ${option.name.toLowerCase()}`;
+      }
+    });
+
+    setValidationErrors(errors);
+    return Object.keys(errors).length === 0;
   };
 
   const handleAddToCart = () => {
-    // Check if all required options are selected
-    const allOptionsSelected = options.every(option => selectedOptions[option.id]);
-    
-    if (!allOptionsSelected) {
-      alert('Please select all required options');
+    if (!validateForm()) {
       return;
     }
 
@@ -51,7 +81,20 @@ const ProductOptionsModal = ({
     // Reset form
     setSelectedOptions({});
     setSpecialRequirements('');
+    setValidationErrors({});
     onClose();
+  };
+
+  const calculateTotalPrice = (basePrice: number): number => {
+    let total = basePrice;
+    Object.entries(selectedOptions).forEach(([optionId, choiceId]) => {
+      const option = options.find(opt => opt.id === optionId);
+      const choice = option?.choices.find(c => c.id === choiceId);
+      if (choice) {
+        total += choice.price;
+      }
+    });
+    return total;
   };
 
   return (
@@ -78,16 +121,29 @@ const ProductOptionsModal = ({
           <div className="space-y-8">
             {options.map(option => (
               <div key={option.id} className="space-y-4">
-                <h3 className="text-xl font-semibold text-gray-800">{option.name}</h3>
+                <div className="flex items-center gap-2">
+                  <h3 className="text-xl font-semibold text-gray-800">{option.name}</h3>
+                  {option.requiresSelection && (
+                    <span className="text-red-500 text-sm">*Required</span>
+                  )}
+                </div>
+                {option.description && (
+                  <p className="text-sm text-gray-600">{option.description}</p>
+                )}
+                {validationErrors[option.id] && (
+                  <p className="text-red-500 text-sm">{validationErrors[option.id]}</p>
+                )}
                 <div className="grid gap-3">
                   {option.choices.map(choice => (
                     <label
                       key={choice.id}
-                      className="flex items-center justify-between p-4 border rounded-xl cursor-pointer hover:border-green-500 hover:bg-green-50/50 transition-colors"
+                      className={`flex items-center justify-between p-4 border rounded-xl cursor-pointer hover:border-green-500 hover:bg-green-50/50 transition-colors ${
+                        selectedOptions[option.id] === choice.id ? 'border-green-500 bg-green-50/50' : ''
+                      }`}
                     >
                       <div className="flex items-center gap-4">
                         <input
-                          type="radio"
+                          type={option.type === 'multiple' ? 'checkbox' : 'radio'}
                           name={option.id}
                           value={choice.id}
                           checked={selectedOptions[option.id] === choice.id}
