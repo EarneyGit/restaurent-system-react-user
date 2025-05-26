@@ -30,7 +30,7 @@ const ProductFilters: React.FC<ProductFiltersProps> = ({
           onClick={() => onCategoryChange("All")}
           className={`px-6 py-2 rounded-full border border-gray-300 whitespace-nowrap transition-all ${
             selectedCategory === "All"
-              ? "bg-neutral-800 text-white hover:opacity-90"
+              ? "bg-green-900 text-white hover:opacity-90"
               : "bg-white text-gray-700 hover:bg-gray-100"
           }`}
         >
@@ -42,7 +42,7 @@ const ProductFilters: React.FC<ProductFiltersProps> = ({
             onClick={() => onCategoryChange(String(category.name))}
             className={`px-4 py-2 rounded-full border border-gray-300 text-sm whitespace-nowrap transition-all ${
               selectedCategory === String(category.name)
-                ? "bg-neutral-800 text-white font-semibold hover:opacity-80"
+                ? "bg-green-900 text-white font-semibold hover:opacity-80"
                 : "bg-white text-gray-700 hover:bg-gray-100"
             }`}
           >

@@ -15,6 +15,8 @@ import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from 'sonner';
 import { motion } from "framer-motion";
+import DeliveryAddressForm from '@/components/cart/DeliveryAddressForm';
+import { useBranch } from '@/context/BranchContext';
 
 // NoImage SVG Component
 const NoImage = () => (
@@ -44,10 +46,111 @@ const ImageWithFallback = ({ src, alt }: { src: string; alt: string }) => {
 
 const CheckoutPage = () => {
   const { user, isAuthenticated } = useAuth();
+  const { selectedBranch } = useBranch();
   const [paymentMethod, setPaymentMethod] = useState("card");
   const navigate = useNavigate();
-  const { cartItems, getCartTotal, clearCart } = useCart();
+  const { 
+    cartItems, 
+    getCartTotal, 
+    getDeliveryFee, 
+    getTaxAmount, 
+    getOrderTotal,
+    clearCart 
+  } = useCart();
   const [isProcessing, setIsProcessing] = useState(false);
+  const [specialInstructions, setSpecialInstructions] = useState("");
+
+  // Delivery address state
+  const [deliveryAddress, setDeliveryAddress] = useState({
+    street: user?.address?.street || "",
+    city: user?.address?.city || "",
+    state: user?.address?.state || "",
+    zipCode: user?.address?.zipCode || "",
+    country: user?.address?.country || "USA"
+  });
+
+  // Calculate order totals
+  const subtotal = getCartTotal();
+  const deliveryFee = getDeliveryFee();
+  const tax = getTaxAmount();
+  const total = getOrderTotal();
+
+  const handleAddressChange = (field: string, value: string) => {
+    setDeliveryAddress(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  const handlePlaceOrder = async () => {
+    if (!selectedBranch?.id) {
+      toast.error("Please select a branch first");
+      return;
+    }
+
+    // Validate delivery address
+    const addressFields = Object.entries(deliveryAddress);
+    const emptyFields = addressFields.filter(([_, value]) => !value.trim());
+    if (emptyFields.length > 0) {
+      toast.error(`Please fill in all address fields: ${emptyFields.map(([field]) => field).join(', ')}`);
+      return;
+    }
+
+    try {
+      setIsProcessing(true);
+
+      // Prepare order data according to API schema
+      const orderData = {
+        customerId: user?._id, // From authenticated user
+        branchId: selectedBranch.id,
+        items: cartItems.map(item => ({
+          productId: item.id,
+          quantity: item.quantity,
+          price: item.price,
+          selectedOptions: item.selectedOptions || {},
+          specialRequirements: item.specialRequirements || ""
+        })),
+        orderType: "delivery",
+        deliveryAddress,
+        paymentMethod,
+        paymentStatus: "pending",
+        specialInstructions,
+        subtotal,
+        tax,
+        deliveryFee,
+        total
+      };
+
+      // Make API call to create order
+      const response = await fetch('/api/orders', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          // Add any auth headers if needed
+        },
+        body: JSON.stringify(orderData)
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to create order');
+      }
+
+      const data = await response.json();
+
+      if (data.success) {
+        toast.success("Order placed successfully!");
+        clearCart();
+        navigate("/app");
+      } else {
+        throw new Error(data.message || 'Failed to place order');
+      }
+    } catch (error) {
+      console.error('Order creation error:', error);
+      toast.error(error.message || "Failed to place order. Please try again.");
+    } finally {
+      setIsProcessing(false);
+    }
+  };
 
   // Guest user form state
   const [guestInfo, setGuestInfo] = useState({
@@ -57,10 +160,14 @@ const CheckoutPage = () => {
     address: "",
   });
 
-  // Calculate delivery fee and total
-  const subtotal = getCartTotal();
-  const deliveryFee = 5.99;
-  const total = subtotal + deliveryFee;
+  // Handle guest info change
+  const handleGuestInfoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setGuestInfo((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
 
   // Handle empty cart
   if (cartItems.length === 0) {
@@ -107,48 +214,13 @@ const CheckoutPage = () => {
     );
   }
 
-  // Handle guest info change
-  const handleGuestInfoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setGuestInfo((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-  };
-
-  // Handle order placement
-  const handlePlaceOrder = async () => {
-    if (!isAuthenticated) {
-      // Validate guest information
-      const { name, email, phone, address } = guestInfo;
-      if (!name || !email || !phone || !address) {
-        toast.error("Please fill in all required fields");
-        return;
-      }
-    }
-
-    try {
-      setIsProcessing(true);
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-
-      toast.success("Order placed successfully!");
-      clearCart();
-      navigate("/app");
-    } catch (error) {
-      toast.error("Failed to place order. Please try again.");
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-
   return (
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       className="min-h-screen "
     >
-      <div className=" mx-auto px-4 py-8">
+      <div className=" mx-auto px-4 py-10">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -269,6 +341,10 @@ const CheckoutPage = () => {
                       <span>Delivery fee</span>
                       <span>${deliveryFee.toFixed(2)}</span>
                     </div>
+                    <div className="flex justify-between text-sm text-gray-600">
+                      <span>Tax (10%)</span>
+                      <span>${tax.toFixed(2)}</span>
+                    </div>
                     <div className="flex justify-between text-base font-medium pt-2 border-t border-gray-100">
                       <span>Total</span>
                       <span className="text-green-600">
@@ -288,103 +364,25 @@ const CheckoutPage = () => {
                   Delivery Details
                 </h2>
 
-                {isAuthenticated ? (
-                  <div className="space-y-6">
-                    <div className="flex items-start p-4 rounded-2xl border-2 border-gray-100 hover:border-green-100 transition-colors">
-                      <MapPin className="text-green-600 mt-1 mr-4" size={24} />
-                      <div>
-                        <h3 className="font-medium text-gray-900">
-                          Delivery Address
-                        </h3>
-                        <p className="text-gray-600 mt-1">
-                          {user?.address || "No address provided"}
-                        </p>
-                        <button className="text-green-600 text-sm mt-2 hover:text-green-700 flex items-center gap-1">
-                          <span>Change</span>
-                          <ArrowLeft
-                            size={16}
-                            className="transform rotate-180"
-                          />
-                        </button>
-                      </div>
-                    </div>
+                <div className="space-y-6">
+                  <DeliveryAddressForm 
+                    address={deliveryAddress}
+                    onChange={handleAddressChange}
+                  />
 
-                    <div className="flex items-start p-4 rounded-2xl border-2 border-gray-100 hover:border-green-100 transition-colors">
-                      <Clock className="text-green-600 mt-1 mr-4" size={24} />
-                      <div>
-                        <h3 className="font-medium text-gray-900">
-                          Delivery Time
-                        </h3>
-                        <p className="text-gray-600 mt-1">Today, 30-40 min</p>
-                        <button className="text-green-600 text-sm mt-2 hover:text-green-700 flex items-center gap-1">
-                          <span>Change</span>
-                          <ArrowLeft
-                            size={16}
-                            className="transform rotate-180"
-                          />
-                        </button>
-                      </div>
-                    </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Special Instructions (Optional)
+                    </label>
+                    <textarea
+                      value={specialInstructions}
+                      onChange={(e) => setSpecialInstructions(e.target.value)}
+                      className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
+                      placeholder="Any special delivery instructions?"
+                      rows={3}
+                    />
                   </div>
-                ) : (
-                  <div className="space-y-6">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Full Name *
-                      </label>
-                      <input
-                        type="text"
-                        name="name"
-                        value={guestInfo.name}
-                        onChange={handleGuestInfoChange}
-                        className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
-                        required
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Email Address *
-                      </label>
-                      <input
-                        type="email"
-                        name="email"
-                        value={guestInfo.email}
-                        onChange={handleGuestInfoChange}
-                        className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
-                        required
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Phone Number *
-                      </label>
-                      <input
-                        type="tel"
-                        name="phone"
-                        value={guestInfo.phone}
-                        onChange={handleGuestInfoChange}
-                        className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
-                        required
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Delivery Address *
-                      </label>
-                      <input
-                        type="text"
-                        name="address"
-                        value={guestInfo.address}
-                        onChange={handleGuestInfoChange}
-                        className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
-                        required
-                      />
-                    </div>
-                  </div>
-                )}
+                </div>
               </div>
             </motion.div>
 
@@ -518,7 +516,7 @@ const CheckoutPage = () => {
                 <button
                   onClick={handlePlaceOrder}
                   disabled={isProcessing}
-                  className="w-full mt-8 bg-gradient-to-r from-green-600 to-green-500 text-white font-medium py-4 rounded-xl flex items-center justify-center gap-2 hover:from-green-700 hover:to-green-600 transition-all transform hover:scale-[1.02] focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 shadow-md border hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+                  className="w-full mt-8 bg-black text-white font-medium py-4 rounded-xl flex items-center justify-center gap-2 hover:bg-gray-800 transition-all transform hover:scale-[1.02] focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-2 shadow-md disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
                 >
                   {isProcessing ? (
                     <>

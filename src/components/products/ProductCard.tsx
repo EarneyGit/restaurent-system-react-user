@@ -95,7 +95,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
     <div className="bg-white rounded-3xl overflow-hidden border border-gray-200 shadow-sm hover:shadow-md transition-all duration-300 relative flex flex-col h-full">
       {/* Category Badge */}
       <div className="absolute top-5 left-4 z-10">
-        <span className="px-3 py-1 bg-neutral-900 text-white rounded-full text-xs font-medium">
+        <span className="px-3 py-1 bg-green-900 text-white rounded-full text-xs font-medium">
           {category}
         </span>
       </div>
@@ -153,6 +153,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
       {/* Product Info */}
       <div className="flex-1 p-4">
         <h3 className="font-medium text-gray-900">{product.name}</h3>
+        <p className=" text-left text-sm text-neutral-500">{product?.description}</p>
         <div className="flex items-baseline gap-2 mt-1">
           <span className="font-bold text-lg">₹{product.price.toFixed(2)}</span>
           {product.originalPrice && (
@@ -186,7 +187,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
           <button
             onClick={handleAddToCart}
             disabled={isAddingToCart}
-            className="w-full bg-gray-900 text-white py-3 rounded-xl font-medium hover:bg-gray-800 transition-colors flex items-center justify-center gap-2"
+            className="w-full bg-neutral-800 text-white py-2.5 rounded-xl font-medium hover:bg-gray-800 transition-colors flex items-center justify-center gap-2"
           >
             {isAddingToCart ? (
               <>

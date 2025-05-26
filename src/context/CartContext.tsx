@@ -1,91 +1,147 @@
-import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
-import { Product } from '@/services/api';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 import { toast } from 'sonner';
 
-interface CartItem extends Product {
+// Constants for calculations
+const DELIVERY_FEE = 5.00;
+const TAX_RATE = 0.10;
+
+export interface CartItem {
+  id: string;
+  name: string;
+  price: number;
   quantity: number;
+  description?: string;
+  images?: string[];
+  category?: string;
   variant?: string;
   size?: string;
   color?: string;
+  selectedOptions?: {
+    [key: string]: string;
+  };
+  specialRequirements?: string;
 }
 
 interface CartContextType {
   cartItems: CartItem[];
-  addToCart: (product: Product) => void;
-  removeFromCart: (productId: string) => void;
-  updateCartItemQuantity: (productId: string, quantity: number) => void;
+  addToCart: (product: CartItem) => Promise<void>;
+  removeFromCart: (productId: string) => Promise<void>;
+  updateCartItemQuantity: (productId: string, quantity: number) => Promise<void>;
   clearCart: () => void;
-  getItemQuantity: (productId: string) => number;
-  totalItems: number;
-  subtotal: number;
   getCartTotal: () => number;
+  getCartItemCount: () => number;
+  getDeliveryFee: () => number;
+  getTaxAmount: () => number;
+  getOrderTotal: () => number;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
-const CART_STORAGE_KEY = 'cart_items';
-
 export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [cartItems, setCartItems] = useState<CartItem[]>(() => {
-    const savedCart = localStorage.getItem(CART_STORAGE_KEY);
-    return savedCart ? JSON.parse(savedCart) : [];
-  });
+  const [cartItems, setCartItems] = useState<CartItem[]>([]);
+
+  // Load cart from localStorage on mount
+  useEffect(() => {
+    const savedCart = localStorage.getItem('cart');
+    if (savedCart) {
+      try {
+        setCartItems(JSON.parse(savedCart));
+      } catch (error) {
+        console.error('Error loading cart from localStorage:', error);
+        localStorage.removeItem('cart');
+      }
+    }
+  }, []);
 
   // Save cart to localStorage whenever it changes
   useEffect(() => {
-    localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cartItems));
+    localStorage.setItem('cart', JSON.stringify(cartItems));
   }, [cartItems]);
 
-  const addToCart = (product: Product) => {
-    setCartItems(prevItems => {
-      const existingItem = prevItems.find(item => item.id === product.id);
+  const addToCart = async (product: CartItem) => {
+    try {
+      setCartItems(prevItems => {
+        const existingItem = prevItems.find(item => item.id === product.id);
+        
+        if (existingItem) {
+          return prevItems.map(item =>
+            item.id === product.id
+              ? { ...item, quantity: item.quantity + (product.quantity || 1) }
+              : item
+          );
+        }
+        
+        return [...prevItems, { ...product, quantity: product.quantity || 1 }];
+      });
       
-      if (existingItem) {
-        return prevItems.map(item =>
-          item.id === product.id
-            ? { ...item, quantity: item.quantity + 1 }
-            : item
-        );
-      }
-      
-      return [...prevItems, { ...product, quantity: 1 }];
-    });
-  };
-
-  const removeFromCart = (productId: string) => {
-    setCartItems(prevItems => prevItems.filter(item => item.id !== productId));
-  };
-
-  const updateCartItemQuantity = (productId: string, quantity: number) => {
-    if (quantity < 1) {
-      removeFromCart(productId);
-      return;
+      toast.success('Added to cart successfully');
+    } catch (error) {
+      console.error('Error adding to cart:', error);
+      toast.error('Failed to add to cart');
+      throw error;
     }
+  };
 
-    setCartItems(prevItems =>
-      prevItems.map(item =>
-        item.id === productId ? { ...item, quantity } : item
-      )
-    );
+  const removeFromCart = async (productId: string) => {
+    try {
+      setCartItems(prevItems => prevItems.filter(item => item.id !== productId));
+      toast.success('Item removed from cart');
+    } catch (error) {
+      console.error('Error removing from cart:', error);
+      toast.error('Failed to remove item');
+      throw error;
+    }
+  };
+
+  const updateCartItemQuantity = async (productId: string, quantity: number) => {
+    try {
+      if (quantity < 1) {
+        await removeFromCart(productId);
+        return;
+      }
+
+      setCartItems(prevItems =>
+        prevItems.map(item =>
+          item.id === productId
+            ? { ...item, quantity }
+            : item
+        )
+      );
+    } catch (error) {
+      console.error('Error updating quantity:', error);
+      toast.error('Failed to update quantity');
+      throw error;
+    }
   };
 
   const clearCart = () => {
     setCartItems([]);
+    localStorage.removeItem('cart');
+    toast.success('Cart cleared');
   };
 
-  const getItemQuantity = (productId: string) => {
-    return cartItems.find(item => item.id === productId)?.quantity || 0;
+  const getCartTotal = () => {
+    return cartItems.reduce((total, item) => total + (item.price * item.quantity), 0);
   };
 
-  const totalItems = cartItems.reduce((sum, item) => sum + item.quantity, 0);
-  
-  const subtotal = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  const getCartItemCount = () => {
+    return cartItems.reduce((total, item) => total + item.quantity, 0);
+  };
 
-  const getCartTotal = useCallback(() => {
-    const subtotal = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
-    const deliveryFee = totalItems > 0 ? 12.99 : 0; // Add delivery fee only if cart is not empty
-    return subtotal + deliveryFee;
-  }, [cartItems, totalItems]);
+  const getDeliveryFee = () => {
+    return DELIVERY_FEE;
+  };
+
+  const getTaxAmount = () => {
+    const subtotal = getCartTotal();
+    return subtotal * TAX_RATE;
+  };
+
+  const getOrderTotal = () => {
+    const subtotal = getCartTotal();
+    const tax = getTaxAmount();
+    return subtotal + getDeliveryFee() + tax;
+  };
 
   return (
     <CartContext.Provider
@@ -95,10 +151,11 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
         removeFromCart,
         updateCartItemQuantity,
         clearCart,
-        getItemQuantity,
-        totalItems,
-        subtotal,
         getCartTotal,
+        getCartItemCount,
+        getDeliveryFee,
+        getTaxAmount,
+        getOrderTotal,
       }}
     >
       {children}

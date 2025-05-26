@@ -1,9 +1,15 @@
 export interface User {
-  id: string;
+  _id: string;
   name: string;
   email: string;
   phone?: string;
-  address?: string;
+  address?: {
+    street: string;
+    city: string;
+    state: string;
+    zipCode: string;
+    country: string;
+  };
   role: string;
   permissions: string[];
   emailVerified?: boolean;
@@ -29,9 +35,8 @@ export interface ResetPasswordData {
 
 export interface AuthResponse {
   success: boolean;
-  message: string;
-  token?: string;
-  data?: User;
+  token: string;
+  user: User;
 }
 
 export interface OTPResponse {

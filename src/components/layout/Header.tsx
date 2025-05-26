@@ -6,9 +6,9 @@ import Sidebar from "./Sidebar";
 import NotificationModal from "../notifications/NotificationModal";
 import { CartSummary } from "../cart/CartSummary";
 import ScheduleModal from "./ScheduleModal";
-import { useAuth } from '../../context/AuthContext';
-import UserAvatar from '../auth/UserAvatar';
-import BranchSelector from '../BranchSelector';
+import { useAuth } from "../../context/AuthContext";
+import UserAvatar from "../auth/UserAvatar";
+import BranchSelector from "../BranchSelector";
 
 const Header = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -22,13 +22,13 @@ const Header = () => {
   const { user, getMe, isLoading } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const isCheckoutPage = location.pathname === '/checkout';
+  const isCheckoutPage = location.pathname === "/checkout";
 
   // Refresh user data when component mounts
   useEffect(() => {
     const refreshUserData = async () => {
-      const token = localStorage.getItem('token');
-      
+      const token = localStorage.getItem("token");
+
       if (!token) {
         return; // No token, no need to proceed
       }
@@ -37,11 +37,14 @@ const Header = () => {
         try {
           await getMe();
         } catch (error) {
-          if (error instanceof AxiosError && (error.response?.status === 401 || error.response?.status === 403)) {
-            console.error('Authentication error:', error);
-            localStorage.removeItem('token');
+          if (
+            error instanceof AxiosError &&
+            (error.response?.status === 401 || error.response?.status === 403)
+          ) {
+            console.error("Authentication error:", error);
+            localStorage.removeItem("token");
           } else {
-            console.error('Error fetching user data:', error);
+            console.error("Error fetching user data:", error);
           }
         }
       }
@@ -99,18 +102,18 @@ const Header = () => {
           <div className="flex justify-between items-center h-16 md:px-4">
             {/* Left section */}
             <div className="flex items-center gap-2">
-              <button 
-                className="p-2 hover:bg-gray-100 rounded-full transition-colors" 
+              {/* <button
+                className="p-2 hover:bg-gray-100 rounded-full transition-colors"
                 onClick={openSidebar}
                 aria-label="Menu"
               >
                 <Menu size={24} className="text-gray-700" />
-              </button>
-              <Link to="/" className="flex items-center">
-                <div className="h-8 w-8 bg-gradient-to-r from-foodyman-lime to-foodyman-green rounded-full flex items-center justify-center">
+              </button> */}
+              <Link to="/" className="flex items-center font-mono">
+                <div className="h-8 w-8 bg-gradient-to-r  from-foodyman-lime to-foodyman-green rounded-full flex items-center justify-center">
                   <span className="text-white font-bold text-sm">R</span>
                 </div>
-                <span className="ml-2 font-semibold text-xl text-gray-900 hidden md:block">
+                <span className="ml-2 font-semibold md:text-2xl text-xl  uppercase text-gray-900 ">
                   Restroman
                 </span>
               </Link>
@@ -118,7 +121,7 @@ const Header = () => {
 
             {/* Right section */}
             <div className="flex items-center gap-3">
-              <CartSummary />
+              <CartSummary className="p-2 hover:bg-gray-100 rounded-full transition-colors" />
               <BranchSelector />
               {/* <button
                 onClick={openNotifications}

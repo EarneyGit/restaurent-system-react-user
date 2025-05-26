@@ -1,9 +1,26 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Store, Info, MapPin, User } from "lucide-react";
+import { Store, Info, MapPin, User, LogOut, ShoppingBag, KeyRound, Gift } from "lucide-react";
+import { useAuth } from "../context/AuthContext";
 
 const Welcome = () => {
   const navigate = useNavigate();
+  const { user, isAuthenticated, logout } = useAuth();
+  const [showAccountOptions, setShowAccountOptions] = useState(false);
+
+  const handleAccountClick = () => {
+    if (!isAuthenticated) {
+      navigate("/login");
+      return;
+    }
+    setShowAccountOptions(!showAccountOptions);
+  };
+
+  const handleLogout = async () => {
+    await logout();
+    setShowAccountOptions(false);
+    navigate("/login");
+  };
 
   return (
     <div className="min-h-screen relative xl:pt-10 md:pt-5 pt-3 font-sans">
@@ -114,13 +131,84 @@ const Welcome = () => {
             </div>
             <span className="text-sm mt-1 font-medium">Outlet</span>
           </Link>
-          <Link to="/login" className="flex flex-col items-center text-white">
+          <button
+            onClick={handleAccountClick}
+            className="flex flex-col items-center text-white relative"
+          >
             <div className="p-2 rounded-xl bg-green-800/30">
               <User size={24} stroke="white" />
             </div>
             <span className="text-sm mt-1 font-medium">Account</span>
-          </Link>
+          </button>
         </div>
+
+        {/* Account Options Modal */}
+        {showAccountOptions && isAuthenticated && (
+          <>
+            {/* Backdrop */}
+            <div 
+              className="fixed inset-0 bg-black/60 backdrop-blur z-50"
+              onClick={() => setShowAccountOptions(false)}
+            />
+            
+            {/* Modal */}
+            <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 max-w-2xl w-full bg-white rounded-xl shadow-2xl border border-gray-100 overflow-hidden z-50 animate-fade-in-up">
+              {/* User Info */}
+              <div className="p-8 bg-gradient-to-r from-green-900 to-green-600 text-white relative">
+                <div className="absolute inset-0 bg-[url('/pattern.svg')] opacity-10" />
+                <div className="relative">
+                  <h2 className="text-3xl font-bold mb-2">{user?.name}</h2>
+                  <p className="text-lg opacity-90">{user?.email}</p>
+                </div>
+              </div>
+              
+              {/* Options */}
+              <div className="p-4">
+                <div className="space-y-3">
+                  <button
+                    onClick={() => navigate("/orders")}
+                    className="w-full p-4 text-left hover:bg-gray-50 text-gray-700 font-medium rounded-xl flex items-center space-x-3 transition-colors group"
+                  >
+                    <div className="w-12 h-12 rounded-2xl bg-gradient-to-br border border-gray-200 from-gray-50 to-gray-50 flex items-center justify-center group-hover:scale-95 transition-transform">
+                      <ShoppingBag className="w-6 h-6 text-gray-500" strokeWidth={1.5} />
+                    </div>
+                    <span className="text-lg">My Orders</span>
+                  </button>
+
+                  <button
+                    onClick={() => navigate("/forgot-password")}
+                    className="w-full p-4 text-left hover:bg-gray-50 text-gray-700 font-medium rounded-xl flex items-center space-x-3 transition-colors group"
+                  >
+                    <div className="w-12 h-12 rounded-2xl bg-gradient-to-br border border-gray-200 from-gray-50 to-gray-50 flex items-center justify-center group-hover:scale-95 transition-transform">
+                      <KeyRound className="w-6 h-6 text-gray-500" strokeWidth={1.5} />
+                    </div>
+                    <span className="text-lg">Change Password</span>
+                  </button>
+
+                  <button
+                    onClick={() => navigate("/offers")}
+                    className="w-full p-4 text-left hover:bg-gray-50 text-gray-700 font-medium rounded-xl flex items-center space-x-3 transition-colors group"
+                  >
+                    <div className="w-12 h-12 rounded-2xl bg-gradient-to-br border border-gray-200 from-gray-50 to-gray-50 flex items-center justify-center group-hover:scale-95 transition-transform">
+                      <Gift className="w-6 h-6 text-gray-500" strokeWidth={1.5} />
+                    </div>
+                    <span className="text-lg">Rewards</span>
+                  </button>
+
+                  <button
+                    onClick={handleLogout}
+                    className="w-full p-4  text-left hover:bg-gray-50 text-red-600 font-medium rounded-xl flex items-center justify-end transition-colors mt-6 border-t border-gray-200 group"
+                  >
+                    {/* <div className="w-12 h-12 rounded-2xl  from-gray-50 to-gray-50 flex items-center justify-center group-hover:scale-95 transition-transform">
+                    <LogOut className="w-5 h-5 text-red-600" strokeWidth={1.5} />
+                    </div> */}
+                    <span className="text-lg uppercase font-bold text-red-600">Logout</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );

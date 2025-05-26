@@ -1,33 +1,38 @@
 import React from 'react';
+import { ShoppingCart } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
-import { ShoppingBag } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 
 interface CartSummaryProps {
   className?: string;
 }
 
-export const CartSummary: React.FC<CartSummaryProps> = ({ className }) => {
-  const { cartItems, totalItems, subtotal } = useCart();
-  const navigate = useNavigate();
-
-  if (cartItems.length === 0) return null;
+export const CartSummary: React.FC<CartSummaryProps> = ({ className = '' }) => {
+  const { cartItems, getCartTotal, getCartItemCount } = useCart();
+  const itemCount = getCartItemCount();
+  const total = getCartTotal();
 
   return (
-    <button
-      onClick={() => navigate('/cart')}
-      className={`flex items-center gap-2 text-gray-700 hover:text-black transition-colors duration-200 ${className}`}
-      aria-label={`View cart with ${totalItems} items`}
+    <Link 
+      to="/cart" 
+      className={`relative flex items-center gap-2 ${className}`}
+      aria-label="Shopping cart"
     >
       <div className="relative">
-        <ShoppingBag size={20} />
-        {totalItems > 0 && (
-          <span className="absolute -top-1 -right-1 bg-gradient-to-r from-foodyman-lime to-foodyman-green shadow-md text-white rounded-full w-4 h-4 text-[10px] font-bold flex items-center justify-center">
-            {totalItems}
-          </span>
+        <ShoppingCart size={20} className="text-gray-700" />
+        {itemCount > 0 && (
+          <div className="absolute -top-2 -right-2 bg-green-700 text-white text-xs min-w-[18px] h-[18px] flex items-center justify-center rounded-full px-1 font-medium">
+            {itemCount}
+          </div>
         )}
       </div>
-      <span className="font-medium">${subtotal.toFixed(2)}</span>
-    </button>
+      {total > 0 && (
+        <span className="hidden md:inline-block font-medium">
+          ${total.toFixed(2)}
+        </span>
+      )}
+    </Link>
   );
 };
+
+export default CartSummary;

@@ -34,6 +34,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const navigate = useNavigate();
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const fetchUserDetails = async (token: string) => {
     try {
@@ -110,74 +111,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUser(null);
   };
 
+  const handleAuthResponse = (response: AuthResponse) => {
+    if (response.token) {
+      localStorage.setItem('token', response.token);
+      setUser(response.user);
+    }
+  };
+
   const login = async (email: string, password: string) => {
     try {
-      // Validate inputs
-      if (!email || !password) {
-        throw new Error('Email and password are required');
-      }
-
-      // Clear any existing auth state before login attempt
-      handleLogout();
-
-      // Prepare login data
-      const loginData = {
-        email: email.trim(),
-        password: password.trim()
-      };
-
-      // Make the login request
-      const response = await axios.post<AuthResponse>(
-        AUTH_ENDPOINTS.LOGIN,
-        loginData,
-        {
-          headers: {
-            'Content-Type': 'application/json'
-          }
-        }
-      );
-      
-      // Check if login was successful and we have a token
-      if (response.data.success && response.data.token) {
-        // Store token first
-        localStorage.setItem('token', response.data.token);
-        
-        // Set axios default header
-        axios.defaults.headers.common['Authorization'] = `Bearer ${response.data.token}`;
-
-        // Set user data immediately if available in login response
-        if (response.data.data) {
-          setUser(response.data.data);
-          return;
-        }
-
-        // If no user data in login response, fetch it
-        const userResponse = await axios.get<AuthResponse>(AUTH_ENDPOINTS.GET_ME);
-        
-        if (userResponse.data.success && userResponse.data.data) {
-          setUser(userResponse.data.data);
-          return;
-        }
-
-        // If we still don't have user data, throw error
-        throw new Error('Failed to get user details');
-      }
-      
-      // If we get here, something went wrong
-      throw new Error(response.data.message || 'Login failed');
+      setIsLoading(true);
+      setError(null);
+      const response = await axios.post<AuthResponse>(AUTH_ENDPOINTS.LOGIN, { email, password });
+      handleAuthResponse(response.data);
+      return response.data;
     } catch (error) {
-      handleLogout(); // Clear any partial auth state
-      
-      if (axios.isAxiosError(error)) {
-        const errorMessage = error.response?.data?.message || error.response?.data?.error || error.message;
-        toast.error(errorMessage || 'Login failed');
-      } else if (error instanceof Error) {
-        toast.error(error.message);
-      } else {
-        toast.error('An unexpected error occurred');
-      }
-      
+      handleAuthError(error);
       throw error;
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -226,19 +178,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const completeRegistration = async (data: RegistrationData) => {
     try {
+      setIsLoading(true);
+      setError(null);
       const response = await axios.post<AuthResponse>(AUTH_ENDPOINTS.REGISTER, data);
-      if (response.data.success && response.data.token) {
-        localStorage.setItem('token', response.data.token);
-        setUser(response.data.data || null);
-        toast.success(response.data.message || 'Registration successful');
-        return;
-      }
-      throw new Error(response.data.message || 'Registration failed');
-    } catch (error: unknown) {
-      const axiosError = error as AxiosError;
-      const message = axiosError.response?.data?.message || axiosError.message || 'Registration failed';
-      toast.error(message);
+      handleAuthResponse(response.data);
+      return response.data;
+    } catch (error) {
+      handleAuthError(error);
       throw error;
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -290,31 +239,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const getMe = async (): Promise<User | null> => {
+  const getMe = async () => {
     try {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        return null;
-      }
-
-      // Ensure token is in headers
-      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-      
+      setIsLoading(true);
+      setError(null);
       const response = await axios.get<AuthResponse>(AUTH_ENDPOINTS.GET_ME);
-
-      if (response.data.success && response.data.data) {
-        setUser(response.data.data);
-        return response.data.data;
-      }
-
-      return null;
+      setUser(response.data.user);
+      return response.data;
     } catch (error) {
-      console.error('GetMe error:', error);
-      // Only clear auth state for 401/403 errors
-      if (axios.isAxiosError(error) && (error.response?.status === 401 || error.response?.status === 403)) {
-        handleLogout();
-      }
-      return null;
+      handleAuthError(error);
+      throw error;
+    } finally {
+      setIsLoading(false);
     }
   };
 

@@ -90,9 +90,9 @@ const OutletSelectionPage = () => {
                     <p className="text-white/70 mb-4">
                       {branch.address.street}, {branch.address.city} {branch.address.postalCode}
                     </p>
-                    <div className="flex items-center gap-3 text-sm text-white/60">
+                    <div className="flex flex-col gap-3 text-sm text-white/60">
                       <span>{branch.contact.phone}</span>
-                      <span className="w-1.5 h-1.5 rounded-full bg-white/60"></span>
+                      {/* <span className="w-1.5 h-1.5 rounded-full bg-white/60"></span> */}
                       <span>{branch.contact.email}</span>
                     </div>
                     {branch.settings && (

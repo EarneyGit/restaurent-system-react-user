@@ -19,9 +19,9 @@ const Index = () => {
         </section>
 
         {/* Recommended Items Section */}
-        <section className="mb-20">
+        {/* <section className="mb-20">
           <RecommendedItems />
-        </section>
+        </section> */}
 
         {/* Restaurant Banner Section */}
         <section className="mb-20">
