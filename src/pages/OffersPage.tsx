@@ -1,77 +1,145 @@
-import React from 'react';
-import { ArrowLeft, Gift, Star } from 'lucide-react';
-import { Link } from 'react-router-dom';
+  import React, { useEffect, useState } from 'react';
+  import { X, Gift, Loader2, Clipboard } from 'lucide-react';
+  import { useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
 
-const OffersPage = () => {
-  const offers = [
+  const staticOffers = [
     {
-      title: "Welcome Offer",
-      description: "Get 10% off on your first order",
-      code: "WELCOME10"
+      id: 'offer1',
+      code: 'FIRST20',
+      title: '20% Off on Your First Order',
+      description: 'Enjoy a special 20% discount when placing your first order with us.',
+      discount: 20,
+      validTill: '2025-06-30',
     },
     {
-      title: "Weekend Special",
-      description: "Free delivery on orders above $30",
-      code: "WEEKEND"
+      id: 'offer2',
+      code: 'B1G1FREE',
+      title: 'Buy 1 Get 1 Free',
+      description: 'Order any two items and get one absolutely free. Limited time only!',
+      discount: 50,
+      validTill: '2025-07-15',
     },
     {
-      title: "Family Feast",
-      description: "20% off on family bundles",
-      code: "FAMILY20"
-    }
+      id: 'offer3',
+      code: 'WEEKEND25',
+      title: 'Weekend Combo Deal',
+      description: 'Grab your favorite weekend combos at an amazing price.',
+      discount: 25,
+      validTill: '2025-08-10',
+    },
+    {
+      id: 'offer4',
+      code: 'FREEDEL500',
+      title: 'Free Delivery Over £500',
+      description: 'No delivery charges on the orders above £500.',
+      discount: 100,
+      validTill: '2025-09-01',
+    },
   ];
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-[#f8f5f2] via-[#fefefe] to-[#f1f1f1] pb-12 font-sans">
-      {/* Header */}
-      <div className="bg-white/80 backdrop-blur-lg border-b border-[#2E7D32]/10 px-4 py-4 flex items-center sticky top-0 z-10 shadow-sm">
-        <Link to="/" className="text-gray-800 hover:text-[#2E7D32] transition">
-          <ArrowLeft size={24} />
-        </Link>
-        <h1 className="text-xl font-semibold uppercase font-mono ml-4 text-[#2E7D32]">Offers & Rewards</h1>
-      </div>
 
-      <div className="max-w-xl mx-auto px-4 pt-6">
-        {/* Loyalty Points */}
-        <div className="rounded-3xl bg-white/90 backdrop-blur-md p-6 shadow-md border border-[#2E7D32]/10 mb-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center">
-              <Star className="text-[#2E7D32] mr-2" size={22} />
-              <h2 className="text-lg font-semibold text-gray-800">Your Points</h2>
-            </div>
-            <span className="text-3xl font-extrabold text-[#2E7D32]">0</span>
-          </div>
-          <p className="text-sm text-gray-600 mt-2">
-            Earn 1 point for every $1 spent. Redeem points for free items!
-          </p>
+  const OfferPage = () => {
+    const navigate = useNavigate();
+    const [offers, setOffers] = useState<typeof staticOffers>([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [toastMessage, setToastMessage] = useState('');
+
+    useEffect(() => {
+      setTimeout(() => {
+        setOffers(staticOffers);
+        setIsLoading(false);
+      }, 100);
+    }, []);
+
+    const copyToClipboard = (code: string) => {
+      navigator.clipboard.writeText(code).then(() => {
+        toast.success(`Copied offer code "${code}".`);
+      });
+    };
+    
+
+    if (isLoading) {
+      return (
+        <div className="min-h-screen flex items-center justify-center bg-black">
+          <Loader2 size={40} className="text-green-500 animate-spin" />
+        </div>
+      );
+    }
+
+    return (
+      <div className="min-h-screen relative xl:pt-10 md:pt-5 pt-3 font-sans">
+        {/* Background Layer */}
+        <div className="absolute inset-0">
+          <img
+            src="/bg-home.png"
+            alt="background"
+            className="w-full h-full object-cover opacity-50 blur-sm"
+          />
+          <div className="absolute inset-0 bg-black/85" />
         </div>
 
-        {/* Current Offers */}
-        <h2 className="text-lg font-bold text-gray-800 mb-3">Current Offers</h2>
-        <div className="space-y-4">
-          {offers.map((offer, index) => (
-            <div
-              key={index}
-              className="relative bg-gradient-to-br from-[#fff] to-[#fdfdfd] border border-[#2E7D32]/10 rounded-2xl p-5 pl-6 pr-6 shadow transition hover:scale-[0.98] hover:shadow-lg"
-            >
-              <div className="flex items-start gap-3">
-                <div className="text-[#2E7D32] mt-1">
-                  <Gift size={20} />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-[#333]">{offer.title}</h3>
-                  <p className="text-sm text-gray-600 mt-1">{offer.description}</p>
-                  <span className="inline-block mt-2 px-3 py-1 text-sm font-medium bg-[#f5f5f5] rounded-lg border border-gray-200 text-[#2E7D32] tracking-wider">
-                    {offer.code}
-                  </span>
+        {/* Content */}
+        <div className="relative z-10 max-w-4xl mx-auto px-4">
+          {/* Close Button */}
+          <button
+            onClick={() => navigate(-1)}
+            className="absolute right-4 top-4 p-2 rounded-full bg-white/10 hover:bg-white/20 transition-colors"
+            aria-label="Go back"
+          >
+            <X size={24} className="text-white" />
+          </button>
+
+          {/* Header */}
+          <div className="text-center mb-12">
+            <h1 className="text-3xl md:text-4xl font-bold text-white mb-4">Latest Offers</h1>
+            <p className="text-white/80 text-lg">Explore the best deals and discounts available now</p>
+          </div>
+
+          {/* Offers Grid */}
+          <div className="grid md:grid-cols-2 gap-6">
+            {offers.map((offer) => (
+              <div
+                key={offer.id}
+                className="bg-white/10 backdrop-blur-sm rounded-2xl overflow-hidden border border-white/20 hover:bg-white/20 transition-colors group"
+              >
+                <div className="p-6">
+                  <div className="flex items-start gap-4">
+                    <div className="p-3 rounded-xl bg-green-600/20">
+                      <Gift size={24} className="text-green-500" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="text-xl font-semibold text-white mb-2">{offer.title}</h3>
+                      <p className="text-white/70 mb-3">{offer.description}</p>
+                      {/* <p className="text-sm text-green-500 font-medium mb-3">
+                        {offer.discount}% OFF • Valid till {offer.validTill}
+                      </p> */}
+                      <p className="text-white/90 font-mono bg-white/10 inline-block px-2 py-1 rounded select-all mb-4">
+                        Code: <span className="font-semibold">{offer.code}</span>
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => copyToClipboard(offer.code)}
+                    className="mt-6 w-full py-3 bg-green-600 text-white font-medium rounded-xl hover:bg-green-700 transition-colors uppercase tracking-wide flex items-center justify-center gap-2"
+                    aria-label={`Copy offer code ${offer.code}`}
+                  >
+                    <Clipboard size={20} /> Copy Offer Code
+                  </button>
                 </div>
               </div>
+            ))}
+          </div>
+
+          {offers.length === 0 && (
+            <div className="text-center text-white/70 mt-8">
+              No offers available right now. Please check back later.
             </div>
-          ))}
+          )}
+
         </div>
       </div>
-    </div>
-  );
-};
+    );
+  };
 
-export default OffersPage;
+  export default OfferPage;

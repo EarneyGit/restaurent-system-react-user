@@ -5,20 +5,15 @@ import { Link, useNavigate } from "react-router-dom";
 import OrderSummary from "@/components/cart/OrderSummary";
 import NoImage from "@/components/common/NoImage";
 import { motion } from 'framer-motion';
+import { ProductAttribute } from "@/services/api";
+import { CartItem as CartItemType } from "@/context/CartContext";
+import { useAuth } from "@/context/AuthContext";
 
-interface CartItemProps {
-  id: string;
-  name: string;
-  price: number;
-  quantity: number;
-  image?: string;
-  description?: string;
-  variant?: string;
-  size?: string;
-  color?: string;
+interface CartItemProps extends CartItemType {
   onUpdateQuantity: (id: string, quantity: number) => void;
   onRemove: (id: string) => void;
   onToggleWishlist: (id: string) => void;
+  images?: string[];
 }
 
 const CartItem: React.FC<CartItemProps> = ({
@@ -26,90 +21,122 @@ const CartItem: React.FC<CartItemProps> = ({
   name,
   price,
   quantity,
-  image,
+  images,
   description,
-  variant,
-  size,
-  color,
+  selectedOptions = {},
+  specialRequirements,
+  attributes = [],
   onUpdateQuantity,
   onRemove,
   onToggleWishlist,
 }) => {
+  // Calculate total price including options
+  const calculateTotalPrice = () => {
+    let total = price;
+    
+    // Add option prices
+    if (selectedOptions && attributes) {
+      attributes.forEach(attr => {
+        const selectedChoiceId = selectedOptions[attr.id];
+        if (selectedChoiceId) {
+          const choice = attr.choices.find(c => c.id === selectedChoiceId);
+          if (choice) {
+            total += choice.price;
+          }
+        }
+      });
+    }
+    
+    return total * quantity;
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="flex items-center gap-4 pb-4 border-b border-gray-100 last:border-0 last:pb-0 group"
+      className="flex items-start gap-4 pb-6 border-b border-gray-100 last:border-0 last:pb-0 group"
     >
-      {/* Product Image */}
-      <div className="w-20 h-20 bg-gray-50 rounded-xl overflow-hidden transform transition-transform group-hover:scale-105">
-        {image ? (
+      {/* Product Image with better no-image handling */}
+      <div className="w-20 h-20 bg-gray-50 rounded-xl overflow-hidden flex-shrink-0 transform transition-transform group-hover:scale-105">
+        {images?.[0] ? (
           <img
-            src={image}
+            src={images[0]}
             alt={name}
             className="w-full h-full object-cover"
             onError={(e) => {
               const target = e.target as HTMLImageElement;
-              target.onerror = null; // Prevent infinite loop
               target.style.display = 'none';
               const parent = target.parentElement;
               if (parent) {
-                const noImageDiv = document.createElement('div');
-                noImageDiv.className = 'w-full h-full flex items-center justify-center bg-gray-100';
-                const noImage = document.createElement('div');
-                noImage.innerHTML = '<NoImage />';
-                noImageDiv.appendChild(noImage);
-                parent.appendChild(noImageDiv);
+                parent.innerHTML = '<div class="w-full h-full flex items-center justify-center bg-gray-100"><div class="text-gray-400"><NoImage /></div></div>';
               }
             }}
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center bg-gray-100">
-            <NoImage />
+            <div className="text-gray-400">
+              <NoImage />
+            </div>
           </div>
         )}
       </div>
 
       {/* Product Details */}
-      <div className="flex-1">
-        <h3 className="text-base font-medium text-gray-900 group-hover:text-green-600 transition-colors">
+      <div className="flex-1 py-2">
+        <h3 className="text-lg font-medium text-gray-900 group-hover:text-green-600 transition-colors">
           {name}
         </h3>
         {description && (
-          <p className="mt-1 text-sm text-gray-500 line-clamp-2">
+          <p className="mt-2 text-sm text-gray-500 line-clamp-2">
             {description}
           </p>
         )}
-        <div className="mt-1 space-y-1">
-          {variant && (
-            <p className="text-xs text-gray-400">
-              Variant: {variant}
+        
+        {/* Selected Options */}
+        {Object.keys(selectedOptions).length > 0 && (
+          <div className="mt-4 space-y-2">
+            {attributes.map(attr => {
+              const selectedChoiceId = selectedOptions[attr.id];
+              if (!selectedChoiceId) return null;
+              
+              const choice = attr.choices.find(c => c.id === selectedChoiceId);
+              if (!choice) return null;
+
+              return (
+                <div key={attr.id} className="flex items-center text-sm text-gray-500">
+                  <span className="font-medium">{attr.name}:</span>
+                  <span className="ml-2">{choice.name}</span>
+                  {choice.price > 0 && (
+                    <span className="ml-2 text-gray-400">(+₹{choice.price.toFixed(2)})</span>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Special Requirements */}
+        {specialRequirements && (
+          <div className="mt-4">
+            <p className="text-sm text-gray-500">
+              <span className="font-medium">Special Instructions:</span>
+              <span className="ml-2 italic">{specialRequirements}</span>
             </p>
-          )}
-          {size && (
-            <p className="text-xs text-gray-400">
-              Size: {size}
-            </p>
-          )}
-          {color && (
-            <p className="text-xs text-gray-400">
-              Color: {color}
-            </p>
-          )}
-        </div>
+          </div>
+        )}
       </div>
 
       {/* Price and Actions */}
-      <div className="text-right space-y-2">
-        <p className="text-base font-medium text-gray-900">
-          ${(price * quantity).toFixed(2)}
+      <div className="text-right space-y-3">
+        <p className="text-lg font-medium text-gray-900">
+          ₹{calculateTotalPrice().toFixed(2)}
         </p>
         
         {/* Quantity Controls */}
-        <div className="flex items-center justify-end gap-2 border border-gray-200 rounded-lg">
+        <div className="flex items-center justify-end gap-2 border border-gray-200 rounded-lg p-1">
           <button
             onClick={() => onUpdateQuantity(id, Math.max(1, quantity - 1))}
-            className="w-8 h-8 flex items-center justify-center text-gray-500 hover:text-green-600 transition-colors"
+            className="w-8 h-8 flex items-center justify-center text-gray-500 hover:text-green-600 transition-colors rounded-md hover:bg-gray-50"
             disabled={quantity === 1}
           >
             <Minus size={16} />
@@ -117,7 +144,7 @@ const CartItem: React.FC<CartItemProps> = ({
           <span className="w-8 text-center font-medium text-sm">{quantity}</span>
           <button
             onClick={() => onUpdateQuantity(id, quantity + 1)}
-            className="w-8 h-8 flex items-center justify-center text-gray-500 hover:text-green-600 transition-colors"
+            className="w-8 h-8 flex items-center justify-center text-gray-500 hover:text-green-600 transition-colors rounded-md hover:bg-gray-50"
           >
             <Plus size={16} />
           </button>
@@ -126,7 +153,7 @@ const CartItem: React.FC<CartItemProps> = ({
         {/* Remove Button */}
         <button
           onClick={() => onRemove(id)}
-          className="flex items-center gap-1 text-gray-400 hover:text-red-600 transition-colors text-sm ml-auto"
+          className="flex items-center gap-1.5 text-gray-400 hover:text-red-600 transition-colors text-sm ml-auto"
         >
           <Trash2 size={16} />
           <span className="font-medium">Remove</span>
@@ -138,6 +165,7 @@ const CartItem: React.FC<CartItemProps> = ({
 
 const CartPage = () => {
   const { cartItems, updateCartItemQuantity, removeFromCart } = useCart();
+  const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
 
   const handleUpdateQuantity = (id: string, quantity: number) => {
@@ -150,6 +178,22 @@ const CartPage = () => {
 
   const handleToggleWishlist = (id: string) => {
     console.log("Toggle wishlist:", id);
+  };
+
+  const handleProceedToCheckout = () => {
+    if (!isAuthenticated) {
+      // Store return URL in localStorage
+      localStorage.setItem('returnUrl', '/checkout');
+      // Check if user wants to proceed as guest
+      const isGuest = localStorage.getItem('isGuest') === 'true';
+      if (isGuest) {
+        navigate('/checkout');
+      } else {
+        navigate('/login', { state: { returnUrl: '/checkout' } });
+      }
+      return;
+    }
+    navigate('/checkout');
   };
 
   if (cartItems.length === 0) {
@@ -260,15 +304,7 @@ const CartPage = () => {
                 {cartItems.map((item) => (
                   <CartItem
                     key={item.id}
-                    id={item.id}
-                    name={item.name}
-                    price={item.price}
-                    quantity={item.quantity}
-                    image={item.images?.[0]}
-                    description={item.description}
-                    variant={item.variant}
-                    size={item.size}
-                    color={item.color}
+                    {...item}
                     onUpdateQuantity={handleUpdateQuantity}
                     onRemove={handleRemove}
                     onToggleWishlist={handleToggleWishlist}
@@ -285,7 +321,7 @@ const CartPage = () => {
               className="lg:col-span-1"
             >
               <div className="sticky top-24">
-                <OrderSummary />
+                <OrderSummary onCheckout={handleProceedToCheckout} />
               </div>
             </motion.div>
           </div>

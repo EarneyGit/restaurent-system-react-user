@@ -77,7 +77,7 @@ const UserAvatar = () => {
             </Link>
 
             <Link
-              to="/app/password"
+              to="/forgot-password"
               className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
               onClick={() => setIsOpen(false)}
             >
@@ -85,17 +85,17 @@ const UserAvatar = () => {
               <span>Change Password</span>
             </Link>
 
-            <Link
+            {/* <Link
               to="/app/details"
               className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
               onClick={() => setIsOpen(false)}
             >
               <User size={18} />
               <span>Account Details</span>
-            </Link>
+            </Link> */}
 
             <Link
-              to="/app/rewards"
+              to="/offers"
               className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
               onClick={() => setIsOpen(false)}
             >

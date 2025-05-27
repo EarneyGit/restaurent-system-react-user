@@ -26,20 +26,36 @@ export interface Category {
   color?: string;
 }
 
-export interface Product {
-  id: string | number;
+export interface ProductAttribute {
+  id: string;
   name: string;
-  description: string;
+  type: 'single' | 'multiple';
+  requiresSelection: boolean;
+  description?: string;
+  choices: {
+    id: string;
+    name: string;
+    price: number;
+  }[];
+}
+
+export interface Product {
+  id: string;
+  name: string;
   price: number;
-  originalPrice?: number;
+  description: string;
   images?: string[];
-  category?: string | { id: string | number; name: string };
-  calorificValue?: string | number;
-  brand?: string;
+  category?: {
+    id: string;
+    name: string;
+  } | string;
+  originalPrice?: number;
   rating?: number;
-  selectedOptions?: Record<string, string>;
-  specialRequirements?: string;
-  quantity?: number;
+  attributes?: ProductAttribute[];
+  hideItem?: boolean;
+  delivery?: boolean;
+  collection?: boolean;
+  dineIn?: boolean;
 }
 
 interface ApiResponse<T> {

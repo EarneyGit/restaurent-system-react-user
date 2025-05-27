@@ -71,6 +71,8 @@ const LoginPage = () => {
     // Clear any existing auth data to ensure clean guest state
     localStorage.removeItem('token');
     localStorage.removeItem('user');
+    // Set guest status
+    localStorage.setItem('isGuest', 'true');
     
     // Navigate based on the redirect path
     navigate(isCheckoutRedirect ? '/checkout' : '/app', { replace: true });

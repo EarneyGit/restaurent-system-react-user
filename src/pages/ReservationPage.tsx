@@ -56,7 +56,7 @@ const ReservationPage = () => {
             </div>
             <h1 className="text-2xl font-bold mb-2">Noma Haus</h1>
             <p className="text-gray-600 text-sm mb-2">
-              New Jersey Performing Arts Center (NJPAC), Center Street, Newark, NJ, USA 
+              New Jersey Performing Arts Center (NJPAC), Center Street, Newark, NJ, UK 
               <button className="text-blue-500 ml-2">Change branch</button>
             </p>
             <div className="flex items-center">

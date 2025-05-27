@@ -1,25 +1,22 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { toast } from 'sonner';
+import { Product, ProductAttribute } from '@/services/api';
+import { useBranch } from './BranchContext';
 
 // Constants for calculations
 const DELIVERY_FEE = 5.00;
 const TAX_RATE = 0.10;
 
-export interface CartItem {
-  id: string;
-  name: string;
-  price: number;
+export interface CartItem extends Product {
   quantity: number;
-  description?: string;
-  images?: string[];
-  category?: string;
-  variant?: string;
-  size?: string;
-  color?: string;
-  selectedOptions?: {
-    [key: string]: string;
-  };
+  selectedOptions?: Record<string, string>;
   specialRequirements?: string;
+  attributes?: ProductAttribute[];
+  branchId: string;
+}
+
+interface BranchCart {
+  [branchId: string]: CartItem[];
 }
 
 interface CartContextType {
@@ -33,48 +30,64 @@ interface CartContextType {
   getDeliveryFee: () => number;
   getTaxAmount: () => number;
   getOrderTotal: () => number;
+  clearBranchCart: (branchId: string) => void;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
 export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [cartItems, setCartItems] = useState<CartItem[]>([]);
+  const [branchCarts, setBranchCarts] = useState<BranchCart>(() => {
+    const savedCart = localStorage.getItem('branchCarts');
+    return savedCart ? JSON.parse(savedCart) : {};
+  });
+
+  const { selectedBranch } = useBranch();
+
+  // Get current branch's cart items
+  const cartItems = selectedBranch ? (branchCarts[selectedBranch.id] || []) : [];
 
   // Load cart from localStorage on mount
   useEffect(() => {
-    const savedCart = localStorage.getItem('cart');
+    const savedCart = localStorage.getItem('branchCarts');
     if (savedCart) {
       try {
-        setCartItems(JSON.parse(savedCart));
+        setBranchCarts(JSON.parse(savedCart));
       } catch (error) {
         console.error('Error loading cart from localStorage:', error);
-        localStorage.removeItem('cart');
+        localStorage.removeItem('branchCarts');
       }
     }
   }, []);
 
   // Save cart to localStorage whenever it changes
   useEffect(() => {
-    localStorage.setItem('cart', JSON.stringify(cartItems));
-  }, [cartItems]);
+    localStorage.setItem('branchCarts', JSON.stringify(branchCarts));
+  }, [branchCarts]);
 
   const addToCart = async (product: CartItem) => {
+    if (!selectedBranch) {
+      toast.error('Please select a branch first');
+      return;
+    }
+
     try {
-      setCartItems(prevItems => {
-        const existingItem = prevItems.find(item => item.id === product.id);
+      setBranchCarts(prevCarts => {
+        const currentBranchCart = prevCarts[selectedBranch.id] || [];
+        const existingItem = currentBranchCart.find(item => item.id === product.id);
         
-        if (existingItem) {
-          return prevItems.map(item =>
-            item.id === product.id
-              ? { ...item, quantity: item.quantity + (product.quantity || 1) }
-              : item
-          );
-        }
-        
-        return [...prevItems, { ...product, quantity: product.quantity || 1 }];
+        const updatedBranchCart = existingItem
+          ? currentBranchCart.map(item =>
+              item.id === product.id
+                ? { ...item, quantity: item.quantity + (product.quantity || 1) }
+                : item
+            )
+          : [...currentBranchCart, { ...product, branchId: selectedBranch.id, quantity: product.quantity || 1 }];
+
+        return {
+          ...prevCarts,
+          [selectedBranch.id]: updatedBranchCart
+        };
       });
-      
-      // toast.success('Added to cart successfully');
     } catch (error) {
       console.error('Error adding to cart:', error);
       toast.error('Failed to add to cart');
@@ -83,8 +96,13 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const removeFromCart = async (productId: string) => {
+    if (!selectedBranch) return;
+
     try {
-      setCartItems(prevItems => prevItems.filter(item => item.id !== productId));
+      setBranchCarts(prevCarts => ({
+        ...prevCarts,
+        [selectedBranch.id]: (prevCarts[selectedBranch.id] || []).filter(item => item.id !== productId)
+      }));
       toast.success('Item removed from cart');
     } catch (error) {
       console.error('Error removing from cart:', error);
@@ -94,19 +112,20 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const updateCartItemQuantity = async (productId: string, quantity: number) => {
+    if (!selectedBranch) return;
+
     try {
       if (quantity < 1) {
         await removeFromCart(productId);
         return;
       }
 
-      setCartItems(prevItems =>
-        prevItems.map(item =>
-          item.id === productId
-            ? { ...item, quantity }
-            : item
+      setBranchCarts(prevCarts => ({
+        ...prevCarts,
+        [selectedBranch.id]: (prevCarts[selectedBranch.id] || []).map(item =>
+          item.id === productId ? { ...item, quantity } : item
         )
-      );
+      }));
     } catch (error) {
       console.error('Error updating quantity:', error);
       toast.error('Failed to update quantity');
@@ -115,13 +134,37 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const clearCart = () => {
-    setCartItems([]);
-    localStorage.removeItem('cart');
-    // toast.success('Cart cleared');
+    setBranchCarts({});
+    localStorage.removeItem('branchCarts');
+  };
+
+  const clearBranchCart = (branchId: string) => {
+    setBranchCarts(prevCarts => {
+      const newCarts = { ...prevCarts };
+      delete newCarts[branchId];
+      return newCarts;
+    });
   };
 
   const getCartTotal = () => {
-    return cartItems.reduce((total, item) => total + (item.price * item.quantity), 0);
+    return cartItems.reduce((total, item) => {
+      let itemTotal = item.price;
+      
+      // Add option prices if they exist
+      if (item.selectedOptions && item.attributes) {
+        item.attributes.forEach(attr => {
+          const selectedChoiceId = item.selectedOptions?.[attr.id];
+          if (selectedChoiceId) {
+            const choice = attr.choices.find(c => c.id === selectedChoiceId);
+            if (choice) {
+              itemTotal += choice.price;
+            }
+          }
+        });
+      }
+      
+      return total + (itemTotal * item.quantity);
+    }, 0);
   };
 
   const getCartItemCount = () => {
@@ -156,6 +199,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
         getDeliveryFee,
         getTaxAmount,
         getOrderTotal,
+        clearBranchCart,
       }}
     >
       {children}

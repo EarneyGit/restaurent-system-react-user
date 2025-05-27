@@ -5,7 +5,7 @@ const bannerData = [
   {
     title: "Healthy & Fresh\nFood Delivery",
     description: "Get fresh, healthy meals delivered to your doorstep. Perfect for busy professionals.",
-    buttonText: "View menu",
+    // buttonText: "View menu",
     icon: <Salad className="w-12 h-12 text-white" />,
     bgColor: "bg-gradient-to-br from-green-500 to-green-600",
     iconBg: "bg-green-600/50 backdrop-blur-md",
@@ -28,7 +28,7 @@ const bannerData = [
   {
     title: "Express Delivery\nin 30 Minutes",
     description: "Hot and fresh food delivered quickly. Satisfaction guaranteed on every order.",
-    buttonText: "Order now",
+    // buttonText: "Order now",
     icon: <UtensilsCrossed className="w-12 h-12 text-white" />,
     bgColor: "bg-gradient-to-br from-gray-800 to-gray-900",
     iconBg: "bg-gray-800/50 backdrop-blur-md",
@@ -51,7 +51,7 @@ const bannerData = [
   {
     title: "Premium Dining\nExperience",
     description: "Exclusive restaurants and special offers for premium members.",
-    buttonText: "Join now",
+    // buttonText: "Join now",
     icon: <ChefHat className="w-12 h-12 text-white" />,
     bgColor: "bg-gradient-to-br from-green-700 to-green-800",
     iconBg: "bg-green-800/50 backdrop-blur-md",
