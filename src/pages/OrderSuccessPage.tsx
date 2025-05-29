@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useLocation, useNavigate, Link } from "react-router-dom";
+import { useLocation, useNavigate, Link, useParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Check,
@@ -9,6 +9,7 @@ import {
   MapPin,
   ArrowLeft,
   Loader2,
+  LucideIcon,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 
@@ -19,11 +20,71 @@ interface OrderStatus {
   delivered: boolean;
 }
 
+interface OrderProduct {
+  id: string;
+  product: {
+    name: string;
+  };
+  quantity: number;
+  price: number;
+}
+
+interface OrderDetails {
+  orderNumber: string;
+  products: OrderProduct[];
+  totalAmount: number;
+  finalTotal: number;
+  discount?: {
+    discountAmount: number;
+  };
+  deliveryAddress: {
+    street: string;
+    city: string;
+    postalCode: string;
+  };
+  estimatedTimeToComplete: number;
+}
+
+interface StatusStep {
+  status: keyof OrderStatus;
+  label: string;
+  icon: LucideIcon;
+  time: string;
+}
+
+const statusSteps: StatusStep[] = [
+  {
+    status: "received",
+    label: "Order Received",
+    icon: Check,
+    time: "0m",
+  },
+  {
+    status: "preparing",
+    label: "Preparing Your Order",
+    icon: ChefHat,
+    time: "15m",
+  },
+  {
+    status: "onTheWay",
+    label: "On the Way",
+    icon: Bike,
+    time: "30m",
+  },
+  {
+    status: "delivered",
+    label: "Delivered",
+    icon: MapPin,
+    time: "45m",
+  },
+];
+
 const OrderSuccessPage = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const { orderId } = useParams();
   const { isAuthenticated } = useAuth();
-  const orderDetails = location.state?.orderDetails;
+  const orderDetails = location.state?.orderDetails as OrderDetails | undefined;
   const [showTracking, setShowTracking] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [orderStatus, setOrderStatus] = useState<OrderStatus>({
@@ -33,41 +94,45 @@ const OrderSuccessPage = () => {
     delivered: false,
   });
 
-  // Redirect if no order details
   useEffect(() => {
-    if (!orderDetails) {
+    if (!orderDetails && !orderId) {
       navigate("/");
+      return;
     }
-  }, [orderDetails, navigate]);
 
-  if (!orderDetails) {
-    return null;
-  }
+    // In future: If we have orderId but no orderDetails, fetch order details from API
+    // if (orderId && !orderDetails) {
+    //   fetchOrderDetails(orderId);
+    // }
+  }, [orderDetails, orderId, navigate]);
 
-  // Mock order status update (in real app, this would use WebSocket/polling)
   useEffect(() => {
+    let timers: NodeJS.Timeout[] = [];
+
     if (showTracking) {
       setIsLoading(true);
-      const timer1 = setTimeout(() => {
-        setOrderStatus((prev) => ({ ...prev, preparing: true }));
-      }, 3000);
-
-      const timer2 = setTimeout(() => {
-        setOrderStatus((prev) => ({ ...prev, onTheWay: true }));
-      }, 6000);
-
-      const timer3 = setTimeout(() => {
-        setOrderStatus((prev) => ({ ...prev, delivered: true }));
-        setIsLoading(false);
-      }, 9000);
-
-      return () => {
-        clearTimeout(timer1);
-        clearTimeout(timer2);
-        clearTimeout(timer3);
-      };
+      timers = [
+        setTimeout(() => {
+          setOrderStatus((prev) => ({ ...prev, preparing: true }));
+        }, 3000),
+        setTimeout(() => {
+          setOrderStatus((prev) => ({ ...prev, onTheWay: true }));
+        }, 6000),
+        setTimeout(() => {
+          setOrderStatus((prev) => ({ ...prev, delivered: true }));
+          setIsLoading(false);
+        }, 9000),
+      ];
     }
+
+    return () => {
+      timers.forEach(clearTimeout);
+    };
   }, [showTracking]);
+
+  if (!orderDetails && !orderId) {
+    return null;
+  }
 
   return (
     <motion.div
@@ -94,7 +159,7 @@ const OrderSuccessPage = () => {
                   Order Placed Successfully!
                 </h1>
                 <p className="text-gray-600">
-                  Your order #{orderDetails.orderNumber} has been placed
+                  Your order #{orderId || orderDetails?.orderNumber} has been placed
                   successfully.
                 </p>
               </div>
@@ -168,7 +233,7 @@ const OrderSuccessPage = () => {
                     Order Items
                   </h2>
                   <div className="space-y-4">
-                    {orderDetails.products.map((item: any) => (
+                    {orderDetails.products.map((item: OrderProduct) => (
                       <div
                         key={item.id}
                         className="flex items-center justify-between py-4 border-b border-gray-100 last:border-0"
@@ -249,10 +314,7 @@ const OrderSuccessPage = () => {
               className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden"
             >
               <div className="p-6">
-                <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-2xl font-bold text-gray-900">
-                    Order Status
-                  </h2>
+                <div className="flex items-center justify-between mb-2">
                   <button
                     onClick={() => setShowTracking(false)}
                     className="text-gray-500 hover:text-gray-700"
@@ -260,37 +322,28 @@ const OrderSuccessPage = () => {
                     <ArrowLeft size={24} />
                   </button>
                 </div>
+                
+                <div className="text-center mb-8">
+                  <div className="w-16 h-16 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Bike className="w-8 h-8 text-green-600" />
+                  </div>
+                  <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                    Tracking Your Order
+                  </h2>
+                  <p className="text-sm text-gray-500">
+                    Order #{orderId || orderDetails?.orderNumber}
+                  </p>
+                  <p className="text-gray-600 mt-2">
+                    Stay updated with real-time tracking of your delicious meal! 🍽️
+                  </p>
+                </div>
+
                 <div className="space-y-8">
-                  {[
-                    {
-                      status: "received",
-                      label: "Order Received",
-                      icon: Check,
-                      time: "0m",
-                    },
-                    {
-                      status: "preparing",
-                      label: "Preparing Your Order",
-                      icon: ChefHat,
-                      time: "15m",
-                    },
-                    {
-                      status: "onTheWay",
-                      label: "On the Way",
-                      icon: Bike,
-                      time: "30m",
-                    },
-                    {
-                      status: "delivered",
-                      label: "Delivered",
-                      icon: MapPin,
-                      time: "45m",
-                    },
-                  ].map(({ status, label, icon: Icon, time }) => (
+                  {statusSteps.map(({ status, label, icon: Icon, time }) => (
                     <div key={status} className="flex items-start gap-4">
                       <div
                         className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                          orderStatus[status as keyof OrderStatus]
+                          orderStatus[status]
                             ? "bg-green-600 text-white"
                             : "bg-gray-100 text-gray-400"
                         }`}
@@ -304,7 +357,7 @@ const OrderSuccessPage = () => {
                       <div className="flex-1">
                         <p
                           className={`font-semibold ${
-                            orderStatus[status as keyof OrderStatus]
+                            orderStatus[status]
                               ? "text-gray-900"
                               : "text-gray-400"
                           }`}
@@ -315,7 +368,7 @@ const OrderSuccessPage = () => {
                           Estimated: +{time}
                         </p>
                       </div>
-                      {orderStatus[status as keyof OrderStatus] && (
+                      {orderStatus[status] && (
                         <div className="text-green-600">
                           <Check size={20} />
                         </div>

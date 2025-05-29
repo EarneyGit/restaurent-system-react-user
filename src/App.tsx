@@ -37,6 +37,8 @@ import OrderSuccessPage from "./pages/OrderSuccessPage";
 import TermsAndConditionsPage from "./pages/TermsAndConditionsPage";
 import AccountDetailsPage from "./pages/AccountDetailsPage";
 import OrdersPage from "./pages/OrdersPage";
+import Header from '@/components/layout/Header';
+import Footer from '@/components/layout/Footer';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;

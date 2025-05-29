@@ -9,6 +9,7 @@ import { CART_ENDPOINTS } from "@/config/api.config";
 import { useAuth } from "@/context/AuthContext";
 import { useGuestCart } from "@/context/GuestCartContext";
 import { useBranch } from "@/context/BranchContext";
+import { useNavigate } from "react-router-dom";
 
 interface ProductCardProps {
   product: Product;
@@ -57,6 +58,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   const { isAuthenticated, token } = useAuth();
   const { sessionId } = useGuestCart();
   const { selectedBranch } = useBranch();
+  const navigate = useNavigate();
 
   console.log("cartItems", cartItems);
   // Check if product is in cart - update to check by productId instead of id
@@ -85,7 +87,6 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
       try {
         setIsAddingToCart(true);
         await updateCartItemQuantity(cartItem.id, newQuantity);
-        toast.success("Cart updated");
       } catch (error) {
         console.error("Error updating cart:", error);
         if (error.response?.data?.message) {
@@ -104,6 +105,16 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   const handleAddToCart = async () => {
     if (!selectedBranch) {
       toast.error("Please select a branch first");
+      return;
+    }
+
+    // Check if user is authenticated or has a valid guest session
+    const isGuest = localStorage.getItem('isGuest') === 'true';
+    if (!isAuthenticated && !isGuest) {
+      // Save current path for redirect after login
+      localStorage.setItem('returnUrl', window.location.pathname);
+      toast.error("Please login or continue as guest");
+      navigate('/login');
       return;
     }
 
@@ -142,6 +153,16 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   ) => {
     if (!selectedBranch) {
       toast.error("Please select a branch first");
+      return;
+    }
+
+    // Check if user is authenticated or has a valid guest session
+    const isGuest = localStorage.getItem('isGuest') === 'true';
+    if (!isAuthenticated && !isGuest) {
+      // Save current path for redirect after login
+      localStorage.setItem('returnUrl', window.location.pathname);
+      toast.error("Please login or continue as guest");
+      navigate('/login');
       return;
     }
 

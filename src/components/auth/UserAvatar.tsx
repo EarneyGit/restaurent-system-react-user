@@ -51,7 +51,7 @@ const UserAvatar = () => {
             </div>
 
             {/* Menu Items */}
-            <div className="p-2">
+            <div className="p-2 text-sm">     
               <button
                 onClick={() => {
                   navigate('/orders');

@@ -191,9 +191,9 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
       };
 
       if (isAuthenticated) {
-        await axios.delete(`${CART_ENDPOINTS.USER_CART_ITEMS}/${productId}`, { headers });
+        await axios.delete(`${CART_ENDPOINTS.USER_CART_ITEMS}/${productId}?branchId=${selectedBranch.id}`, { headers });
       } else {
-        await axios.delete(`${CART_ENDPOINTS.GUEST_CART_ITEMS}/${productId}`, { headers });
+        await axios.delete(`${CART_ENDPOINTS.GUEST_CART_ITEMS}/${productId}?branchId=${selectedBranch.id}`, { headers });
       }
 
       setBranchCarts(prevCarts => ({

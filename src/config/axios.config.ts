@@ -11,10 +11,11 @@ axios.interceptors.request.use(
     const branchId = localStorage.getItem('selectedBranchId');
     
     // Add branchId to query params for GET requests if not already present
-    // and if the request is not for branch-related endpoints
+    // and if the request is not for branch-related or orders endpoints
     if (config.method === 'get' && 
         branchId && 
         !config.url?.includes('/branches') && 
+        !config.url?.includes('/orders') &&  // Exclude orders endpoint
         !config.params?.branchId) {
       config.params = {
         ...config.params,

@@ -86,6 +86,7 @@ const LoginPage = () => {
 
   const handleGuestCheckout = (e: React.MouseEvent) => {
     e.preventDefault();
+    
     // Clear any existing auth data to ensure clean guest state
     localStorage.removeItem('token');
     localStorage.removeItem('user');
@@ -93,13 +94,10 @@ const LoginPage = () => {
     // Generate a new session ID for guest user if not exists
     const guestSessionId = crypto.randomUUID();
     localStorage.setItem('guestSessionId', guestSessionId);
-    
-    // Set guest status
     localStorage.setItem('isGuest', 'true');
     
-    // Navigate to the redirect path or app
-    toast.success('Continuing as guest');
-    navigate(redirectPath, { replace: true });
+    // Force reload the page to ensure all contexts are properly initialized
+    window.location.href = redirectPath;
   };
 
   return (
