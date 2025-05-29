@@ -6,7 +6,25 @@ const OrderMethodPage = () => {
 
   const handleMethodSelect = (method: "collect" | "deliver") => {
     localStorage.setItem("deliveryMethod", method);
-    navigate("/app");
+    
+    // If delivery method is collect, go straight to app
+    // If delivery, go to address selection page
+    if (method === "deliver") {
+      navigate("/delivery-address");
+    } else {
+      // For collection, store branch address if available
+      const selectedBranch = localStorage.getItem('selectedBranch');
+      if (selectedBranch) {
+        const branch = JSON.parse(selectedBranch);
+        localStorage.setItem('collectionAddress', JSON.stringify({
+          fullAddress: branch.address,
+          postcode: branch.postcode || '',
+          lat: branch.latitude || 51.509865,
+          lng: branch.longitude || -0.118092
+        }));
+      }
+      navigate("/app");
+    }
   };
 
   return (

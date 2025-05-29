@@ -1,13 +1,22 @@
-import React from "react";
-import { Minus, Plus, Heart, Trash2, ArrowLeft, ShoppingBag } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { Minus, Plus, Heart, Trash2, ArrowLeft, ShoppingBag, Loader2 } from "lucide-react";
 import { useCart } from "@/context/CartContext";
 import { Link, useNavigate } from "react-router-dom";
 import OrderSummary from "@/components/cart/OrderSummary";
 import NoImage from "@/components/common/NoImage";
-import { motion } from 'framer-motion';
 import { ProductAttribute } from "@/services/api";
 import { CartItem as CartItemType } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
+import { useGuestCart } from '@/context/GuestCartContext';
+import axios from '@/config/axios.config';
+import { CART_ENDPOINTS } from '@/config/api.config';
+
+interface CartSummary {
+  subtotal: number;
+  deliveryFee: number;
+  total: number;
+  itemCount: number;
+}
 
 interface CartItemProps extends CartItemType {
   onUpdateQuantity: (id: string, quantity: number) => void;
@@ -30,6 +39,8 @@ const CartItem: React.FC<CartItemProps> = ({
   onRemove,
   onToggleWishlist,
 }) => {
+  const { formatCurrency } = useCart();
+  
   // Calculate total price including options
   const calculateTotalPrice = () => {
     let total = price;
@@ -51,13 +62,9 @@ const CartItem: React.FC<CartItemProps> = ({
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="flex items-start gap-4 pb-6 border-b border-gray-100 last:border-0 last:pb-0 group"
-    >
-      {/* Product Image with better no-image handling */}
-      <div className="w-20 h-20 bg-gray-50 rounded-xl overflow-hidden flex-shrink-0 transform transition-transform group-hover:scale-105">
+    <div className="flex items-start gap-4 pb-6 border-b border-gray-100 last:border-0 last:pb-0 group">
+      {/* Product Image */}
+      <div className="w-24 h-24 bg-gray-50 rounded-xl overflow-hidden flex-shrink-0 transform transition-transform group-hover:scale-105">
         {images?.[0] ? (
           <img
             src={images[0]}
@@ -87,7 +94,7 @@ const CartItem: React.FC<CartItemProps> = ({
           {name}
         </h3>
         {description && (
-          <p className="mt-2 text-sm text-gray-500 line-clamp-2">
+          <p className="mt-2 text-sm text-gray-500 mb-3">
             {description}
           </p>
         )}
@@ -107,7 +114,9 @@ const CartItem: React.FC<CartItemProps> = ({
                   <span className="font-medium">{attr.name}:</span>
                   <span className="ml-2">{choice.name}</span>
                   {choice.price > 0 && (
-                    <span className="ml-2 text-gray-400">(+₹{choice.price.toFixed(2)})</span>
+                    <span className="ml-2 text-gray-400">
+                      (+{formatCurrency(choice.price)})
+                    </span>
                   )}
                 </div>
               );
@@ -129,7 +138,7 @@ const CartItem: React.FC<CartItemProps> = ({
       {/* Price and Actions */}
       <div className="text-right space-y-3">
         <p className="text-lg font-medium text-gray-900">
-          ₹{calculateTotalPrice().toFixed(2)}
+          {formatCurrency(calculateTotalPrice())}
         </p>
         
         {/* Quantity Controls */}
@@ -159,14 +168,56 @@ const CartItem: React.FC<CartItemProps> = ({
           <span className="font-medium">Remove</span>
         </button>
       </div>
-    </motion.div>
+    </div>
   );
 };
 
 const CartPage = () => {
-  const { cartItems, updateCartItemQuantity, removeFromCart } = useCart();
-  const { isAuthenticated } = useAuth();
+  const { cartItems, updateCartItemQuantity, removeFromCart, formatCurrency } = useCart();
+  const { isAuthenticated, token } = useAuth();
+  const { sessionId } = useGuestCart();
   const navigate = useNavigate();
+  const [cartSummary, setCartSummary] = useState<CartSummary>({
+    subtotal: 0,
+    deliveryFee: 0,
+    total: 0,
+    itemCount: 0
+  });
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchCartSummary = async () => {
+      try {
+        const headers = isAuthenticated ? {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        } : {
+          'x-session-id': sessionId,
+          'Content-Type': 'application/json'
+        };
+
+        const response = await axios.get(
+          isAuthenticated ? CART_ENDPOINTS.USER_CART : CART_ENDPOINTS.GUEST_CART,
+          { headers }
+        );
+
+        if (response.data?.data) {
+          setCartSummary({
+            subtotal: response.data.data.subtotal || 0,
+            deliveryFee: response.data.data.deliveryFee || 0,
+            total: response.data.data.total || 0,
+            itemCount: response.data.data.itemCount || 0
+          });
+        }
+      } catch (error) {
+        console.error('Error fetching cart summary:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchCartSummary();
+  }, [isAuthenticated, token, sessionId, cartItems]);
 
   const handleUpdateQuantity = (id: string, quantity: number) => {
     updateCartItemQuantity(id, quantity);
@@ -181,88 +232,59 @@ const CartPage = () => {
   };
 
   const handleProceedToCheckout = () => {
-    if (!isAuthenticated) {
-      // Store return URL in localStorage
+    // Check if user is authenticated or has a guest session
+    if (!isAuthenticated && !sessionId) {
+      // Store return URL and cart state
       localStorage.setItem('returnUrl', '/checkout');
-      // Check if user wants to proceed as guest
-      const isGuest = localStorage.getItem('isGuest') === 'true';
-      if (isGuest) {
-        navigate('/checkout');
-      } else {
-        navigate('/login', { state: { returnUrl: '/checkout' } });
-      }
+      
+      // Redirect to login
+      navigate('/login', { 
+        state: { from: '/checkout' },
+        replace: false 
+      });
       return;
     }
+
+    // If user is authenticated or has a guest session, proceed to checkout
     navigate('/checkout');
   };
 
   if (cartItems.length === 0) {
     return (
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="min-h-[70vh] flex items-center justify-center px-4 pb-10 bg-gradient-to-br from-green-50 via-white to-green-50"
-      >
+      <div className="min-h-[70vh] flex items-center justify-center px-4 pb-10 bg-gradient-to-br from-green-50 via-white to-green-50">
         <div className="max-w-md w-full text-center">
-          <motion.div
-            initial={{ scale: 0.8 }}
-            animate={{ scale: 1 }}
-            transition={{ delay: 0.2 }}
-            className="relative w-64 h-64 mx-auto bg-white"
-          >
+          <div className="relative w-64 h-64 mx-auto bg-white">
             <img
               src="/not-found.png"
               alt="Empty cart"
               className="w-full h-full object-contain"
             />
-          </motion.div>
+          </div>
 
-          <motion.h2
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.3 }}
-            className="text-2xl font-semibold text-gray-900 mb-3"
-          >
+          <h2 className="text-2xl font-semibold text-gray-900 mb-3">
             Your cart is empty
-          </motion.h2>
+          </h2>
 
-          <motion.p
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.4 }}
-            className="text-gray-600 text-base mb-6 max-w-sm mx-auto"
-          >
+          <p className="text-gray-600 text-base mb-6 max-w-sm mx-auto">
             Browse our menu to discover delicious options for your next meal.
-          </motion.p>
+          </p>
 
-          <motion.button
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.5 }}
+          <button
             onClick={() => navigate("/app")}
             className="inline-flex items-center justify-center gap-3 bg-black text-white font-medium px-8 py-4 rounded-xl hover:bg-gray-800 transition-all transform hover:scale-[1.02] focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-2 shadow-md"
           >
             <ShoppingBag size={20} />
             Browse Menu
-          </motion.button>
+          </button>
         </div>
-      </motion.div>
+      </div>
     );
   }
 
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      className="min-h-screen"
-    >
+    <div className="min-h-screen">
       <div className="mx-auto px-4 py-10">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="max-w-7xl mx-auto"
-        >
+        <div className="max-w-7xl mx-auto">
           {/* Header Section */}
           <div className="flex items-center justify-between mb-8">
             <div>
@@ -277,10 +299,7 @@ const CartPage = () => {
               onClick={() => navigate(-1)}
               className="flex text-sm items-center border border-gray-200 rounded-md px-4 py-2 hover:border-green-600 hover:bg-green-50 text-gray-600 hover:text-gray-900 transition-colors"
             >
-              <ArrowLeft
-                size={18}
-                className="mr-2 group-hover:-translate-x-1 transition-transform"
-              />
+              <ArrowLeft size={18} className="mr-2" />
               <span>Continue Shopping</span>
             </button>
           </div>
@@ -288,18 +307,13 @@ const CartPage = () => {
           {/* Main Content */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Cart Items */}
-            <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.2 }}
-              className="lg:col-span-2"
-            >
+            <div className="lg:col-span-2">
               <div className="bg-white rounded-3xl shadow-md border p-8 space-y-6">
                 <h2 className="text-2xl font-semibold mb-6 flex items-center">
                   <span className="w-8 h-8 rounded-full bg-green-100 text-green-600 flex items-center justify-center text-lg mr-3">
                     1
                   </span>
-                  Cart Items
+                  Cart Items ({cartSummary.itemCount})
                 </h2>
                 {cartItems.map((item) => (
                   <CartItem
@@ -311,23 +325,61 @@ const CartPage = () => {
                   />
                 ))}
               </div>
-            </motion.div>
+            </div>
 
             {/* Order Summary */}
-            <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.4 }}
-              className="lg:col-span-1"
-            >
+            <div className="lg:col-span-1">
               <div className="sticky top-24">
-                <OrderSummary onCheckout={handleProceedToCheckout} />
+                <div className="bg-white rounded-2xl shadow-lg p-6">
+                  <h3 className="text-lg font-semibold mb-4">Order Summary</h3>
+                  
+                  <div className="space-y-3">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-600">Subtotal</span>
+                      <span className="font-medium">{formatCurrency(cartSummary.subtotal)}</span>
+                    </div>
+                    
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-600">Delivery Fee</span>
+                      <span className="font-medium">{formatCurrency(cartSummary.deliveryFee)}</span>
+                    </div>
+
+                    <div className="pt-3 border-t">
+                      <div className="flex justify-between">
+                        <span className="font-semibold">Total</span>
+                        <span className="font-bold text-neutral-900 text-xl">{formatCurrency(cartSummary.total)}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={() => navigate('/checkout')}
+                    disabled={isLoading || cartItems.length === 0}
+                    className="w-full mt-6 bg-neutral-800 text-white py-3 rounded-xl font-semibold hover:bg-neutral-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  >
+                    {isLoading ? (
+                      <>
+                        <Loader2 size={20} className="animate-spin" />
+                        Loading...
+                      </>
+                    ) : (
+                      <>
+                        <ShoppingBag size={20} />
+                        Proceed to Checkout
+                      </>
+                    )}
+                  </button>
+
+                  <p className="mt-4 text-xs text-gray-500 text-center">
+                    Delivery fees and taxes will be calculated at checkout
+                  </p>
+                </div>
               </div>
-            </motion.div>
+            </div>
           </div>
-        </motion.div>
+        </div>
       </div>
-    </motion.div>
+    </div>
   );
 };
 

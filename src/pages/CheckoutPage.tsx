@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { useNavigate, Link } from "react-router-dom";
 import {
   MapPin,
   Clock,
@@ -14,17 +14,19 @@ import {
 import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from 'sonner';
-import { motion } from "framer-motion";
 import DeliveryAddressForm from '@/components/cart/DeliveryAddressForm';
 import { useBranch } from '@/context/BranchContext';
 import axios from '@/config/axios.config';
 import { CartItem as CartItemType } from "@/context/CartContext";
+import { CART_ENDPOINTS, ORDER_ENDPOINTS, BASE_URL } from '@/config/api.config';
+import { useGuestCart } from "@/context/GuestCartContext";
 
-// NoImage SVG Component
+// Update the NoImage component to be more cart-friendly
 const NoImage = () => (
-  <div className="w-full h-full flex flex-col items-center min-h-20 justify-center bg-gray-50 text-gray-400">
-    <ImageIcon size={24} />
-    <span className="text-xs mt-1">No image</span>
+  <div className="w-full h-full flex flex-col items-center justify-center bg-gray-50 text-gray-400">
+    <div className="rounded-lg p-2">
+      <ImageIcon size={24} />
+    </div>
   </div>
 );
 
@@ -44,6 +46,15 @@ const ImageWithFallback = ({ src, alt }: { src: string; alt: string }) => {
       onError={() => setError(true)}
     />
   );
+};
+
+// Format price in GBP
+const formatPrice = (amount: number) => {
+  return new Intl.NumberFormat('en-GB', {
+    style: 'currency',
+    currency: 'GBP',
+    minimumFractionDigits: 2,
+  }).format(amount);
 };
 
 // Calculate total price for an item including options
@@ -75,13 +86,12 @@ interface ApiError {
   message?: string;
 }
 
-// Add Address interface at the top with other interfaces
+// Update the Address interface
 interface Address {
   street: string;
-  street2?: string;
   city: string;
   state: string;
-  postalCode: string;
+  zipCode: string;
   country: string;
 }
 
@@ -93,18 +103,183 @@ interface CreditCardDetails {
   name: string;
 }
 
+// Generate time slots from 10:00 to 22:00 with 30-minute intervals
+const generateTimeSlots = () => {
+  const slots = [];
+  for (let hour = 10; hour < 22; hour++) {
+    for (let minute = 0; minute < 60; minute += 30) {
+      const time = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
+      slots.push(time);
+    }
+  }
+  return slots;
+};
+
+const timeSlots = generateTimeSlots();
+
+// Mock UK addresses for demo
+const mockUKAddresses = [
+  "10 Downing Street, London, SW1A 2AA",
+  "221B Baker Street, London, NW1 6XE",
+  "48 Leicester Square, London, WC2H 7LU",
+  "Tower Bridge Road, London, SE1 2UP",
+  "1 Cathedral Square, Glasgow, G1 2EN",
+];
+
+interface OrderConfirmationModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onConfirm: () => void;
+  isLoading: boolean;
+  orderDetails: {
+    items: CartItemType[];
+    total: number;
+    address: string;
+    deliveryTime: string;
+  };
+}
+
+const OrderConfirmationModal: React.FC<OrderConfirmationModalProps> = ({
+  isOpen,
+  onClose,
+  onConfirm,
+  isLoading,
+  orderDetails
+}) => {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      <div className="bg-white rounded-2xl p-6 max-w-lg w-full">
+        <div className="text-center mb-6">
+          <h3 className="text-2xl font-bold text-gray-900 mb-2">
+            Confirm Your Order
+          </h3>
+          <p className="text-gray-600">
+            Please review your order details before confirming
+          </p>
+        </div>
+
+        <div className="space-y-4 mb-6">
+          {/* Order Items */}
+          <div className="space-y-2">
+            <h4 className="font-medium text-gray-900">Order Items:</h4>
+            {orderDetails.items.map((item) => (
+              <div key={item.id} className="flex justify-between text-sm">
+                <span>{item.quantity}x {item.name}</span>
+                <span>{formatPrice(item.price * item.quantity)}</span>
+              </div>
+            ))}
+          </div>
+
+          {/* Delivery Details */}
+          <div>
+            <h4 className="font-medium text-gray-900">Delivery Address:</h4>
+            <p className="text-sm text-gray-600">{orderDetails.address}</p>
+          </div>
+
+          <div>
+            <h4 className="font-medium text-gray-900">Delivery Time:</h4>
+            <p className="text-sm text-gray-600">{orderDetails.deliveryTime}</p>
+          </div>
+
+          {/* Total */}
+          <div className="border-t pt-2">
+            <div className="flex justify-between font-medium">
+              <span>Total Amount:</span>
+              <span>{formatPrice(orderDetails.total)}</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex gap-4">
+          <button
+            onClick={onClose}
+            className="flex-1 px-4 py-3 border border-gray-200 rounded-xl text-gray-700 font-semibold hover:bg-gray-50 transition-colors"
+            disabled={isLoading}
+          >
+            Cancel
+          </button>
+          <button
+            onClick={onConfirm}
+            disabled={isLoading}
+            className="flex-1 px-4 py-3 bg-green-600 text-white font-semibold rounded-xl hover:bg-green-700 transition-colors flex items-center justify-center gap-2"
+          >
+            {isLoading ? (
+              <>
+                <Loader2 size={20} className="animate-spin" />
+                Processing...
+              </>
+            ) : (
+              'Confirm Order'
+            )}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const CheckoutPage = () => {
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, token } = useAuth();
   const { selectedBranch } = useBranch();
   const [paymentMethod, setPaymentMethod] = useState("card");
   const navigate = useNavigate();
-  const { 
-    cartItems, 
-    getDeliveryFee,
-    clearCart 
-  } = useCart();
+  const { cartItems, formatCurrency, clearCart } = useCart();
+  const { sessionId } = useGuestCart();
   const [isProcessing, setIsProcessing] = useState(false);
-  const [specialInstructions, setSpecialInstructions] = useState("");
+  const [showConfirmation, setShowConfirmation] = useState(false);
+  const [selectedTimeSlot, setSelectedTimeSlot] = useState(timeSlots[0]);
+  const [orderNotes, setOrderNotes] = useState("");
+  const [showAddressSearch, setShowAddressSearch] = useState(false);
+  const [addressSearchQuery, setAddressSearchQuery] = useState("");
+  const [filteredAddresses, setFilteredAddresses] = useState(mockUKAddresses);
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const [promoCode, setPromoCode] = useState("");
+  const [isApplyingPromo, setIsApplyingPromo] = useState(false);
+  const [appliedPromo, setAppliedPromo] = useState<{ code: string; discount: number } | null>(null);
+  const [cartSummary, setCartSummary] = useState({
+    subtotal: 0,
+    deliveryFee: 0,
+    total: 0,
+    itemCount: 0
+  });
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Fetch cart summary
+  useEffect(() => {
+    const fetchCartSummary = async () => {
+      try {
+        const headers = isAuthenticated ? {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        } : {
+          'x-session-id': sessionId,
+          'Content-Type': 'application/json'
+        };
+
+        const response = await axios.get(
+          isAuthenticated ? CART_ENDPOINTS.USER_CART : CART_ENDPOINTS.GUEST_CART,
+          { headers }
+        );
+
+        if (response.data?.data) {
+          setCartSummary({
+            subtotal: response.data.data.subtotal || 0,
+            deliveryFee: response.data.data.deliveryFee || 0,
+            total: response.data.data.total || 0,
+            itemCount: response.data.data.itemCount || 0
+          });
+        }
+      } catch (error) {
+        console.error('Error fetching cart summary:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchCartSummary();
+  }, [isAuthenticated, token, sessionId, cartItems]);
 
   // Check authentication
   React.useEffect(() => {
@@ -115,25 +290,52 @@ const CheckoutPage = () => {
     }
   }, [isAuthenticated, navigate]);
 
-  // Delivery address state
-  const [deliveryAddress, setDeliveryAddress] = useState<Address>({
-    street: user?.address?.street || "",
-    street2: user?.address?.street2 || "",
-    city: user?.address?.city || "",
-    state: user?.address?.state || "",
-    postalCode: user?.address?.postalCode || "",
-    country: user?.address?.country || "UK"
+  // Personal details state
+  const [personalDetails, setPersonalDetails] = useState({
+    firstName: user?.firstName || "",
+    lastName: user?.lastName || "",
+    phone: user?.phone || ""
   });
 
-  // Calculate order totals
-  const subtotal = cartItems.reduce((total, item) => total + calculateItemTotal(item), 0);
-  const deliveryFee = getDeliveryFee();
-  const tax = subtotal * 0.05; // 5% tax
-  const total = subtotal + deliveryFee + tax;
+  // Update the delivery address state initialization
+  const [deliveryAddress, setDeliveryAddress] = useState<Address>({
+    street: user?.address?.street || "",
+    city: user?.address?.city || "",
+    state: user?.address?.state || "",
+    zipCode: user?.address?.zipCode || "",
+    country: "GB"
+  });
 
-  // Validate delivery address
+  // Handle address search
+  const handleAddressSearch = (query: string) => {
+    setAddressSearchQuery(query);
+    const filtered = mockUKAddresses.filter(addr => 
+      addr.toLowerCase().includes(query.toLowerCase())
+    );
+    setFilteredAddresses(filtered);
+  };
+
+  // Handle address selection
+  const handleAddressSelect = (address: string) => {
+    const [street, city, postcode] = address.split(", ");
+    setDeliveryAddress(prev => ({
+      ...prev,
+      street,
+      city,
+      zipCode: postcode,
+      state: city.split(" ")[0], // Simplified for demo
+    }));
+    setShowAddressSearch(false);
+  };
+
+  // Calculate order totals using CartContext methods
+  const subtotal = cartSummary.subtotal;
+  const deliveryFee = cartSummary.deliveryFee;
+  const total = cartSummary.total;
+
+  // Update the validateAddress function
   const validateAddress = (address: Address): boolean => {
-    const requiredFields = ['street', 'city', 'state', 'postalCode', 'country'];
+    const requiredFields = ['street', 'city', 'state', 'zipCode', 'country'];
     const emptyFields = requiredFields.filter(field => !address[field as keyof Address]?.trim());
     
     if (emptyFields.length > 0) {
@@ -143,67 +345,140 @@ const CheckoutPage = () => {
     return true;
   };
 
-  const handlePlaceOrder = async () => {
-    if (!selectedBranch?.id) {
-      toast.error("Please select a branch first");
-      return;
-    }
-
-    // Validate delivery address
-    if (!validateAddress(deliveryAddress)) {
-      return;
-    }
-
+  const handleApplyPromo = async () => {
+    if (!promoCode.trim()) return;
+    
+    setIsApplyingPromo(true);
     try {
-      setIsProcessing(true);
+      // Mock API call - replace with actual API
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      setAppliedPromo({ code: promoCode, discount: 10 }); // Mock 10% discount
+      toast.success('Promo code applied successfully!');
+    } catch (error) {
+      toast.error('Invalid promo code');
+    } finally {
+      setIsApplyingPromo(false);
+    }
+  };
 
-      // Prepare order data according to backend API schema
+  const handlePlaceOrder = async () => {
+    if (!selectedTimeSlot || !deliveryAddress.street || !personalDetails.firstName) {
+      toast.error('Please fill in all required fields');
+      return;
+    }
+
+    if (!acceptedTerms) {
+      toast.error('Please accept the terms and conditions');
+      return;
+    }
+
+    if (!selectedBranch?.id) {
+      toast.error('Please select a branch first');
+      return;
+    }
+
+    // Show confirmation modal
+    setShowConfirmation(true);
+  };
+
+  const handleConfirmOrder = async () => {
+    setIsProcessing(true);
+    try {
+      // Calculate totals
+      const subtotal = cartSummary.subtotal;
+      const deliveryFeeAmount = cartSummary.deliveryFee;
+      const taxAmount = 0; // Assuming tax is not available in the cart summary
+      const discountAmount = appliedPromo ? (subtotal * appliedPromo.discount) / 100 : 0;
+      const finalTotal = subtotal + deliveryFeeAmount + taxAmount - discountAmount;
+
+      // Format products data according to API requirements
+      const formattedProducts = cartItems.map(item => {
+        const productId = item.productId || item.id;
+        
+        const selectedAttributes = item.attributes?.map(attr => {
+          const selectedChoiceId = item.selectedOptions?.[attr.id];
+          return {
+            attributeId: attr.id,
+            selectedItems: selectedChoiceId ? [
+              {
+                itemId: selectedChoiceId,
+                quantity: 1
+              }
+            ] : []
+          };
+        }) || [];
+
+        return {
+          product: productId,
+          quantity: item.quantity,
+          notes: item.specialRequirements || '',
+          selectedAttributes
+        };
+      });
+
+      // Prepare order data according to API schema
       const orderData = {
         branchId: selectedBranch.id,
-        products: cartItems.map(item => ({
-          product: item.id,
-          quantity: item.quantity,
-          price: item.price,
-          notes: item.specialRequirements || "",
-          selectedAttributes: []
-        })),
+        products: formattedProducts,
         deliveryMethod: "delivery",
         deliveryAddress: {
           street: deliveryAddress.street,
-          street2: deliveryAddress.street2,
           city: deliveryAddress.city,
-          state: deliveryAddress.state,
-          postalCode: deliveryAddress.postalCode,
-          country: deliveryAddress.country,
-          notes: specialInstructions
+          postalCode: deliveryAddress.zipCode,
+          country: deliveryAddress.country
         },
-        paymentMethod,
-        paymentStatus: "pending",
-        customerNotes: specialInstructions,
-        totalAmount: total,
-        isGuestOrder: !isAuthenticated
+        contactNumber: personalDetails.phone,
+        paymentMethod: paymentMethod,
+        specialInstructions: orderNotes,
+        selectedTimeSlot,
+        personalDetails: {
+          firstName: personalDetails.firstName,
+          lastName: personalDetails.lastName,
+          phone: personalDetails.phone
+        },
+        promoCode: appliedPromo?.code,
+        subtotal: subtotal,
+        deliveryFee: deliveryFeeAmount,
+        tax: taxAmount,
+        discount: discountAmount,
+        totalAmount: subtotal + deliveryFeeAmount + taxAmount,
+        finalTotal: finalTotal
       };
 
-      console.log('Sending order data:', orderData);
+      // Get auth token if user is authenticated
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json'
+      };
 
-      const response = await axios.post('/api/orders', orderData);
+      if (isAuthenticated && token) {
+        headers.Authorization = `Bearer ${token}`;
+      }
 
-      if (response.data.success) {
-        toast.success("Order placed successfully!");
-        clearCart();
-        // Clear guest status after successful order
-        localStorage.removeItem('isGuest');
-        navigate("/app");
+      // Call the order creation API
+      const response = await axios.post(ORDER_ENDPOINTS.CREATE, orderData, { headers });
+
+      if (response.data?.success) {
+        // Clear cart after successful order
+        await clearCart();
+        
+        navigate('/order-success', { 
+          state: { 
+            orderId: response.data.data.id || response.data.data.orderNumber,
+            orderDetails: response.data.data
+          } 
+        });
+        
+        toast.success('Order placed successfully!');
       } else {
-        throw new Error(response.data.message || 'Failed to place order');
+        throw new Error(response.data?.message || 'Failed to place order');
       }
     } catch (error: unknown) {
-      console.error('Order creation error:', error);
-      const apiError = error as ApiError;
-      const errorMessage = apiError.response?.data?.message || apiError.message || "Failed to place order. Please try again.";
-      toast.error(errorMessage);
+      const err = error as { response?: { data?: { message?: string } } };
+      console.error('Order placement error:', error);
+      toast.error(err.response?.data?.message || 'Failed to place order. Please try again.');
     } finally {
       setIsProcessing(false);
+      setShowConfirmation(false);
     }
   };
 
@@ -242,369 +517,424 @@ const CheckoutPage = () => {
   // Handle empty cart
   if (cartItems.length === 0) {
     return (
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="min-h-[70vh] flex items-center justify-center px-4 pb-10 bg-gradient-to-br from-green-50 via-white to-green-50"
-      >
+      <div className="min-h-[70vh] flex items-center justify-center px-4 pb-10 bg-gradient-to-br from-green-50 via-white to-green-50">
         <div className="max-w-md w-full text-center">
-          <motion.div
-            initial={{ scale: 0.8 }}
-            animate={{ scale: 1 }}
-            transition={{ delay: 0.2 }}
-            className="relative w-64 h-64 mx-auto bg-white"
-          >
+          <div className="relative w-64 h-64 mx-auto bg-white">
             <img
               src="/not-found.png"
               alt="Empty cart"
               className="w-full h-full object-contain"
             />
-          </motion.div>
+          </div>
 
-          <motion.h2
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.3 }}
-            className="text-2xl font-semibold text-gray-900 mb-3"
-          >
+          <h2 className="text-2xl font-semibold text-gray-900 mb-3">
             Unable to proceed to checkout
-          </motion.h2>
+          </h2>
 
-          <motion.p
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.4 }}
-            className="text-gray-600 text-base mb-6 max-w-sm mx-auto"
-          >
+          <p className="text-gray-600 text-base mb-6 max-w-sm mx-auto">
             Looks like your cart is empty. Please add items to your cart before proceeding to checkout.
-          </motion.p>
+          </p>
         </div>
-      </motion.div>
+      </div>
     );
   }
 
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      className="min-h-screen bg-gray-50"
-    >
-      <div className="mx-auto px-4 py-10">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="max-w-7xl mx-auto"
-        >
+    <div className="min-h-screen bg-gray-50 py-12">
+      <div className="max-w-7xl mx-auto px-4">
+        {/* Add Header with Back Button */}
+        <div className="flex items-center justify-between mb-8">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">Checkout</h1>
+            <p className="text-gray-500">Complete your order in just a few steps</p>
+          </div>
           <button
             onClick={() => navigate(-1)}
-            className="flex text-sm items-center border border-gray-200 rounded-lg px-4 py-2 mb-6 hover:border-green-600 hover:bg-green-50 text-gray-600 hover:text-gray-900 transition-colors bg-white"
+            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 border border-gray-200 rounded-lg hover:border-gray-300 transition-colors"
           >
-            <ArrowLeft
-              size={18}
-              className="mr-2 group-hover:-translate-x-1 transition-transform"
-            />
-            <span>Back to Cart</span>
+            <ArrowLeft size={18} />
+            Back to Cart
           </button>
+        </div>
 
-          <div className="flex flex-col md:flex-row items-start justify-between mb-8">
-            <div>
-              <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-2">
-                Checkout
-              </h1>
-              <p className="text-gray-600">
-                Complete your order in just a few steps
-              </p>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* Left Column - Forms */}
-            <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.2 }}
-              className="lg:col-span-2 space-y-6"
-            >
-              {/* Order Summary Section */}
-              <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-                <div className="p-6 border-b border-gray-100 bg-gray-50">
-                  <h2 className="text-xl font-semibold text-gray-900 flex items-center">
-                    <span className="w-8 h-8 rounded-full bg-black text-white flex items-center justify-center text-lg mr-3">
-                      1
-                    </span>
-                    Order Summary
-                  </h2>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Left Column - Checkout Steps */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* Step 1: Order Details */}
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+              <div className="p-6 border-b border-gray-100 bg-gray-50">
+                <h2 className="text-xl font-semibold text-gray-900 flex items-center">
+                  <span className="w-8 h-8 rounded-full bg-black text-white flex items-center justify-center text-lg mr-3">1</span>
+                  Order Details
+                </h2>
+              </div>
+              <div className="p-6">
+                {/* Time Slot Selection */}
+                <div className="mb-6">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Choose your timeslot</label>
+                  <select
+                    value={selectedTimeSlot}
+                    onChange={(e) => setSelectedTimeSlot(e.target.value)}
+                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  >
+                    {timeSlots.map((time) => (
+                      <option key={time} value={time}>{time}</option>
+                    ))}
+                  </select>
                 </div>
-                <div className="p-6 space-y-6">
-                  {cartItems.map((item, index) => (
-                    <motion.div
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.1 * index }}
-                      key={item.id}
-                      className="flex items-center gap-4 pb-4 border-b border-gray-100 last:border-0 last:pb-0 group"
-                    >
-                      <div className="w-20 h-20 bg-gray-50 rounded-xl overflow-hidden transform transition-transform group-hover:scale-105">
+
+                {/* Order Notes */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Add your notes</label>
+                  <textarea
+                    value={orderNotes}
+                    onChange={(e) => setOrderNotes(e.target.value)}
+                    placeholder="Add any special instructions or notes for your order..."
+                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-green-500 focus:border-transparent min-h-[100px]"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Step 2: Personal Info & Delivery */}
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+              <div className="p-6 border-b border-gray-100 bg-gray-50">
+                <h2 className="text-xl font-semibold text-gray-900 flex items-center">
+                  <span className="w-8 h-8 rounded-full bg-black text-white flex items-center justify-center text-lg mr-3">2</span>
+                  Personal Information & Delivery
+                </h2>
+              </div>
+              <div className="p-6 space-y-6">
+                {/* Personal Details */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">First Name</label>
+                    <input
+                      type="text"
+                      value={personalDetails.firstName}
+                      onChange={(e) => setPersonalDetails(prev => ({ ...prev, firstName: e.target.value }))}
+                      className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Last Name</label>
+                    <input
+                      type="text"
+                      value={personalDetails.lastName}
+                      onChange={(e) => setPersonalDetails(prev => ({ ...prev, lastName: e.target.value }))}
+                      className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                    />
+                  </div>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
+                  <input
+                    type="tel"
+                    value={personalDetails.phone}
+                    onChange={(e) => setPersonalDetails(prev => ({ ...prev, phone: e.target.value }))}
+                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  />
+                </div>
+
+                {/* Delivery Address */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Delivery Address</label>
+                  <button
+                    onClick={() => setShowAddressSearch(true)}
+                    className="w-full px-4 py-3 border border-gray-200 rounded-xl text-left text-gray-600 hover:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-500"
+                  >
+                    {deliveryAddress.street || "Search for your address"}
+                  </button>
+
+                  {showAddressSearch && (
+                    <div className="mt-2 border rounded-xl overflow-hidden">
+                      <input
+                        type="text"
+                        value={addressSearchQuery}
+                        onChange={(e) => handleAddressSearch(e.target.value)}
+                        placeholder="Start typing your address..."
+                        className="w-full px-4 py-3 border-b focus:outline-none"
+                      />
+                      <div className="max-h-60 overflow-y-auto">
+                        {filteredAddresses.map((address, index) => (
+                          <button
+                            key={index}
+                            onClick={() => handleAddressSelect(address)}
+                            className="w-full px-4 py-2 text-left hover:bg-gray-50 focus:outline-none focus:bg-gray-50"
+                          >
+                            {address}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {deliveryAddress.street && (
+                    <div className="mt-4 p-4 bg-gray-50 rounded-xl">
+                      <p className="text-sm text-gray-600">{deliveryAddress.street}</p>
+                      <p className="text-sm text-gray-600">{deliveryAddress.city}, {deliveryAddress.state}</p>
+                      <p className="text-sm text-gray-600">{deliveryAddress.zipCode}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Update Cart Items Display */}
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+              <div className="p-4 border-b border-gray-100 bg-gray-50">
+                <h2 className="text-lg font-semibold text-gray-900">Order Items ({cartItems.length})</h2>
+              </div>
+              <div className="p-4">
+                <div className="space-y-3 max-h-[300px] overflow-y-auto">
+                  {cartItems.map((item) => (
+                    <div key={item.id} className="flex items-start gap-3 pb-3 border-b border-gray-100 last:border-0">
+                      <div className="w-16 h-16 bg-gray-50 rounded-lg overflow-hidden flex-shrink-0">
                         {item.images?.[0] ? (
-                          <ImageWithFallback src={item.images[0]} alt={item.name} />
+                          <img
+                            src={item.images[0].startsWith('http') ? item.images[0] : `${BASE_URL}${item.images[0]}`}
+                            alt={item.name}
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              const target = e.target as HTMLImageElement;
+                              target.style.display = 'none';
+                              const parent = target.parentElement;
+                              if (parent) {
+                                parent.innerHTML = '<div class="w-full h-full flex items-center justify-center bg-gray-100"><div class="text-gray-400"><NoImage /></div></div>';
+                              }
+                            }}
+                          />
                         ) : (
                           <NoImage />
                         )}
                       </div>
-
-                      <div className="flex-1">
-                        <h3 className="font-semibold text-gray-900 mb-1 max-w-md">
-                          {item.name}
-                        </h3>
-                        <p className="text-sm text-gray-500 mb-2 max-w-md">
-                          {item.description}
-                        </p>
-                        
-                        {/* Display selected options */}
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-medium text-gray-900 truncate">{item.name}</h3>
+                        <p className="text-sm text-gray-500 mt-0.5">Qty: {item.quantity}</p>
                         {item.selectedOptions && Object.keys(item.selectedOptions).length > 0 && (
-                          <div className="space-y-1 mb-2">
+                          <div className="mt-1">
                             {item.attributes?.map(attr => {
                               const selectedChoiceId = item.selectedOptions?.[attr.id];
                               if (!selectedChoiceId) return null;
-                              
                               const choice = attr.choices.find(c => c.id === selectedChoiceId);
                               if (!choice) return null;
-
                               return (
-                                <div key={attr.id} className="text-sm text-gray-500">
-                                  <span>{attr.name}:</span>
-                                  <span className="ml-1 font-medium">{choice.name}</span>
-                                  {choice.price > 0 && (
-                                    <span className="ml-1 text-gray-400">(+₹{choice.price.toFixed(2)})</span>
-                                  )}
-                                </div>
+                                <p key={attr.id} className="text-xs text-gray-500">
+                                  {attr.name}: {choice.name}
+                                </p>
                               );
                             })}
                           </div>
                         )}
-
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm text-gray-600">
-                            Qty: {item.quantity}
-                          </span>
-                          <span className="font-semibold text-green-600">
-                            ₹{calculateItemTotal(item).toFixed(2)}
-                          </span>
-                        </div>
                       </div>
-                    </motion.div>
+                      <div className="text-right">
+                        <p className="font-medium text-gray-900">{formatCurrency(item.price * item.quantity)}</p>
+                      </div>
+                    </div>
                   ))}
                 </div>
               </div>
+            </div>
+          </div>
 
-              {/* Delivery Address Section */}
+          {/* Right Column - Order Summary */}
+          <div className="lg:col-span-1">
+            <div className="bg-white rounded-2xl p-6 shadow-lg sticky top-24">
+              {/* Payment Method - Compact Version */}
               <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-                <div className="p-6 border-b border-gray-100 bg-gray-50">
-                  <h2 className="text-xl font-semibold text-gray-900 flex items-center">
-                    <span className="w-8 h-8 rounded-full bg-black text-white flex items-center justify-center text-lg mr-3">
-                      2
-                    </span>
-                    Delivery Address
-                  </h2>
+                <div className="p-4 border-b border-gray-100 bg-gray-50">
+                  <h2 className="text-lg font-semibold text-gray-900">Payment Method</h2>
                 </div>
-                <div className="p-6">
-                  <DeliveryAddressForm
-                    address={deliveryAddress}
-                    onChange={(field, value) => setDeliveryAddress(prev => ({
-                      ...prev,
-                      [field]: value
-                    }))}
-                  />
-                </div>
-              </div>
-
-              {/* Special Instructions Section */}
-              <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-                <div className="p-6 border-b border-gray-100 bg-gray-50">
-                  <h3 className="text-xl font-semibold text-gray-900">Special Instructions</h3>
-                </div>
-                <div className="p-6">
-                  <textarea
-                    value={specialInstructions}
-                    onChange={(e) => setSpecialInstructions(e.target.value)}
-                    placeholder="Any special requests or instructions for your order..."
-                    className="w-full p-4 border border-gray-200 rounded-xl resize-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                    rows={3}
-                  />
-                </div>
-              </div>
-            </motion.div>
-
-            {/* Right Column - Payment and Order Summary */}
-            <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.3 }}
-              className="lg:col-span-1"
-            >
-              <div className="sticky top-24 space-y-6">
-                {/* Payment Method Section */}
-                <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-                  <div className="p-6 border-b border-gray-100 bg-gray-50">
-                    <h3 className="text-xl font-semibold text-gray-900">Payment Method</h3>
-                  </div>
-                  <div className="p-6">
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
-                      {[
-                        { id: "card", label: "Credit Card", icon: CreditCard },
-                        { id: "cash", label: "Cash on Delivery", icon: Wallet },
-                        { id: "online", label: "Online Payment", icon: Check },
-                      ].map(({ id, label, icon: Icon }) => (
-                        <motion.button
-                          whileHover={{ scale: 1.02 }}
-                          whileTap={{ scale: 0.98 }}
-                          key={id}
-                          onClick={() => setPaymentMethod(id)}
-                          className={`p-4 rounded-xl border-2 transition-all duration-200 ${
-                            paymentMethod === id
-                              ? "border-green-500 bg-green-50 text-green-700"
-                              : "border-gray-200 hover:border-green-300 text-gray-600"
-                          }`}
-                        >
-                          <Icon size={24} className="mx-auto mb-2" />
-                          <span className="text-sm font-medium">{label}</span>
-                        </motion.button>
-                      ))}
-                    </div>
-
-                    {/* Credit Card Form */}
-                    {paymentMethod === 'card' && (
-                      <motion.div
-                        initial={{ opacity: 0, y: -10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="space-y-4 border-t pt-4"
+                <div className="p-4">
+                  <div className="grid grid-cols-3 gap-3">
+                    {[
+                      { id: "card", label: "Card", icon: CreditCard },
+                      { id: "cash", label: "Cash", icon: Wallet },
+                      { id: "online", label: "Online", icon: Check }
+                    ].map(({ id, label, icon: Icon }) => (
+                      <button
+                        key={id}
+                        onClick={() => setPaymentMethod(id)}
+                        className={`p-3 rounded-xl border-2 transition-all ${
+                          paymentMethod === id
+                            ? "border-green-500 bg-green-50 text-green-700"
+                            : "border-gray-200 hover:border-green-300 text-gray-600"
+                        }`}
                       >
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Card Holder Name
-                          </label>
-                          <input
-                            type="text"
-                            value={creditCardDetails.name}
-                            onChange={(e) => handleCreditCardChange('name', e.target.value)}
-                            placeholder="Name on card"
-                            className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Card Number
-                          </label>
-                          <input
-                            type="text"
-                            value={creditCardDetails.number}
-                            onChange={(e) => handleCreditCardChange('number', e.target.value.replace(/\D/g, '').slice(0, 16))}
-                            placeholder="1234 5678 9012 3456"
-                            className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                            maxLength={16}
-                          />
-                        </div>
-                        <div className="grid grid-cols-2 gap-4">
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                              Expiry Date
-                            </label>
-                            <input
-                              type="text"
-                              value={creditCardDetails.expiry}
-                              onChange={(e) => {
-                                let value = e.target.value.replace(/\D/g, '');
-                                if (value.length >= 2) {
-                                  value = value.slice(0, 2) + '/' + value.slice(2, 4);
-                                }
-                                handleCreditCardChange('expiry', value);
-                              }}
-                              placeholder="MM/YY"
-                              className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                              maxLength={5}
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                              CVC
-                            </label>
-                            <input
-                              type="text"
-                              value={creditCardDetails.cvc}
-                              onChange={(e) => handleCreditCardChange('cvc', e.target.value.replace(/\D/g, '').slice(0, 3))}
-                              placeholder="123"
-                              className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                              maxLength={3}
-                            />
-                          </div>
-                        </div>
-                      </motion.div>
-                    )}
+                        <Icon size={20} className="mx-auto mb-1" />
+                        <span className="text-xs font-medium">{label}</span>
+                      </button>
+                    ))}
                   </div>
-                </div>
 
-                {/* Order Summary */}
-                <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-                  <div className="p-6 border-b border-gray-100 bg-gray-50">
-                    <h3 className="text-xl font-semibold text-gray-900">Order Total</h3>
-                  </div>
-                  <div className="p-6">
-                    <div className="space-y-4 mb-6">
-                      <div className="flex justify-between text-gray-600">
-                        <span>Subtotal</span>
-                        <span>₹{subtotal.toFixed(2)}</span>
-                      </div>
-                      <div className="flex justify-between text-gray-600">
-                        <span>Delivery Fee</span>
-                        <span>₹{deliveryFee.toFixed(2)}</span>
-                      </div>
-                      <div className="flex justify-between text-gray-600">
-                        <span>Tax (5%)</span>
-                        <span>₹{tax.toFixed(2)}</span>
-                      </div>
-                      <div className="border-t pt-4">
-                        <div className="flex justify-between text-xl font-semibold">
-                          <span>Total</span>
-                          <span className="text-green-600">₹{total.toFixed(2)}</span>
+                  {paymentMethod === 'card' && (
+                    <div className="mt-4 space-y-3">
+                      <input
+                        type="text"
+                        value={creditCardDetails.name}
+                        onChange={(e) => handleCreditCardChange('name', e.target.value)}
+                        placeholder="Card holder name"
+                        className="w-full px-3 py-2 text-sm rounded-lg border border-gray-200 focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                      />
+                      <div className="grid grid-cols-2 gap-3">
+                        <input
+                          type="text"
+                          value={creditCardDetails.number}
+                          onChange={(e) => handleCreditCardChange('number', e.target.value.replace(/\D/g, '').slice(0, 16))}
+                          placeholder="Card number"
+                          className="w-full px-3 py-2 text-sm rounded-lg border border-gray-200 focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                        />
+                        <div className="grid grid-cols-2 gap-2">
+                          <input
+                            type="text"
+                            value={creditCardDetails.expiry}
+                            onChange={(e) => {
+                              let value = e.target.value.replace(/\D/g, '');
+                              if (value.length >= 2) {
+                                value = value.slice(0, 2) + '/' + value.slice(2, 4);
+                              }
+                              handleCreditCardChange('expiry', value);
+                            }}
+                            placeholder="MM/YY"
+                            className="w-full px-3 py-2 text-sm rounded-lg border border-gray-200 focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                          />
+                          <input
+                            type="text"
+                            value={creditCardDetails.cvc}
+                            onChange={(e) => handleCreditCardChange('cvc', e.target.value.replace(/\D/g, '').slice(0, 3))}
+                            placeholder="CVC"
+                            className="w-full px-3 py-2 text-sm rounded-lg border border-gray-200 focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                          />
                         </div>
                       </div>
                     </div>
+                  )}
+                </div>
+              </div>
 
-                    <motion.button
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      onClick={handlePlaceOrder}
-                      disabled={isProcessing || (paymentMethod === 'card' && (!creditCardDetails.number || !creditCardDetails.expiry || !creditCardDetails.cvc || !creditCardDetails.name))}
-                      className="w-full bg-black text-white py-4 rounded-xl font-semibold hover:bg-gray-900 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-sm"
+              {/* Promo Code Section */}
+              <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                <div className="p-4">
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={promoCode}
+                      onChange={(e) => setPromoCode(e.target.value)}
+                      placeholder="Enter promo code"
+                      className="flex-1 px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                    />
+                    <button
+                      onClick={handleApplyPromo}
+                      disabled={isApplyingPromo || !promoCode.trim()}
+                      className="px-4 py-2 bg-green-600 text-white text-sm rounded-lg font-medium hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                     >
-                      {isProcessing ? (
+                      {isApplyingPromo ? (
                         <>
-                          <Loader2 size={20} className="animate-spin" />
-                          Processing...
+                          <Loader2 size={14} className="animate-spin" />
+                          Applying...
                         </>
                       ) : (
-                        <>
-                          <ShoppingBag size={20} />
-                          Place Order
-                        </>
+                        'Apply'
                       )}
-                    </motion.button>
+                    </button>
+                  </div>
+                  {appliedPromo && (
+                    <div className="mt-2 p-2 bg-green-50 text-green-700 rounded-lg text-xs">
+                      Promo code "{appliedPromo.code}" applied - {appliedPromo.discount}% off
+                    </div>
+                  )}
+                </div>
+              </div>
 
-                    <div className="mt-6">
-                      <div className="flex items-center justify-center gap-2 text-sm text-gray-500">
-                        <Clock size={16} />
-                        <span>Estimated delivery: 30-45 minutes</span>
+              {/* Order Summary */}
+              <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                <div className="p-4 border-b border-gray-100 bg-gray-50">
+                  <h3 className="text-lg font-semibold text-gray-900">Order Summary</h3>
+                </div>
+                <div className="p-4">
+                  <div className="space-y-3 mb-4">
+                    <div className="flex justify-between text-sm text-gray-600">
+                      <span>Subtotal</span>
+                      <span>{formatCurrency(cartSummary.subtotal)}</span>
+                    </div>
+                    <div className="flex justify-between text-sm text-gray-600">
+                      <span>Delivery Fee</span>
+                      <span>{formatCurrency(cartSummary.deliveryFee)}</span>
+                    </div>
+                    {appliedPromo && (
+                      <div className="flex justify-between text-sm text-green-600">
+                        <span>Discount ({appliedPromo.discount}%)</span>
+                        <span>-{formatCurrency((cartSummary.subtotal * appliedPromo.discount) / 100)}</span>
+                      </div>
+                    )}
+                    <div className="border-t pt-3">
+                      <div className="flex justify-between font-semibold">
+                        <span>Total</span>
+                        <span className="text-green-600">
+                          {formatCurrency(
+                            cartSummary.total - (appliedPromo ? (cartSummary.subtotal * appliedPromo.discount) / 100 : 0)
+                          )}
+                        </span>
                       </div>
                     </div>
                   </div>
+
+                  <button
+                    onClick={handlePlaceOrder}
+                    disabled={isProcessing || !acceptedTerms}
+                    className="w-full bg-green-600 text-white py-3 rounded-xl font-semibold hover:bg-green-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  >
+                    {isProcessing ? (
+                      <>
+                        <Loader2 size={18} className="animate-spin" />
+                        Processing...
+                      </>
+                    ) : (
+                      <>
+                        <ShoppingBag size={18} />
+                        Place Order
+                      </>
+                    )}
+                  </button>
+
+                  <div className="mt-3">
+                    <label className="flex items-start gap-2">
+                      <input
+                        type="checkbox"
+                        checked={acceptedTerms}
+                        onChange={(e) => setAcceptedTerms(e.target.checked)}
+                        className="mt-1 h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
+                      />
+                      <span className="text-xs text-gray-600">
+                        By placing this order you're agreeing to our{' '}
+                        <Link to="/terms" className="text-green-600 hover:text-green-700 underline">
+                          Terms & Conditions
+                        </Link>
+                      </span>
+                    </label>
+                  </div>
                 </div>
               </div>
-            </motion.div>
+            </div>
           </div>
-        </motion.div>
+        </div>
       </div>
-    </motion.div>
+
+      {/* Order Confirmation Modal */}
+      <OrderConfirmationModal
+        isOpen={showConfirmation}
+        onClose={() => setShowConfirmation(false)}
+        onConfirm={handleConfirmOrder}
+        isLoading={isProcessing}
+        orderDetails={{
+          items: cartItems,
+          total: cartSummary.total - (appliedPromo ? (cartSummary.subtotal * appliedPromo.discount) / 100 : 0),
+          address: `${deliveryAddress.street}, ${deliveryAddress.city}, ${deliveryAddress.zipCode}`,
+          deliveryTime: selectedTimeSlot
+        }}
+      />
+    </div>
   );
 };
 

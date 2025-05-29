@@ -4,14 +4,20 @@ import { useCart } from "@/context/CartContext";
 import { Minus, Plus, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import ProductOptionsModal from "../modals/ProductOptionsModal";
+import axios from "axios";
+import { CART_ENDPOINTS } from "@/config/api.config";
+import { useAuth } from "@/context/AuthContext";
+import { useGuestCart } from "@/context/GuestCartContext";
+import { useBranch } from "@/context/BranchContext";
+import { useNavigate } from "react-router-dom";
 
 interface ProductCardProps {
   product: Product;
 }
 
 const VariantPlaceholderSVG = ({ color }: { color: string }) => (
-  <svg 
-    viewBox="0 0 40 40" 
+  <svg
+    viewBox="0 0 40 40"
     className="w-full h-full p-2"
     xmlns="http://www.w3.org/2000/svg"
   >
@@ -33,6 +39,15 @@ const VariantPlaceholderSVG = ({ color }: { color: string }) => (
   </svg>
 );
 
+// Add price formatting function
+const formatPrice = (amount: number) => {
+  return new Intl.NumberFormat("en-GB", {
+    style: "currency",
+    currency: "GBP",
+    minimumFractionDigits: 2,
+  }).format(amount);
+};
+
 const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   const [selectedVariant, setSelectedVariant] = useState(0);
   const [quantity, setQuantity] = useState(1);
@@ -40,24 +55,29 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   const { addToCart, updateCartItemQuantity, cartItems } = useCart();
   const [imageError, setImageError] = useState(false);
   const [isAddingToCart, setIsAddingToCart] = useState(false);
+  const { isAuthenticated, token } = useAuth();
+  const { sessionId } = useGuestCart();
+  const { selectedBranch } = useBranch();
+  const navigate = useNavigate();
 
-  // Check if product is in cart
-  const cartItem = cartItems.find(item => item.id === String(product.id));
+  console.log("cartItems", cartItems);
+  // Check if product is in cart - update to check by productId instead of id
+  const cartItem = cartItems.find((item) => item.productId === product.id);
   const isInCart = Boolean(cartItem);
 
   // Get the API URL from environment variable and ensure it ends with a slash
-  const API_URL = (import.meta.env.VITE_API_URL || 'http://localhost:5000').replace(/\/?$/, '/');
+  const API_URL = (
+    import.meta.env.VITE_API_URL || "http://localhost:5000"
+  ).replace(/\/?$/, "/");
 
   const getImageUrl = (url: string | undefined): string | null => {
     if (!url) return null;
     try {
-      if (url.startsWith('http')) return url;
-      const cleanUrl = url.trim()
-        .replace(/^\/+/, '')
-        .replace(/\\/g, '/');
+      if (url.startsWith("http")) return url;
+      const cleanUrl = url.trim().replace(/^\/+/, "").replace(/\\/g, "/");
       return `${API_URL}${cleanUrl}`;
     } catch (error) {
-      console.error('Error processing image URL:', error);
+      console.error("Error processing image URL:", error);
       return null;
     }
   };
@@ -65,11 +85,17 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   const handleQuantityChange = async (newQuantity: number) => {
     if (isInCart && cartItem) {
       try {
-        await updateCartItemQuantity(String(cartItem.id), newQuantity);
-        toast.success('Cart updated');
+        setIsAddingToCart(true);
+        await updateCartItemQuantity(cartItem.id, newQuantity);
       } catch (error) {
-        console.error('Error updating cart:', error);
-        toast.error('Failed to update cart');
+        console.error("Error updating cart:", error);
+        if (error.response?.data?.message) {
+          toast.error(error.response.data.message);
+        } else {
+          toast.error("Failed to update cart");
+        }
+      } finally {
+        setIsAddingToCart(false);
       }
     } else {
       setQuantity(newQuantity);
@@ -77,6 +103,21 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   };
 
   const handleAddToCart = async () => {
+    if (!selectedBranch) {
+      toast.error("Please select a branch first");
+      return;
+    }
+
+    // Check if user is authenticated or has a valid guest session
+    const isGuest = localStorage.getItem('isGuest') === 'true';
+    if (!isAuthenticated && !isGuest) {
+      // Save current path for redirect after login
+      localStorage.setItem('returnUrl', window.location.pathname);
+      toast.error("Please login or continue as guest");
+      navigate('/login');
+      return;
+    }
+
     // If product has attributes, show options modal
     if (product.attributes && product.attributes.length > 0) {
       setIsOptionsModalOpen(true);
@@ -85,30 +126,65 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
 
     try {
       setIsAddingToCart(true);
-      await addToCart({ ...product, quantity });
-      toast.success('Added to cart');
+      await addToCart({
+        ...product,
+        productId: product.id,
+        quantity,
+        selectedOptions: {},
+        specialRequirements: "",
+        itemTotal: product.price * quantity,
+        branchId: selectedBranch.id,
+      });
     } catch (error) {
-      console.error('Error adding to cart:', error);
-      toast.error('Failed to add item to cart');
+      console.error("Error adding to cart:", error);
+      if (error.response?.data?.message) {
+        toast.error(error.response.data.message);
+      } else {
+        toast.error("Failed to add item to cart");
+      }
     } finally {
       setIsAddingToCart(false);
     }
   };
 
-  const handleOptionsSubmit = async (selectedOptions: Record<string, string>, specialRequirements: string) => {
+  const handleOptionsSubmit = async (
+    selectedOptions: Record<string, string>,
+    specialRequirements: string
+  ) => {
+    if (!selectedBranch) {
+      toast.error("Please select a branch first");
+      return;
+    }
+
+    // Check if user is authenticated or has a valid guest session
+    const isGuest = localStorage.getItem('isGuest') === 'true';
+    if (!isAuthenticated && !isGuest) {
+      // Save current path for redirect after login
+      localStorage.setItem('returnUrl', window.location.pathname);
+      toast.error("Please login or continue as guest");
+      navigate('/login');
+      return;
+    }
+
     try {
       setIsAddingToCart(true);
-      await addToCart({ 
-        ...product, 
+      await addToCart({
+        ...product,
+        productId: product.id,
         quantity,
         selectedOptions,
-        specialRequirements 
+        specialRequirements,
+        itemTotal: product.price * quantity,
+        branchId: selectedBranch.id,
       });
-      toast.success('Added to cart');
       setIsOptionsModalOpen(false);
     } catch (error) {
-      console.error('Error adding to cart:', error);
-      toast.error('Failed to add item to cart');
+      console.error("Error adding to cart:", error);
+      if (error.response?.data?.message) {
+        toast.error(error.response.data.message);
+      } else {
+        toast.error("Failed to add item to cart");
+      }
     } finally {
       setIsAddingToCart(false);
     }
@@ -116,7 +192,10 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
 
   const imageUrl = getImageUrl(product.images?.[selectedVariant]);
   const hasMultipleImages = (product.images?.length || 0) > 2;
-  const category = typeof product.category === 'string' ? product.category : product.category?.name || '';
+  const category =
+    typeof product.category === "string"
+      ? product.category
+      : product.category?.name || "";
 
   return (
     <>
@@ -140,9 +219,21 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
             />
           ) : (
             <div className="w-full h-full bg-gray-100 flex items-center justify-center">
-              <svg className="w-12 h-12 text-gray-400" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M12 2C6.477 2 2 6.477 2 12C2 17.523 6.477 22 12 22C17.523 22 22 17.523 22 12C22 6.477 17.523 2 12 2Z" fill="currentColor" fillOpacity="0.2"/>
-                <path d="M15 8H9C7.895 8 7 8.895 7 10V14C7 15.105 7.895 16 9 16H15C16.105 16 17 15.105 17 14V10C17 8.895 16.105 8 15 8Z" fill="currentColor"/>
+              <svg
+                className="w-12 h-12 text-gray-400"
+                viewBox="0 0 24 24"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M12 2C6.477 2 2 6.477 2 12C2 17.523 6.477 22 12 22C17.523 22 22 17.523 22 12C22 6.477 17.523 2 12 2Z"
+                  fill="currentColor"
+                  fillOpacity="0.2"
+                />
+                <path
+                  d="M15 8H9C7.895 8 7 8.895 7 10V14C7 15.105 7.895 16 9 16H15C16.105 16 17 15.105 17 14V10C17 8.895 16.105 8 15 8Z"
+                  fill="currentColor"
+                />
               </svg>
             </div>
           )}
@@ -158,9 +249,9 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
                   key={index}
                   onClick={() => setSelectedVariant(index)}
                   className={`flex-shrink-0 w-12 h-12 rounded-lg border transition-all ${
-                    selectedVariant === index 
-                      ? 'border-2 border-gray-900' 
-                      : 'border border-gray-200'
+                    selectedVariant === index
+                      ? "border-2 border-gray-900"
+                      : "border border-gray-200"
                   }`}
                 >
                   {variantImageUrl ? (
@@ -181,12 +272,16 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
         {/* Product Info */}
         <div className="flex-1 p-4">
           <h3 className="font-medium text-gray-900">{product.name}</h3>
-          <p className="text-left text-sm text-neutral-500 mt-1 line-clamp-2 break-words">{product?.description}</p>
+          <p className="text-left text-sm text-neutral-500 mt-1 line-clamp-2 break-words">
+            {product?.description}
+          </p>
           <div className="flex items-baseline gap-2 mt-1">
-            <span className="font-bold text-lg">₹{product.price.toFixed(2)}</span>
+            <span className="font-bold text-lg">
+              {formatPrice(product.price)}
+            </span>
             {product.originalPrice && (
               <span className="text-sm text-gray-400 line-through">
-                ₹{product.originalPrice.toFixed(2)}
+                {formatPrice(product?.originalPrice)}
               </span>
             )}
           </div>
@@ -197,16 +292,29 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
           {isInCart ? (
             <div className="w-full bg-gray-100 rounded-xl flex items-center">
               <button
-                onClick={() => handleQuantityChange(Math.max(1, (cartItem?.quantity || 1) - 1))}
+                onClick={() =>
+                  handleQuantityChange(
+                    Math.max(1, (cartItem?.quantity || 1) - 1)
+                  )
+                }
                 className="p-3 hover:text-gray-700 text-gray-500 flex-shrink-0"
-                disabled={cartItem?.quantity === 1}
+                disabled={isAddingToCart || cartItem?.quantity === 1}
               >
                 <Minus size={20} />
               </button>
-              <span className="flex-1 text-center font-medium">{cartItem?.quantity || 1}</span>
+              <span className="flex-1 text-center font-medium">
+                {isAddingToCart ? (
+                  <Loader2 size={16} className="animate-spin mx-auto" />
+                ) : (
+                  cartItem?.quantity || 1
+                )}
+              </span>
               <button
-                onClick={() => handleQuantityChange((cartItem?.quantity || 1) + 1)}
+                onClick={() =>
+                  handleQuantityChange((cartItem?.quantity || 1) + 1)
+                }
                 className="p-3 hover:text-gray-700 text-gray-500 flex-shrink-0"
+                disabled={isAddingToCart}
               >
                 <Plus size={20} />
               </button>
@@ -223,7 +331,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
                   Adding...
                 </>
               ) : (
-                'Add to Cart'
+                "Add to Cart"
               )}
             </button>
           )}
