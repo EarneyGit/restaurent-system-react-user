@@ -2,6 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import { ProductAttribute } from '@/services/api';
 import { toast } from 'sonner';
+import { useAuth } from '@/context/AuthContext';
+import { useGuestCart } from '@/context/GuestCartContext';
+import { useNavigate } from 'react-router-dom';
 
 interface ProductOptionsModalProps {
   isOpen: boolean;
@@ -9,6 +12,7 @@ interface ProductOptionsModalProps {
   onAddToCart: (selectedOptions: Record<string, string>, specialRequirements: string) => void;
   productName: string;
   options: ProductAttribute[];
+  productId?: string;
 }
 
 const ProductOptionsModal = ({
@@ -16,10 +20,14 @@ const ProductOptionsModal = ({
   onClose,
   onAddToCart,
   productName,
-  options
+  options,
+  productId
 }: ProductOptionsModalProps) => {
   const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>({});
   const [specialRequirements, setSpecialRequirements] = useState('');
+  const { isAuthenticated } = useAuth();
+  const { sessionId } = useGuestCart();
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (isOpen) {
@@ -52,7 +60,46 @@ const ProductOptionsModal = ({
       return;
     }
 
+    // If user is not authenticated and no guest session exists, redirect to login
+    if (!isAuthenticated && !sessionId) {
+      localStorage.setItem('returnUrl', window.location.pathname);
+      navigate('/login');
+      onClose();
+      return;
+    }
+
+    // Calculate total price including options
+    let totalPrice = 0;
+    options.forEach(option => {
+      const selectedChoiceId = selectedOptions[option.id];
+      if (selectedChoiceId) {
+        const choice = option.choices.find(c => c.id === selectedChoiceId);
+        if (choice) {
+          totalPrice += choice.price;
+        }
+      }
+    });
+
+    // Prepare cart item
+    const cartItem = {
+      productId,
+      quantity: 1,
+      selectedOptions,
+      specialRequirements,
+      price: totalPrice
+    };
+
     onAddToCart(selectedOptions, specialRequirements);
+    onClose();
+  };
+
+  // Add price formatting function
+  const formatPrice = (amount: number) => {
+    return new Intl.NumberFormat('en-GB', {
+      style: 'currency',
+      currency: 'GBP',
+      minimumFractionDigits: 2,
+    }).format(amount);
   };
 
   if (!isOpen) return null;
@@ -114,7 +161,7 @@ const ProductOptionsModal = ({
                           <div className="flex items-center gap-2">
                             <span className="text-sm text-gray-700">{choice.name}</span>
                             {choice.price > 0 && (
-                              <span className="text-xs font-medium text-gray-500">+₹{choice.price.toFixed(2)}</span>
+                              <span className="text-xs font-medium text-gray-500">+{formatPrice(choice.price)}</span>
                             )}
                           </div>
                         </div>

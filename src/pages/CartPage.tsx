@@ -1,5 +1,5 @@
-import React from "react";
-import { Minus, Plus, Heart, Trash2, ArrowLeft, ShoppingBag } from "lucide-react";
+import React, { useState } from "react";
+import { Minus, Plus, Heart, Trash2, ArrowLeft, ShoppingBag, Loader2 } from "lucide-react";
 import { useCart } from "@/context/CartContext";
 import { Link, useNavigate } from "react-router-dom";
 import OrderSummary from "@/components/cart/OrderSummary";
@@ -8,6 +8,7 @@ import { motion } from 'framer-motion';
 import { ProductAttribute } from "@/services/api";
 import { CartItem as CartItemType } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
+import { useGuestCart } from '@/context/GuestCartContext';
 
 interface CartItemProps extends CartItemType {
   onUpdateQuantity: (id: string, quantity: number) => void;
@@ -30,6 +31,8 @@ const CartItem: React.FC<CartItemProps> = ({
   onRemove,
   onToggleWishlist,
 }) => {
+  const { formatCurrency } = useCart();
+  
   // Calculate total price including options
   const calculateTotalPrice = () => {
     let total = price;
@@ -56,8 +59,8 @@ const CartItem: React.FC<CartItemProps> = ({
       animate={{ opacity: 1, y: 0 }}
       className="flex items-start gap-4 pb-6 border-b border-gray-100 last:border-0 last:pb-0 group"
     >
-      {/* Product Image with better no-image handling */}
-      <div className="w-20 h-20 bg-gray-50 rounded-xl overflow-hidden flex-shrink-0 transform transition-transform group-hover:scale-105">
+      {/* Product Image */}
+      <div className="w-24 h-24 bg-gray-50 rounded-xl overflow-hidden flex-shrink-0 transform transition-transform group-hover:scale-105">
         {images?.[0] ? (
           <img
             src={images[0]}
@@ -87,7 +90,7 @@ const CartItem: React.FC<CartItemProps> = ({
           {name}
         </h3>
         {description && (
-          <p className="mt-2 text-sm text-gray-500 line-clamp-2">
+          <p className="mt-2 text-sm text-gray-500 mb-3">
             {description}
           </p>
         )}
@@ -107,7 +110,9 @@ const CartItem: React.FC<CartItemProps> = ({
                   <span className="font-medium">{attr.name}:</span>
                   <span className="ml-2">{choice.name}</span>
                   {choice.price > 0 && (
-                    <span className="ml-2 text-gray-400">(+₹{choice.price.toFixed(2)})</span>
+                    <span className="ml-2 text-gray-400">
+                      (+{formatCurrency(choice.price)})
+                    </span>
                   )}
                 </div>
               );
@@ -129,7 +134,7 @@ const CartItem: React.FC<CartItemProps> = ({
       {/* Price and Actions */}
       <div className="text-right space-y-3">
         <p className="text-lg font-medium text-gray-900">
-          ₹{calculateTotalPrice().toFixed(2)}
+          {formatCurrency(calculateTotalPrice())}
         </p>
         
         {/* Quantity Controls */}
@@ -166,6 +171,7 @@ const CartItem: React.FC<CartItemProps> = ({
 const CartPage = () => {
   const { cartItems, updateCartItemQuantity, removeFromCart } = useCart();
   const { isAuthenticated } = useAuth();
+  const { sessionId, getGuestCartSummary } = useGuestCart();
   const navigate = useNavigate();
 
   const handleUpdateQuantity = (id: string, quantity: number) => {
@@ -181,18 +187,20 @@ const CartPage = () => {
   };
 
   const handleProceedToCheckout = () => {
-    if (!isAuthenticated) {
-      // Store return URL in localStorage
+    // Check if user is authenticated or has a guest session
+    if (!isAuthenticated && !sessionId) {
+      // Store return URL and cart state
       localStorage.setItem('returnUrl', '/checkout');
-      // Check if user wants to proceed as guest
-      const isGuest = localStorage.getItem('isGuest') === 'true';
-      if (isGuest) {
-        navigate('/checkout');
-      } else {
-        navigate('/login', { state: { returnUrl: '/checkout' } });
-      }
+      
+      // Redirect to login
+      navigate('/login', { 
+        state: { from: '/checkout' },
+        replace: false 
+      });
       return;
     }
+
+    // If user is authenticated or has a guest session, proceed to checkout
     navigate('/checkout');
   };
 

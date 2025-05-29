@@ -19,7 +19,7 @@ const Header = () => {
     timeSlot: string;
   } | null>(null);
 
-  const { user, getMe, isLoading } = useAuth();
+  const { user, getMe, isLoading: authLoading } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const isCheckoutPage = location.pathname === "/checkout";
@@ -33,7 +33,7 @@ const Header = () => {
         return; // No token, no need to proceed
       }
 
-      if (!user && !isLoading) {
+      if (!user && !authLoading) {
         try {
           await getMe();
         } catch (error) {
@@ -51,7 +51,7 @@ const Header = () => {
     };
 
     refreshUserData();
-  }, [getMe, isLoading, user]);
+  }, [getMe, authLoading, user]);
 
   const openSidebar = () => setIsSidebarOpen(true);
   const closeSidebar = () => setIsSidebarOpen(false);
@@ -66,8 +66,18 @@ const Header = () => {
     setScheduleInfo({ date, timeSlot });
   };
 
+  const getInitial = (name?: string, email?: string) => {
+    if (name && name.length > 0) {
+      return name[0].toUpperCase();
+    }
+    if (email && email.length > 0) {
+      return email[0].toUpperCase();
+    }
+    return 'U';
+  };
+
   // Show loading state while checking authentication
-  if (isLoading) {
+  if (authLoading) {
     return (
       <header className="sticky top-0 bg-white z-30 shadow-sm">
         <div className="max-w-7xl mx-auto">
@@ -110,10 +120,10 @@ const Header = () => {
                 <Menu size={24} className="text-gray-700" />
               </button> */}
               <Link to="/" className="flex items-center font-mono">
-                <div className="h-8 w-8 bg-gradient-to-r  from-foodyman-lime to-foodyman-green rounded-full flex items-center justify-center">
+                <div className="h-8 w-8 bg-gradient-to-r from-foodyman-lime to-foodyman-green rounded-full flex items-center justify-center">
                   <span className="text-white font-bold text-sm">R</span>
                 </div>
-                <span className="ml-2 font-semibold md:text-2xl text-xl  uppercase text-gray-900 ">
+                <span className="ml-2 font-semibold md:text-2xl text-xl uppercase text-gray-900">
                   Restroman
                 </span>
               </Link>

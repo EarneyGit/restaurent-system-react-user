@@ -2,6 +2,11 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { Product, ProductAttribute } from '@/services/api';
 import { useBranch } from './BranchContext';
+import { useAuth } from './AuthContext';
+import { useGuestCart } from './GuestCartContext';
+import axios from 'axios';
+import { CART_ENDPOINTS } from '@/config/api.config';
+import { useNavigate } from 'react-router-dom';
 
 // Constants for calculations
 const DELIVERY_FEE = 5.00;
@@ -13,6 +18,8 @@ export interface CartItem extends Product {
   specialRequirements?: string;
   attributes?: ProductAttribute[];
   branchId: string;
+  productId?: string;
+  itemTotal?: number;
 }
 
 interface BranchCart {
@@ -23,46 +30,74 @@ interface CartContextType {
   cartItems: CartItem[];
   addToCart: (product: CartItem) => Promise<void>;
   removeFromCart: (productId: string) => Promise<void>;
-  updateCartItemQuantity: (productId: string, quantity: number) => Promise<void>;
-  clearCart: () => void;
-  getCartTotal: () => number;
+  updateCartItemQuantity: (cartItemId: string, quantity: number) => Promise<void>;
+  clearCart: () => Promise<void>;
+  getCartTotal: () => number; 
   getCartItemCount: () => number;
   getDeliveryFee: () => number;
   getTaxAmount: () => number;
   getOrderTotal: () => number;
-  clearBranchCart: (branchId: string) => void;
+  clearBranchCart: (branchId: string) => Promise<void>;
+  formatCurrency: (amount: number) => string;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
 export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [branchCarts, setBranchCarts] = useState<BranchCart>(() => {
-    const savedCart = localStorage.getItem('branchCarts');
-    return savedCart ? JSON.parse(savedCart) : {};
-  });
-
+  const [branchCarts, setBranchCarts] = useState<BranchCart>({});
   const { selectedBranch } = useBranch();
+  const { isAuthenticated, token, user } = useAuth();
+  const { sessionId, cartData: guestCartData } = useGuestCart();
+  const navigate = useNavigate();
 
   // Get current branch's cart items
   const cartItems = selectedBranch ? (branchCarts[selectedBranch.id] || []) : [];
 
-  // Load cart from localStorage on mount
+  // Load cart data on mount and when auth state or branch changes
   useEffect(() => {
-    const savedCart = localStorage.getItem('branchCarts');
-    if (savedCart) {
-      try {
-        setBranchCarts(JSON.parse(savedCart));
-      } catch (error) {
-        console.error('Error loading cart from localStorage:', error);
-        localStorage.removeItem('branchCarts');
-      }
-    }
-  }, []);
+    const loadCart = async () => {
+      if (!selectedBranch) return;
 
-  // Save cart to localStorage whenever it changes
-  useEffect(() => {
-    localStorage.setItem('branchCarts', JSON.stringify(branchCarts));
-  }, [branchCarts]);
+      try {
+        let response;
+        const headers = isAuthenticated ? {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        } : {
+          'x-session-id': sessionId,
+          'Content-Type': 'application/json'
+        };
+
+        // Clear existing cart data for this branch
+        setBranchCarts(prev => {
+          const newCarts = { ...prev };
+          delete newCarts[selectedBranch.id];
+          return newCarts;
+        });
+
+        if (isAuthenticated && token) {
+          response = await axios.get(`${CART_ENDPOINTS.USER_CART}?branchId=${selectedBranch.id}`, { headers });
+        } else if (sessionId) {
+          response = await axios.get(`${CART_ENDPOINTS.GUEST_CART}?branchId=${selectedBranch.id}`, { headers });
+        }
+
+        if (response?.data?.data?.items) {
+          setBranchCarts(prevCarts => ({
+            ...prevCarts,
+            [selectedBranch.id]: response.data.data.items.map((item: CartItem) => ({
+              ...item,
+              branchId: selectedBranch.id
+            }))
+          }));
+        }
+      } catch (error) {
+        console.error('Error loading cart:', error);
+        toast.error('Failed to load cart');
+      }
+    };
+
+    loadCart();
+  }, [isAuthenticated, token, sessionId, selectedBranch?.id]);
 
   const addToCart = async (product: CartItem) => {
     if (!selectedBranch) {
@@ -70,24 +105,72 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return;
     }
 
-    try {
-      setBranchCarts(prevCarts => {
-        const currentBranchCart = prevCarts[selectedBranch.id] || [];
-        const existingItem = currentBranchCart.find(item => item.id === product.id);
-        
-        const updatedBranchCart = existingItem
-          ? currentBranchCart.map(item =>
-              item.id === product.id
-                ? { ...item, quantity: item.quantity + (product.quantity || 1) }
-                : item
-            )
-          : [...currentBranchCart, { ...product, branchId: selectedBranch.id, quantity: product.quantity || 1 }];
+    // Check if item from different branch exists in cart
+    const otherBranchItems = Object.entries(branchCarts).find(([branchId, items]) => 
+      branchId !== selectedBranch.id && items.length > 0
+    );
 
-        return {
+    if (otherBranchItems) {
+      const [existingBranchId] = otherBranchItems;
+      const confirmChange = window.confirm(
+        'Adding items from a different branch will clear your current cart. Would you like to proceed?'
+      );
+
+      if (confirmChange) {
+        // Clear other branch cart
+        await clearBranchCart(existingBranchId);
+      } else {
+        return;
+      }
+    }
+
+    // If user is not authenticated and no guest session exists, redirect to login
+    if (!isAuthenticated && !sessionId) {
+      // Store the current path to redirect back after login
+      localStorage.setItem('returnUrl', window.location.pathname);
+      navigate('/login');
+      return;
+    }
+
+    try {
+      const payload = {
+        productId: product.id,
+        quantity: product.quantity,
+        branchId: selectedBranch.id,
+        specialRequirements: product.specialRequirements,
+        selectedAttributes: product.attributes?.map(attr => ({
+          attributeId: attr.id,
+          selectedItems: product.selectedOptions?.[attr.id] ? [{
+            itemId: product.selectedOptions[attr.id],
+            quantity: 1
+          }] : []
+        }))
+      };
+
+      const headers = isAuthenticated ? {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      } : {
+        'x-session-id': sessionId,
+        'Content-Type': 'application/json'
+      };
+
+      let response;
+      if (isAuthenticated) {
+        response = await axios.post(CART_ENDPOINTS.USER_CART_ITEMS, payload, { headers });
+      } else {
+        response = await axios.post(CART_ENDPOINTS.GUEST_CART_ITEMS, payload, { headers });
+      }
+
+      // Update cart with the response data which includes the correct IDs
+      if (response.data?.data?.items) {
+        setBranchCarts(prevCarts => ({
           ...prevCarts,
-          [selectedBranch.id]: updatedBranchCart
-        };
-      });
+          [selectedBranch.id]: response.data.data.items
+        }));
+      }
+
+      toast.success('Added to cart');
     } catch (error) {
       console.error('Error adding to cart:', error);
       toast.error('Failed to add to cart');
@@ -99,6 +182,20 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (!selectedBranch) return;
 
     try {
+      const headers = isAuthenticated ? {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      } : {
+        'x-session-id': sessionId,
+        'Content-Type': 'application/json'
+      };
+
+      if (isAuthenticated) {
+        await axios.delete(`${CART_ENDPOINTS.USER_CART_ITEMS}/${productId}`, { headers });
+      } else {
+        await axios.delete(`${CART_ENDPOINTS.GUEST_CART_ITEMS}/${productId}`, { headers });
+      }
+
       setBranchCarts(prevCarts => ({
         ...prevCarts,
         [selectedBranch.id]: (prevCarts[selectedBranch.id] || []).filter(item => item.id !== productId)
@@ -111,21 +208,48 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const updateCartItemQuantity = async (productId: string, quantity: number) => {
+  const updateCartItemQuantity = async (cartItemId: string, quantity: number) => {
     if (!selectedBranch) return;
 
     try {
       if (quantity < 1) {
-        await removeFromCart(productId);
+        await removeFromCart(cartItemId);
         return;
       }
 
-      setBranchCarts(prevCarts => ({
-        ...prevCarts,
-        [selectedBranch.id]: (prevCarts[selectedBranch.id] || []).map(item =>
-          item.id === productId ? { ...item, quantity } : item
-        )
-      }));
+      const headers = isAuthenticated ? {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      } : {
+        'x-session-id': sessionId,
+        'Content-Type': 'application/json'
+      };
+
+      const updates = { 
+        cartItemId,
+        quantity,
+        branchId: selectedBranch.id
+      };
+
+      if (isAuthenticated) {
+        const response = await axios.put(`${CART_ENDPOINTS.USER_CART_ITEMS}/${cartItemId}`, updates, { headers });
+        if (response.data?.data) {
+          setBranchCarts(prevCarts => ({
+            ...prevCarts,
+            [selectedBranch.id]: response.data.data.items
+          }));
+        }
+      } else {
+        const response = await axios.put(`${CART_ENDPOINTS.GUEST_CART_ITEMS}/${cartItemId}`, updates, { headers });
+        if (response.data?.data) {
+          setBranchCarts(prevCarts => ({
+            ...prevCarts,
+            [selectedBranch.id]: response.data.data.items
+          }));
+        }
+      }
+      
+      toast.success('Cart updated');
     } catch (error) {
       console.error('Error updating quantity:', error);
       toast.error('Failed to update quantity');
@@ -133,42 +257,90 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const clearCart = () => {
-    setBranchCarts({});
-    localStorage.removeItem('branchCarts');
+  const clearCart = async () => {
+    try {
+      const headers = isAuthenticated ? {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      } : {
+        'x-session-id': sessionId,
+        'Content-Type': 'application/json'
+      };
+
+      if (isAuthenticated) {
+        await axios.delete(CART_ENDPOINTS.USER_CART, { headers });
+      } else {
+        await axios.delete(CART_ENDPOINTS.GUEST_CART, { headers });
+      }
+
+      setBranchCarts({});
+      toast.success('Cart cleared');
+    } catch (error) {
+      console.error('Error clearing cart:', error);
+      toast.error('Failed to clear cart');
+      throw error;
+    }
   };
 
-  const clearBranchCart = (branchId: string) => {
-    setBranchCarts(prevCarts => {
-      const newCarts = { ...prevCarts };
-      delete newCarts[branchId];
-      return newCarts;
-    });
+  const clearBranchCart = async (branchId: string) => {
+    try {
+      const headers = isAuthenticated ? {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      } : {
+        'x-session-id': sessionId,
+        'Content-Type': 'application/json'
+      };
+
+      if (isAuthenticated) {
+        await axios.delete(`${CART_ENDPOINTS.USER_CART}?branchId=${branchId}`, { headers });
+      } else {
+        await axios.delete(`${CART_ENDPOINTS.GUEST_CART}?branchId=${branchId}`, { headers });
+      }
+
+      setBranchCarts(prevCarts => {
+        const newCarts = { ...prevCarts };
+        delete newCarts[branchId];
+        return newCarts;
+      });
+      toast.success('Branch cart cleared');
+    } catch (error) {
+      console.error('Error clearing branch cart:', error);
+      toast.error('Failed to clear branch cart');
+      throw error;
+    }
   };
 
   const getCartTotal = () => {
+    if (!selectedBranch) return 0;
     return cartItems.reduce((total, item) => {
-      let itemTotal = item.price;
-      
-      // Add option prices if they exist
+      let itemTotal = item.price * item.quantity;
+      // Add option prices
       if (item.selectedOptions && item.attributes) {
         item.attributes.forEach(attr => {
           const selectedChoiceId = item.selectedOptions?.[attr.id];
           if (selectedChoiceId) {
             const choice = attr.choices.find(c => c.id === selectedChoiceId);
             if (choice) {
-              itemTotal += choice.price;
+              itemTotal += choice.price * item.quantity;
             }
           }
         });
       }
-      
-      return total + (itemTotal * item.quantity);
+      return total + itemTotal;
     }, 0);
   };
 
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-GB', {
+      style: 'currency',
+      currency: 'GBP',
+    }).format(amount);
+  };
+
   const getCartItemCount = () => {
-    return cartItems.reduce((total, item) => total + item.quantity, 0);
+    if (!selectedBranch) return 0;
+    return cartItems.length;
   };
 
   const getDeliveryFee = () => {
@@ -176,14 +348,11 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const getTaxAmount = () => {
-    const subtotal = getCartTotal();
-    return subtotal * TAX_RATE;
+    return getCartTotal() * TAX_RATE;
   };
 
   const getOrderTotal = () => {
-    const subtotal = getCartTotal();
-    const tax = getTaxAmount();
-    return subtotal + getDeliveryFee() + tax;
+    return getCartTotal() + getDeliveryFee() + getTaxAmount();
   };
 
   return (
@@ -200,6 +369,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
         getTaxAmount,
         getOrderTotal,
         clearBranchCart,
+        formatCurrency
       }}
     >
       {children}
@@ -214,5 +384,3 @@ export const useCart = () => {
   }
   return context;
 };
-
-export default CartContext; 

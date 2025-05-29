@@ -6,6 +6,7 @@ import {
   Navigate,
 } from "react-router-dom";
 import { CartProvider } from "./context/CartContext";
+import { GuestCartProvider } from "./context/GuestCartContext";
 import "./config/axios.config";
 import Layout from "./components/layout/Layout";
 import Index from "./pages/Index";
@@ -16,6 +17,7 @@ import NotFoundPage from "./pages/NotFoundPage";
 import ProductListingPage from "./pages/ProductListingPage";
 import Welcome from "./pages/Welcome";
 import OrderMethodPage from "./pages/OrderMethodPage";
+import DeliveryAddressPage from "./pages/DeliveryAddressPage";
 import OffersPage from "./pages/OffersPage";
 import SpecialAboutPage from "./pages/SpecialAboutPage";
 import OutletSelectionPage from "./pages/OutletSelectionPage";
@@ -31,7 +33,10 @@ import "@/styles/carousel.css";
 import { Toaster } from "sonner";
 import CartPage from "./pages/CartPage";
 import { BranchProvider } from "./context/BranchContext";
-import AppRoutes from "./routes";
+import OrderSuccessPage from "./pages/OrderSuccessPage";
+import TermsAndConditionsPage from "./pages/TermsAndConditionsPage";
+import AccountDetailsPage from "./pages/AccountDetailsPage";
+import OrdersPage from "./pages/OrdersPage";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -61,112 +66,84 @@ const App = () => {
     <Router>
       <AuthProvider>
         <BranchProvider>
-          <CartProvider>
-            <ScrollToTop />
-            <Toaster
-              position="bottom-right"
-              expand={true}
-              toastOptions={{
-                className: "text-base p-4", 
-              }}
-            />{" "}
-            <Routes>
-              {/* Public Routes */}
-              <Route path="/login" element={<LoginPage />} />
-              <Route path="/register" element={<RegisterPage />} />
-              <Route
-                path="/register/verify"
-                element={<OTPVerificationPage />}
+          <GuestCartProvider>
+            <CartProvider>
+              <ScrollToTop />
+              <Toaster
+                position="bottom-right"
+                expand={true}
+                toastOptions={{
+                  className: "text-base p-4",
+                }}
               />
-              <Route
-                path="/register/complete"
-                element={<RegisterCompletePage />}
-              />
-              <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+              <Routes>
+                {/* Public Routes */}
+                <Route path="/login" element={<LoginPage />} />
+                <Route path="/register" element={<RegisterPage />} />
+                <Route path="/register/verify" element={<OTPVerificationPage />} />
+                <Route path="/register/complete" element={<RegisterCompletePage />} />
+                <Route path="/forgot-password" element={<ForgotPasswordPage />} />
 
-              {/* Public Welcome Flow Routes */}
-              <Route path="/" element={<Welcome />} />
-              <Route path="/order-method" element={<OrderMethodPage />} />
-              <Route path="/offers" element={<OffersPage />} />
-              <Route path="/special-about" element={<SpecialAboutPage />} />
-              <Route path="/select-outlet" element={<OutletSelectionPage />} />
+                {/* Terms & Conditions */}
+                <Route path="/terms" element={<TermsAndConditionsPage />} />
 
-              {/* Main App Routes */}
-              <Route path="/app" element={<Layout />}>
-                <Route index element={<Index />} />
-                <Route
-                  path="products/:category"
-                  element={<ProductListingPage />}
-                />
-
-                {/* Protected User Routes */}
-                <Route
-                  path="profile"
+                {/* Account Details */}
+                <Route 
+                  path="/account" 
                   element={
                     <ProtectedRouteWrapper>
-                      <div>Profile Page</div>
+                      <AccountDetailsPage />
                     </ProtectedRouteWrapper>
-                  }
+                  } 
                 />
-                <Route
-                  path="orders"
+
+                {/* Orders */}
+                <Route 
+                  path="/orders" 
                   element={
                     <ProtectedRouteWrapper>
-                      <div>Orders Page</div>
+                      <OrdersPage />
                     </ProtectedRouteWrapper>
-                  }
+                  } 
                 />
-                <Route
-                  path="favorites"
-                  element={
-                    <ProtectedRouteWrapper>
-                      <div>Favorites Page</div>
-                    </ProtectedRouteWrapper>
-                  }
-                />
-              </Route>
 
-              {/* Checkout Route - Allows Guest Access */}
-              <Route
-                path="/checkout"
-                element={
-                  <ProtectedRouteWrapper allowGuest={true}>
-                    <Layout />
-                  </ProtectedRouteWrapper>
-                }
-              >
-                <Route index element={<CheckoutPage />} />
-              </Route>
+                {/* Public Welcome Flow Routes */}
+                <Route path="/" element={<Welcome />} />
+                <Route path="/order-method" element={<OrderMethodPage />} />
+                <Route path="/delivery-address" element={<DeliveryAddressPage />} />
+                <Route path="/offers" element={<OffersPage />} />
+                <Route path="/special-about" element={<SpecialAboutPage />} />
+                <Route path="/select-outlet" element={<OutletSelectionPage />} />
 
-              {/* Protected Liked Products Route */}
-              <Route
-                path="/liked"
-                element={
-                  <ProtectedRouteWrapper>
-                    <Layout />
-                  </ProtectedRouteWrapper>
-                }
-              >
-                <Route index element={<LikedProductsPage />} />
-              </Route>
+                {/* Main App Routes */}
+                <Route path="/app" element={<Layout />}>
+                  <Route index element={<Index />} />
+                  <Route path="products/:category" element={<ProductListingPage />} />
+                  <Route path="profile" element={<ProtectedRouteWrapper><div>Profile Page</div></ProtectedRouteWrapper>} />
+                  <Route path="orders" element={<ProtectedRouteWrapper><OrdersPage /></ProtectedRouteWrapper>} />
+                  <Route path="favorites" element={<ProtectedRouteWrapper><div>Favorites Page</div></ProtectedRouteWrapper>} />
+                </Route>
 
-              {/* App Routes */}
-              <Route path="/app/products/:outletId" element={<ProductPage />} />
+                {/* Checkout Route - Allows Guest Access */}
+                <Route path="/checkout" element={<ProtectedRouteWrapper allowGuest={true}><Layout><CheckoutPage /></Layout></ProtectedRouteWrapper>} />
 
-              {/* Cart Route */}
-              <Route
-                path="/cart"
-                element={
-                  <Layout>
-                    <CartPage />
-                  </Layout>
-                }
-              />
+                {/* Order Success Route */}
+                <Route path="/order-success" element={<OrderSuccessPage />} />
 
-              {/* Catch all route */}
-              <Route path="*" element={<NotFoundPage />} />
-            </Routes>
-          </CartProvider>
+                {/* Protected Liked Products Route */}
+                <Route path="/liked" element={<ProtectedRouteWrapper><Layout><LikedProductsPage /></Layout></ProtectedRouteWrapper>} />
+
+                {/* App Routes */}
+                <Route path="/app/products/:outletId" element={<ProductPage />} />
+
+                {/* Cart Route */}
+                <Route path="/cart" element={<Layout><CartPage /></Layout>} />
+
+                {/* Catch all route */}
+                <Route path="*" element={<NotFoundPage />} />
+              </Routes>
+            </CartProvider>
+          </GuestCartProvider>
         </BranchProvider>
       </AuthProvider>
     </Router>

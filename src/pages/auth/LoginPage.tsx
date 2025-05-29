@@ -4,18 +4,42 @@ import { Eye, EyeOff, UserCircle2 } from 'lucide-react';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
 import { toast } from 'sonner';
-import { useAuth } from '../../context/AuthContext';
-import { AUTH_ENDPOINTS } from '../../config/api.config';
+import { useAuth } from '@/context/AuthContext';
+import { useGuestCart } from '@/context/GuestCartContext';
+
+interface LoginFormValues {
+  email: string;
+  password: string;
+  rememberMe: boolean;
+}
+
+interface User {
+  _id: string;
+  email: string;
+  name: string;
+  role: string;
+}
+
+interface LoginResponse {
+  token: string;
+  user: User;
+}
 
 const LoginPage = () => {
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
   const { login } = useAuth();
+  const { mergeGuestCart, sessionId } = useGuestCart();
 
-  // Get the redirect path from state, default to '/app'
-  const redirectPath = location.state?.from || '/app';
+  // Get the redirect path from state or localStorage
+  const redirectPath = location.state?.from || localStorage.getItem('returnUrl') || '/app';
   const isCheckoutRedirect = redirectPath.includes('/checkout');
+
+  // Clear returnUrl from localStorage after reading it
+  useEffect(() => {
+    localStorage.removeItem('returnUrl');
+  }, []);
 
   const validationSchema = Yup.object({
     email: Yup.string()
@@ -26,44 +50,38 @@ const LoginPage = () => {
       .required('Password is required'),
   });
 
-  const handleLogin = async (e?: React.MouseEvent | React.KeyboardEvent) => {
-    if (e) {
-      e.preventDefault();
-      e.stopPropagation();
-    }
-    
-    if (!formik.isValid || formik.isSubmitting) return;
-    
-    try {
-      formik.setSubmitting(true);
-      await login(formik.values.email, formik.values.password);
-      
-      // After successful login, navigate to the redirect path
-      navigate(redirectPath, { replace: true });
-    } catch (error) {
-      console.error('Login error:', error);
-      // Error is already handled in the login function
-    } finally {
-      formik.setSubmitting(false);
-    }
-  };
-
-  // Redirect if already logged in
-  useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      window.location.href = '/app';
-    }
-  }, []);
-
-  const formik = useFormik({
+  const formik = useFormik<LoginFormValues>({
     initialValues: {
       email: '',
       password: '',
       rememberMe: false,
     },
     validationSchema,
-    onSubmit: () => {} // We'll handle submission manually
+    onSubmit: async (values) => {
+      try {
+        formik.setSubmitting(true);
+        const response = await login(values.email, values.password);
+        const result = response as unknown as LoginResponse;
+        
+        // If there's a guest cart, merge it
+        if (sessionId && result?.token) {
+          try {
+            await mergeGuestCart(result.token);
+          } catch (error) {
+            console.error('Error merging guest cart:', error);
+            toast.error('Failed to merge guest cart');
+          }
+        }
+        
+        // After successful login, navigate to the redirect path
+        navigate(redirectPath, { replace: true });
+      } catch (error) {
+        console.error('Login error:', error);
+        toast.error('Login failed. Please check your credentials.');
+      } finally {
+        formik.setSubmitting(false);
+      }
+    }
   });
 
   const handleGuestCheckout = (e: React.MouseEvent) => {
@@ -71,16 +89,17 @@ const LoginPage = () => {
     // Clear any existing auth data to ensure clean guest state
     localStorage.removeItem('token');
     localStorage.removeItem('user');
+    
+    // Generate a new session ID for guest user if not exists
+    const guestSessionId = crypto.randomUUID();
+    localStorage.setItem('guestSessionId', guestSessionId);
+    
     // Set guest status
     localStorage.setItem('isGuest', 'true');
     
-    // Navigate based on the redirect path
-    navigate(isCheckoutRedirect ? '/checkout' : '/app', { replace: true });
-  };
-
-  const togglePasswordVisibility = (e: React.MouseEvent) => {
-    e.preventDefault();
-    setShowPassword(!showPassword);
+    // Navigate to the redirect path or app
+    toast.success('Continuing as guest');
+    navigate(redirectPath, { replace: true });
   };
 
   return (
@@ -93,7 +112,7 @@ const LoginPage = () => {
             <div className="h-8 w-8 bg-gradient-to-r from-foodyman-lime to-foodyman-green rounded-full flex items-center justify-center">
               <span className="text-white font-bold text-sm">R</span>
             </div>
-            <span className="ml-2 uppercase font-mono font-semibold text-2xl  text-gray-800">
+            <span className="ml-2 uppercase font-mono font-semibold text-2xl text-gray-800">
               Restroman
             </span>
           </Link>
@@ -109,7 +128,7 @@ const LoginPage = () => {
             </Link>
           </p>
 
-          <div className="space-y-6">
+          <form onSubmit={formik.handleSubmit} className="space-y-6">
             <div>
               <label htmlFor="email" className="block text-xs uppercase font-medium text-gray-500 mb-2">
                 Email or phone
@@ -145,16 +164,10 @@ const LoginPage = () => {
                       : 'border-gray-300'
                   } rounded-md p-3 pr-10 focus:outline-none focus:ring-2 focus:ring-foodyman-lime focus:border-transparent`}
                   placeholder="Type here"
-                  onKeyPress={(e) => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault();
-                      handleLogin();
-                    }
-                  }}
                 />
                 <button
                   type="button"
-                  onClick={togglePasswordVisibility}
+                  onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
                 >
                   {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
@@ -181,8 +194,7 @@ const LoginPage = () => {
 
             <div className="space-y-3">
               <button
-                type="button"
-                onClick={handleLogin}
+                type="submit"
                 disabled={formik.isSubmitting}
                 className="w-full bg-foodyman-lime text-white font-medium py-3 rounded-md hover:bg-foodyman-lime/70 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
               >
@@ -198,11 +210,11 @@ const LoginPage = () => {
                 Continue as Guest
               </button>
             </div>
-          </div>
+          </form>
         </div>
       </div>
 
-      {/* Right side - Image with overlay and content */}
+      {/* Right side - Image */}
       <div className="hidden md:block md:w-1/2 lg:w-3/5 bg-gray-100 relative">
         <div className="absolute inset-0 bg-black bg-opacity-50 backdrop-blur-sm z-10"></div>
         <img
@@ -220,40 +232,6 @@ const LoginPage = () => {
               Log in to your account to access your favorite restaurants, track orders,
               and enjoy exclusive member benefits.
             </p>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="bg-black/30 backdrop-blur-sm p-4 rounded-lg">
-                <h3 className="text-foodyman-lime font-bold text-xl mb-2">
-                  Order History
-                </h3>
-                <p className="text-white/80">
-                  View your past orders and quickly reorder your favorites
-                </p>
-              </div>
-              <div className="bg-black/30 backdrop-blur-sm p-4 rounded-lg">
-                <h3 className="text-foodyman-lime font-bold text-xl mb-2">
-                  Saved Addresses
-                </h3>
-                <p className="text-white/80">
-                  Quick checkout with your saved delivery locations
-                </p>
-              </div>
-              <div className="bg-black/30 backdrop-blur-sm p-4 rounded-lg">
-                <h3 className="text-foodyman-lime font-bold text-xl mb-2">
-                  Special Offers
-                </h3>
-                <p className="text-white/80">
-                  Access member-only discounts and promotions
-                </p>
-              </div>
-              <div className="bg-black/30 backdrop-blur-sm p-4 rounded-lg">
-                <h3 className="text-foodyman-lime font-bold text-xl mb-2">
-                  Faster Checkout
-                </h3>
-                <p className="text-white/80">
-                  Skip the guest checkout process every time
-                </p>
-              </div>
-            </div>
           </div>
         </div>
       </div>
