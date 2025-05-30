@@ -185,7 +185,7 @@ const Welcome = () => {
                     <span className="text-lg">Account Details</span>
                   </button>
 
-                  <button
+                  {/* <button
                     onClick={() => navigate("/forgot-password")}
                     className="w-full p-4 text-left hover:bg-gray-50 text-gray-700 font-medium rounded-xl flex items-center space-x-3 transition-colors group"
                   >
@@ -193,7 +193,7 @@ const Welcome = () => {
                       <KeyRound className="w-6 h-6 text-gray-500" strokeWidth={1.5} />
                     </div>
                     <span className="text-lg">Change Password</span>
-                  </button>
+                  </button> */}
 
                   <button
                     onClick={() => navigate("/offers")}

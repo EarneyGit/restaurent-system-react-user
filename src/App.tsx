@@ -141,6 +141,10 @@ const App = () => {
                 {/* Cart Route */}
                 <Route path="/cart" element={<Layout><CartPage /></Layout>} />
 
+                {/* Order Tracking Routes */}
+                <Route path="/order-status/:orderId" element={<OrderSuccessPage />} />
+                <Route path="/track/:orderId" element={<OrderSuccessPage />} />
+
                 {/* Catch all route */}
                 <Route path="*" element={<NotFoundPage />} />
               </Routes>

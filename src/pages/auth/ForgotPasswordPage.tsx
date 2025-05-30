@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import { useFormik } from "formik";
 import * as Yup from "yup";
@@ -13,10 +13,17 @@ interface FormValues {
   confirmPassword: string;
 }
 
+interface LocationState {
+  mode?: 'changePassword' | 'forgotPassword';
+}
+
 const ForgotPasswordPage = () => {
   const [step, setStep] = useState<"email" | "otp" | "reset">("email");
   const [resetToken, setResetToken] = useState("");
   const navigate = useNavigate();
+  const location = useLocation();
+  const state = location.state as LocationState;
+  const mode = state?.mode || 'forgotPassword';
 
   const emailValidationSchema = Yup.object({
     email: Yup.string()
@@ -118,11 +125,11 @@ const ForgotPasswordPage = () => {
         {/* Logo and Back Button */}
         <div className="flex justify-between items-center pt-6">
           <Link
-            to="/login"
+            to={mode === 'changePassword' ? '/account' : '/login'}
             className="flex items-center text-gray-600 hover:text-gray-800"
           >
             <ArrowLeft size={20} className="mr-2" />
-            <span>Back to Login</span>
+            <span>Back to {mode === 'changePassword' ? 'Account' : 'Login'}</span>
           </Link>
           <Link to="/" className="flex items-center">
             <div className="h-8 w-8 bg-gradient-to-r from-foodyman-lime to-foodyman-green rounded-full flex items-center justify-center">
@@ -134,7 +141,7 @@ const ForgotPasswordPage = () => {
         {/* Form Content */}
         <div className="flex-grow flex flex-col justify-center max-w-md mx-auto w-full">
           <h2 className="text-3xl font-medium text-gray-900 mb-2">
-            {step === "email" ? "Forgot Password" : step === "otp" ? "Verify OTP" : "Reset Password"}
+            {mode === 'changePassword' ? 'Change Password' : 'Forgot Password'}
           </h2>
           <p className="text-gray-600 mb-8">
             {step === "email"
@@ -279,10 +286,14 @@ const ForgotPasswordPage = () => {
         {/* Content overlay */}
         <div className="absolute inset-0 flex flex-col justify-center items-start z-20 p-12">
           <div className="max-w-md">
-            <h2 className="text-4xl font-bold text-white mb-6">Reset Your Password</h2>
+            <h2 className="text-4xl font-bold text-white mb-6">
+              {mode === 'changePassword' ? 'Change Your Password' : 'Reset Your Password'}
+            </h2>
             <p className="text-white/90 text-lg mb-8">
-              Don't worry, we've got you covered. Follow these simple steps to reset your password and regain access to your
-              account.
+              {mode === 'changePassword' 
+                ? "Keep your account secure by updating your password regularly. Follow these steps to change your password."
+                : "Don't worry, we've got you covered. Follow these simple steps to reset your password and regain access to your account."
+              }
             </p>
             <ul className="space-y-4 text-white/90">
               <li className="flex items-center">
