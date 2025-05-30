@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import { ArrowLeft, Save, UserX, Loader2, User, Mail, Phone, MapPin, Lock, Bell } from 'lucide-react';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
+import axios from 'axios';
 
 const AccountDetailsPage = () => {
   const navigate = useNavigate();
@@ -15,17 +16,17 @@ const AccountDetailsPage = () => {
     lastName: user?.lastName || '',
     email: user?.email || '',
     phone: user?.phone || '',
-    address1: '',
-    address2: '',
+    addressLine1: '',
+    addressLine2: '',
     city: 'Dunfermline',
     postcode: 'KY12 7QF',
     emailNotifications: true,
     smsNotifications: true,
     preferEmail: true,
     preferSMS: false,
-    password: '',
-    confirmPassword: ''
   });
+
+  console.log("user",user)
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value, type } = e.target as HTMLInputElement;
@@ -37,17 +38,30 @@ const AccountDetailsPage = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (formData.password && formData.password !== formData.confirmPassword) {
-      toast.error('Passwords do not match');
-      return;
-    }
     try {
       setIsLoading(true);
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      toast.success('Account details updated successfully');
-    } catch (error) {
-      toast.error('Failed to update account details');
+      
+      const response = await axios.put('/api/profile/update', {
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        mobileNumber: formData.phone,
+        addressLine1: formData.addressLine1,
+        addressLine2: formData.addressLine2,
+        city: formData.city,
+        postalCode: formData.postcode,
+        emailNotifications: formData.emailNotifications,
+        smsNotifications: formData.smsNotifications,
+        preferredCommunicationEmail: formData.preferEmail,
+        preferredCommunicationSMS: formData.preferSMS
+      });
+
+      if (response.data.success) {
+        toast.success('Account details updated successfully');
+      } else {
+        throw new Error(response.data.message || 'Failed to update profile');
+      }
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || 'Failed to update account details');
     } finally {
       setIsLoading(false);
     }
@@ -179,8 +193,8 @@ const AccountDetailsPage = () => {
                         <label className="block text-sm font-medium text-neutral-700 mb-1">Address Line 1</label>
                         <input
                           type="text"
-                          name="address1"
-                          value={formData.address1}
+                          name="addressLine1"
+                          value={formData.addressLine1}
                           onChange={handleChange}
                           placeholder="80E James Street"
                           className="w-full px-4 py-2.5 bg-neutral-50 border border-neutral-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent"
@@ -190,8 +204,8 @@ const AccountDetailsPage = () => {
                         <label className="block text-sm font-medium text-neutral-700 mb-1">Address Line 2</label>
                         <input
                           type="text"
-                          name="address2"
-                          value={formData.address2}
+                          name="addressLine2"
+                          value={formData.addressLine2}
                           onChange={handleChange}
                           className="w-full px-4 py-2.5 bg-neutral-50 border border-neutral-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent"
                         />
@@ -223,39 +237,24 @@ const AccountDetailsPage = () => {
                 </div>
 
                 {/* Password Section */}
-                {/* <div className="bg-white rounded-2xl shadow-sm border border-neutral-200 overflow-hidden">
+                <div className="bg-white rounded-2xl shadow-sm border border-neutral-200 overflow-hidden">
                   <div className="p-6">
                     <div className="flex items-center gap-2 mb-6">
                       <Lock size={20} className="text-neutral-400" />
                       <h2 className="text-lg font-semibold text-neutral-900">Password</h2>
                     </div>
                     
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div>
-                        <label className="block text-sm font-medium text-neutral-700 mb-1">New Password</label>
-                        <input
-                          type="password"
-                          name="password"
-                          value={formData.password}
-                          onChange={handleChange}
-                          placeholder="Leave blank to keep current"
-                          className="w-full px-4 py-2.5 bg-neutral-50 border border-neutral-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-neutral-700 mb-1">Confirm New Password</label>
-                        <input
-                          type="password"
-                          name="confirmPassword"
-                          value={formData.confirmPassword}
-                          onChange={handleChange}
-                          placeholder="Leave blank to keep current"
-                          className="w-full px-4 py-2.5 bg-neutral-50 border border-neutral-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                        />
-                      </div>
+                    <div className="flex justify-center">
+                      <button
+                        onClick={() => navigate('/forgot-password', { state: { mode: 'changePassword' } })}
+                        className="px-6 py-2.5 bg-neutral-50 text-neutral-900 font-medium rounded-xl hover:bg-neutral-100 transition-colors flex items-center gap-2"
+                      >
+                        <Lock size={18} />
+                        Change Password
+                      </button>
                     </div>
                   </div>
-                </div> */}
+                </div>
 
                 {/* Notification Preferences */}
                 <div className="bg-white rounded-2xl shadow-sm border border-neutral-200 overflow-hidden">
@@ -340,13 +339,13 @@ const AccountDetailsPage = () => {
                       </>
                     )}
                   </button>
-                  <button
+                  {/* <button
                     type="button"
                     className="flex-1 py-3 bg-red-600 text-white font-semibold rounded-xl hover:bg-red-700 transition-colors flex items-center justify-center gap-2"
                   >
                     <UserX size={20} />
                     Close Account
-                  </button>
+                  </button> */}
                 </div>
               </form>
             </div>

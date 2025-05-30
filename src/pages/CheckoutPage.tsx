@@ -285,7 +285,8 @@ const CheckoutPage = () => {
   React.useEffect(() => {
     const isGuest = localStorage.getItem('isGuest') === 'true';
     if (!isAuthenticated && !isGuest) {
-      toast.error("Please login or continue as guest");
+      localStorage.setItem('returnUrl', '/checkout');
+      toast.error("Please login or continue as guest to proceed");
       navigate('/login', { state: { returnUrl: '/checkout' } });
     }
   }, [isAuthenticated, navigate]);
@@ -294,7 +295,8 @@ const CheckoutPage = () => {
   const [personalDetails, setPersonalDetails] = useState({
     firstName: user?.firstName || "",
     lastName: user?.lastName || "",
-    phone: user?.phone || ""
+    phone: user?.phone || "",
+    email: user?.email || ""
   });
 
   // Update the delivery address state initialization
@@ -384,17 +386,24 @@ const CheckoutPage = () => {
   const handleConfirmOrder = async () => {
     setIsProcessing(true);
     try {
-      // Calculate totals
-      const subtotal = cartSummary.subtotal;
-      const deliveryFeeAmount = cartSummary.deliveryFee;
-      const taxAmount = 0; // Assuming tax is not available in the cart summary
-      const discountAmount = appliedPromo ? (subtotal * appliedPromo.discount) / 100 : 0;
-      const finalTotal = subtotal + deliveryFeeAmount + taxAmount - discountAmount;
+      if (!selectedBranch?.id) {
+        toast.error('Please select a branch first');
+        navigate('/outlet-selection');
+        return;
+      }
 
-      // Format products data according to API requirements
+      // Validate required fields
+      if (!personalDetails.firstName || !personalDetails.phone || !deliveryAddress.street) {
+        toast.error('Please fill in all required fields');
+        setIsProcessing(false);
+        return;
+      }
+
+      // Format products data according to backend requirements
       const formattedProducts = cartItems.map(item => {
         const productId = item.productId || item.id;
         
+        // Format selected attributes according to backend schema
         const selectedAttributes = item.attributes?.map(attr => {
           const selectedChoiceId = item.selectedOptions?.[attr.id];
           return {
@@ -411,12 +420,20 @@ const CheckoutPage = () => {
         return {
           product: productId,
           quantity: item.quantity,
+          price: item.price,
           notes: item.specialRequirements || '',
           selectedAttributes
         };
       });
 
-      // Prepare order data according to API schema
+      // Calculate totals
+      const subtotal = cartSummary.subtotal;
+      const deliveryFeeAmount = cartSummary.deliveryFee;
+      const taxAmount = 0;
+      const discountAmount = appliedPromo ? (subtotal * appliedPromo.discount) / 100 : 0;
+      const finalTotal = subtotal + deliveryFeeAmount + taxAmount - discountAmount;
+
+      // Prepare order data according to backend schema
       const orderData = {
         branchId: selectedBranch.id,
         products: formattedProducts,
@@ -425,7 +442,7 @@ const CheckoutPage = () => {
           street: deliveryAddress.street,
           city: deliveryAddress.city,
           postalCode: deliveryAddress.zipCode,
-          country: deliveryAddress.country
+          country: deliveryAddress.country || "GB"
         },
         contactNumber: personalDetails.phone,
         paymentMethod: paymentMethod,
@@ -434,48 +451,82 @@ const CheckoutPage = () => {
         personalDetails: {
           firstName: personalDetails.firstName,
           lastName: personalDetails.lastName,
-          phone: personalDetails.phone
+          phone: personalDetails.phone,
+          email: personalDetails.email
         },
         promoCode: appliedPromo?.code,
-        subtotal: subtotal,
+        subtotal,
         deliveryFee: deliveryFeeAmount,
         tax: taxAmount,
         discount: discountAmount,
-        totalAmount: subtotal + deliveryFeeAmount + taxAmount,
-        finalTotal: finalTotal
+        totalAmount: finalTotal,
+        status: 'pending' // Set initial status
       };
 
-      // Get auth token if user is authenticated
+      // Set up headers based on authentication status
       const headers: Record<string, string> = {
         'Content-Type': 'application/json'
       };
 
       if (isAuthenticated && token) {
         headers.Authorization = `Bearer ${token}`;
+      } else if (sessionId) {
+        headers['x-session-id'] = sessionId;
       }
 
-      // Call the order creation API
-      const response = await axios.post(ORDER_ENDPOINTS.CREATE, orderData, { headers });
+      // Make the API call with branchId in query params
+      const response = await axios.post(
+        `${ORDER_ENDPOINTS.CREATE}?branchId=${selectedBranch.id}`,
+        orderData,
+        { headers }
+      );
 
-      if (response.data?.success) {
-        // Clear cart after successful order
+      if (response.data?.success && response.data?.data) {
+        // Clear cart
         await clearCart();
         
-        navigate('/order-success', { 
-          state: { 
-            orderId: response.data.data.id || response.data.data.orderNumber,
-            orderDetails: response.data.data
-          } 
+        // Store necessary data for order tracking
+        localStorage.setItem('selectedBranchId', selectedBranch.id);
+        
+        const createdOrder = response.data.data;
+        
+        // Navigate to order status with complete order details
+        navigate(`/order-status/${createdOrder._id}`, {
+          state: {
+            orderDetails: {
+              ...createdOrder,
+              branchId: {
+                _id: selectedBranch.id,
+                name: selectedBranch.name
+              }
+            }
+          },
+          replace: true // Prevent back navigation to checkout
         });
         
+        setShowConfirmation(false);
         toast.success('Order placed successfully!');
       } else {
-        throw new Error(response.data?.message || 'Failed to place order');
+        throw new Error(response.data?.message || 'Failed to create order');
       }
     } catch (error: unknown) {
-      const err = error as { response?: { data?: { message?: string } } };
+      const err = error as { response?: { data?: { message?: string }; status?: number } };
       console.error('Order placement error:', error);
-      toast.error(err.response?.data?.message || 'Failed to place order. Please try again.');
+      
+      // Handle specific error cases
+      if (err.response?.status === 401) {
+        localStorage.setItem('returnUrl', '/checkout');
+        toast.error('Please login or continue as guest to place your order');
+        navigate('/login', { state: { returnUrl: '/checkout' } });
+      } else if (err.response?.status === 400) {
+        // Handle validation errors
+        toast.error(err.response.data?.message || 'Please check your order details');
+      } else {
+        toast.error(
+          err.response?.data?.message || 
+          'Failed to place order. Please try again.'
+        );
+      }
     } finally {
       setIsProcessing(false);
       setShowConfirmation(false);
