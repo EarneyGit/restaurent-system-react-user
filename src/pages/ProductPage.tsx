@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
+import axios from '@/config/axios.config';
 import { useCart } from '@/context/CartContext';
 import { useAuth } from '@/context/AuthContext';
 import { useGuestCart } from '@/context/GuestCartContext';
@@ -20,6 +20,8 @@ interface Product {
 
 const ProductPage = () => {
   const { outletId } = useParams();
+  const [searchParams] = useSearchParams();
+  const branchId = searchParams.get('branchId') || outletId;
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
@@ -32,8 +34,22 @@ const ProductPage = () => {
   useEffect(() => {
     const fetchProducts = async () => {
       try {
-        const response = await axios.get(`/api/outlets/${outletId}/products`);
-        setProducts(response.data.data);
+        if (!branchId) {
+          navigate('/select-outlet');
+          return;
+        }
+
+        const response = await axios.get(`/api/products`, {
+          params: {
+            branchId: branchId
+          }
+        });
+        
+        if (response.data?.success) {
+          setProducts(response.data.data);
+        } else {
+          toast.error('Failed to load products');
+        }
       } catch (error) {
         console.error('Error fetching products:', error);
         toast.error('Failed to load products');
@@ -43,7 +59,7 @@ const ProductPage = () => {
     };
 
     fetchProducts();
-  }, [outletId]);
+  }, [branchId, navigate]);
 
   const handleAddToCart = (product: Product) => {
     // Check if user is authenticated or has a guest session
@@ -73,7 +89,7 @@ const ProductPage = () => {
       images: product.images,
       quantity: 1,
       category: product.category,
-      branchId: outletId || ''
+      branchId: branchId || ''
     });
     toast.success(`${product.name} added to cart`);
   };
@@ -89,7 +105,7 @@ const ProductPage = () => {
       images: selectedProduct.images,
       quantity: 1,
       category: selectedProduct.category,
-      branchId: outletId || '',
+      branchId: branchId || '',
       selectedOptions,
       specialRequirements,
       attributes: selectedProduct.attributes

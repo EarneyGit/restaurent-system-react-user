@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { getCategories, Category } from "@/services/api";
 import { Pizza, UtensilsCrossed, Fish, Beef, Apple, Coffee, Sandwich, IceCream2, Soup, ChefHat, LucideIcon, Candy } from "lucide-react";
+import { useBranch } from "@/context/BranchContext";
 
 // Map of category names to icons for better representation
 const CATEGORY_ICONS: { [key: string]: { icon: LucideIcon; color: string } } = {
@@ -103,6 +104,7 @@ const CategoryItem: React.FC<CategoryProps> = ({
 const FoodCategories = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { selectedBranch } = useBranch();
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -132,7 +134,12 @@ const FoodCategories = () => {
 
   const handleCategoryClick = (categoryId: string, categoryName: string) => {
     setActiveCategory(categoryId);
-    navigate(`/app/products/${encodeURIComponent(categoryName)}`);
+    const branchId = selectedBranch?.id || new URLSearchParams(location.search).get('branchId');
+    if (!branchId) {
+      navigate('/select-outlet');
+      return;
+    }
+    navigate(`/app/products/${encodeURIComponent(categoryName)}?branchId=${branchId}`);
   };
 
   if (loading) {

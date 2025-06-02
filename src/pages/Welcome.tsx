@@ -114,7 +114,7 @@ const Welcome = () => {
             <span className="text-sm mt-1 font-medium">Offers</span>
           </Link>
           <Link
-            to="/special-about"
+            to="/about"
             className="flex flex-col items-center text-white"
           >
             <div className="p-2 rounded-xl bg-green-800/30">

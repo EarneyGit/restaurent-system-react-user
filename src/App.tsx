@@ -39,6 +39,7 @@ import AccountDetailsPage from "./pages/AccountDetailsPage";
 import OrdersPage from "./pages/OrdersPage";
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
+import AboutPage from "./pages/AboutPage";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -114,8 +115,8 @@ const App = () => {
                 <Route path="/order-method" element={<OrderMethodPage />} />
                 <Route path="/delivery-address" element={<DeliveryAddressPage />} />
                 <Route path="/offers" element={<OffersPage />} />
-                <Route path="/special-about" element={<SpecialAboutPage />} />
                 <Route path="/select-outlet" element={<OutletSelectionPage />} />
+                <Route path="/about" element={<AboutPage />} />
 
                 {/* Main App Routes */}
                 <Route path="/app" element={<Layout />}>

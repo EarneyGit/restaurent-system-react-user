@@ -77,8 +77,15 @@ const BranchSelector = () => {
     if (location.pathname === '/outlet-selection' || location.pathname === '/order-method') {
       navigate('/');
     } else {
-      // Otherwise, just reload the current page to refresh data
-      window.location.reload();
+      // Update URL with new branchId
+      const searchParams = new URLSearchParams(location.search);
+      searchParams.set('branchId', branch.id);
+      
+      // Navigate to the same path with updated branchId
+      navigate({
+        pathname: location.pathname,
+        search: searchParams.toString()
+      }, { replace: true });
     }
   };
 
