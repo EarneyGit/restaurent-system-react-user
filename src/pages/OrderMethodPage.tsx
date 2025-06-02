@@ -1,31 +1,48 @@
 import { ShoppingBag, Truck, ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useBranch } from "@/context/BranchContext";
+import { useEffect } from "react";
 
 const OrderMethodPage = () => {
   const navigate = useNavigate();
+  const { selectedBranch } = useBranch();
+
+  useEffect(() => {
+    // Check if a branch is selected
+    if (!selectedBranch) {
+      navigate('/select-outlet');
+      return;
+    }
+  }, [selectedBranch, navigate]);
 
   const handleMethodSelect = (method: "collect" | "deliver") => {
+    if (!selectedBranch) {
+      navigate('/select-outlet');
+      return;
+    }
+
     localStorage.setItem("deliveryMethod", method);
     
-    // If delivery method is collect, go straight to app
-    // If delivery, go to address selection page
+    // Store branch information
+    localStorage.setItem('selectedBranchId', selectedBranch.id);
+    
     if (method === "deliver") {
       navigate("/delivery-address");
     } else {
-      // For collection, store branch address if available
-      const selectedBranch = localStorage.getItem('selectedBranch');
-      if (selectedBranch) {
-        const branch = JSON.parse(selectedBranch);
-        localStorage.setItem('collectionAddress', JSON.stringify({
-          fullAddress: branch.address,
-          postcode: branch.postcode || '',
-          lat: branch.latitude || 51.509865,
-          lng: branch.longitude || -0.118092
-        }));
-      }
-      navigate("/app");
+      // For collection, store branch address
+      localStorage.setItem('collectionAddress', JSON.stringify({
+        fullAddress: selectedBranch.address,
+        postcode: selectedBranch.address.postalCode
+      }));
+      
+      // Navigate to app route with branch ID
+      navigate(`/app?branchId=${selectedBranch.id}`);
     }
   };
+
+  if (!selectedBranch) {
+    return null; // Prevent rendering while redirecting
+  }
 
   return (
     <div className="min-h-screen relative">
@@ -43,7 +60,7 @@ const OrderMethodPage = () => {
       <div className="relative z-10 flex flex-col items-center justify-center min-h-screen p-4 sm:p-6">
         {/* Back Button */}
         <button
-          onClick={() => navigate(-1)}
+          onClick={() => navigate('/select-outlet')}
           className="absolute top-4 left-4 px-4 py-2 font-semibold rounded-md border border-white/20 flex items-center space-x-1 text-white hover:bg-white/10 transition-colors"
         >
           <ArrowLeft className="w-5 h-5" />
@@ -57,7 +74,7 @@ const OrderMethodPage = () => {
               How would you like to receive your order?
             </h1>
             <p className="text-white/70 text-lg">
-              Choose your preferred delivery method
+              Choose your preferred delivery method for {selectedBranch.name}
             </p>
           </div>
 
@@ -77,7 +94,7 @@ const OrderMethodPage = () => {
                     I'll collect
                   </h3>
                   <p className="text-white/70 mt-1.5">
-                    Pick up your order from our outlet
+                    Pick up your order from {selectedBranch.name}
                   </p>
                   <div className="flex items-center mt-3">
                     <div className="h-2.5 w-2.5 rounded-full bg-green-500 mr-2.5"></div>
@@ -103,7 +120,7 @@ const OrderMethodPage = () => {
                     Deliver to me
                   </h3>
                   <p className="text-white/70 mt-1.5">
-                    Get your order delivered to your doorstep
+                    Get your order delivered from {selectedBranch.name}
                   </p>
                   <div className="flex items-center mt-3">
                     <div className="h-2.5 w-2.5 rounded-full bg-green-500 mr-2.5"></div>

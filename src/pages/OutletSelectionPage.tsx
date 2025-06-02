@@ -1,17 +1,45 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { X, MapPin, Loader2 } from 'lucide-react';
+import { useNavigate, Link } from 'react-router-dom';
+import { X, MapPin, Loader2, Clock, Menu } from 'lucide-react';
 import axios from '../config/axios.config';
 import { BRANCH_ENDPOINTS } from '../config/api.config';
 import { Branch, BranchResponse } from '../types/branch.types';
 import { toast } from 'sonner';
 import { useBranch } from '../context/BranchContext';
 
+interface BranchAvailability {
+  available: boolean;
+  reason: string;
+}
+
+interface BranchWithAvailability extends Branch {
+  availability?: BranchAvailability;
+}
+
 const OutletSelectionPage = () => {
   const navigate = useNavigate();
-  const [branches, setBranches] = useState<Branch[]>([]);
+  const [branches, setBranches] = useState<BranchWithAvailability[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { setSelectedBranch } = useBranch();
+
+  const checkBranchAvailability = async (branchId: string) => {
+    try {
+      const currentDate = new Date();
+      const formattedDate = currentDate.toISOString().split('T')[0];
+      const formattedTime = currentDate.toTimeString().slice(0, 5);
+
+      const response = await axios.post(`/api/ordering-times/${branchId}/check-availability`, {
+        orderType: "delivery",
+        date: formattedDate,
+        time: formattedTime
+      });
+
+      return response.data;
+    } catch (error) {
+      console.error('Error checking branch availability:', error);
+      return { available: false, reason: "Error checking availability" };
+    }
+  };
 
   useEffect(() => {
     fetchBranches();
@@ -21,7 +49,14 @@ const OutletSelectionPage = () => {
     try {
       const response = await axios.get<BranchResponse>(BRANCH_ENDPOINTS.GET_ALL_BRANCHES);
       if (response.data.success && response.data.data) {
-        setBranches(response.data.data);
+        // Check availability for each branch
+        const branchesWithAvailability = await Promise.all(
+          response.data.data.map(async (branch) => {
+            const availability = await checkBranchAvailability(branch.id);
+            return { ...branch, availability };
+          })
+        );
+        setBranches(branchesWithAvailability);
       }
     } catch (error) {
       console.error('Error fetching branches:', error);
@@ -31,10 +66,12 @@ const OutletSelectionPage = () => {
     }
   };
 
-  const handleOutletSelect = (branch: Branch) => {
-    setSelectedBranch(branch);
-    localStorage.setItem('selectedBranchId', branch.id);
-    navigate('/order-method');
+  const handleOutletSelect = (branch: BranchWithAvailability) => {
+    if (branch.availability?.available) {
+      setSelectedBranch(branch);
+      localStorage.setItem('selectedBranchId', branch.id);
+      navigate('/order-method');
+    }
   };
 
   if (isLoading) {
@@ -78,7 +115,7 @@ const OutletSelectionPage = () => {
           {branches.map((branch) => (
             <div 
               key={branch.id}
-              className="bg-white/10 backdrop-blur-sm rounded-2xl overflow-hidden border border-white/20 hover:bg-white/20 transition-colors group"
+              className="bg-white/10 backdrop-blur-sm rounded-2xl overflow-hidden border border-white/20 hover:bg-white/5 transition-colors group"
             >
               <div className="p-6">
                 <div className="flex items-start gap-4">
@@ -92,7 +129,6 @@ const OutletSelectionPage = () => {
                     </p>
                     <div className="flex flex-col gap-3 text-sm text-white/60">
                       <span>{branch.contact.phone}</span>
-                      {/* <span className="w-1.5 h-1.5 rounded-full bg-white/60"></span> */}
                       <span>{branch.contact.email}</span>
                     </div>
                     {branch.settings && (
@@ -114,22 +150,60 @@ const OutletSelectionPage = () => {
                         )}
                       </div>
                     )}
+                    
+                    {/* Availability Status */}
+                    {!branch.availability?.available && (
+                      <div className="mt-4 p-3 bg-red-500/10 rounded-lg border border-red-500/20">
+                        <p className="text-red-200 text-sm">{branch.availability?.reason}</p>
+                      </div>
+                    )}
                   </div>
                 </div>
-                <button
-                  onClick={() => handleOutletSelect(branch)}
-                  className="mt-6 w-full py-3 bg-green-600 text-white font-medium rounded-xl hover:bg-green-700 transition-colors uppercase tracking-wide"
-                  disabled={!branch.isActive}
-                >
-                  {branch.isActive ? 'Select Outlet' : 'Currently Unavailable'}
-                </button>
+
+                {/* Action Buttons */}
+                <div className="mt-6 space-y-3">
+                  {branch.availability?.available ? (
+                    <button
+                      onClick={() => handleOutletSelect(branch)}
+                      className="w-full py-3 bg-green-600 text-white font-medium rounded-xl hover:bg-green-700 transition-colors uppercase tracking-wide"
+                      disabled={!branch.isActive}
+                    >
+                      {branch.isActive ? 'Select Outlet' : 'Currently Unavailable'}
+                    </button>
+                  ) : (
+                    <div className="flex gap-3">
+                      <Link
+                        to={`/about?branchId=${branch.id}&tab=hours`}
+                        className="flex-1 py-3 bg-black/30 z-50 text-white/70 hover:text-white/90 font-medium rounded-xl hover:bg-black/60 transition-colors text-center flex items-center justify-center gap-2"
+                        onClick={() => {
+                          setSelectedBranch(branch);
+                          localStorage.setItem('selectedBranchId', branch.id);
+                        }}
+                      >
+                        <Clock size={18} />
+                        Opening Times
+                      </Link>
+                      <Link
+                        to={`/app/products/All?branchId=${branch.id}`}
+                        className="flex-1 py-3 bg-green-600/30 z-50 text-white/70 hover:text-white/90 font-medium rounded-xl hover:bg-green-600/60 transition-colors text-center flex items-center justify-center gap-2"
+                        onClick={() => {
+                          setSelectedBranch(branch);
+                          localStorage.setItem('selectedBranchId', branch.id);
+                        }}
+                      >
+                        <Menu size={18} />
+                        View Menu
+                      </Link>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           ))}
         </div>
 
         {branches.length === 0 && (
-          <div className="text-center text-white/70 mt-8">
+          <div className="text-center text-white/80 mt-8">
             No outlets available at the moment. Please try again later.
           </div>
         )}

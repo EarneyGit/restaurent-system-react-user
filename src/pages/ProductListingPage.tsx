@@ -1,13 +1,22 @@
 import React, { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import ProductFilters from "@/components/products/ProductFilters";
 import ProductGrid from "@/components/products/ProductGrid";
 import { getCategories, Category } from "@/services/api";
+import { useBranch } from "@/context/BranchContext";
+import { toast } from "sonner";
+import axios from "axios";
 
 function ProductListingPage(): JSX.Element {
   const { category = "All" } = useParams<{ category: string }>();
   const decodedCategory = decodeURIComponent(category);
   const navigate = useNavigate();
+  const location = useLocation();
+  const { selectedBranch, setSelectedBranch } = useBranch();
+  
+  // Get branchId from URL query params
+  const queryParams = new URLSearchParams(location.search);
+  const branchIdFromUrl = queryParams.get('branchId');
   
   const [selectedCategory, setSelectedCategory] = useState<string>(decodedCategory);
   const [activeFilters, setActiveFilters] = useState<string[]>([]);
@@ -15,6 +24,34 @@ function ProductListingPage(): JSX.Element {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [totalItems, setTotalItems] = useState(0);
+
+  // Update branch context if branchId in URL is different
+  useEffect(() => {
+    const updateBranch = async () => {
+      if (branchIdFromUrl && (!selectedBranch || selectedBranch.id !== branchIdFromUrl)) {
+        try {
+          const response = await axios.get('/api/branches');
+          if (response.data?.success) {
+            const branches = response.data.data;
+            const newBranch = branches.find(b => b.id === branchIdFromUrl);
+            if (newBranch) {
+              setSelectedBranch(newBranch);
+              localStorage.setItem('selectedBranchId', newBranch.id);
+            } else {
+              toast.error('Selected branch not found');
+              navigate('/select-outlet');
+            }
+          }
+        } catch (error) {
+          console.error('Error fetching branch:', error);
+          toast.error('Failed to load branch details');
+          navigate('/select-outlet');
+        }
+      }
+    };
+
+    updateBranch();
+  }, [branchIdFromUrl, selectedBranch, setSelectedBranch, navigate]);
 
   // Fetch categories on mount
   useEffect(() => {
@@ -48,7 +85,7 @@ function ProductListingPage(): JSX.Element {
 
   const handleCategoryChange = (newCategory: string) => {
     setSelectedCategory(String(newCategory));
-    navigate(`/app/products/${encodeURIComponent(String(newCategory))}`);
+    navigate(`/app/products/${encodeURIComponent(String(newCategory))}${branchIdFromUrl ? `?branchId=${branchIdFromUrl}` : ''}`);
   };
 
   const handleFilterToggle = (filter: string) => {
@@ -69,6 +106,11 @@ function ProductListingPage(): JSX.Element {
   const handleProductCountUpdate = (count: number) => {
     setTotalItems(count);
   };
+
+  if (!branchIdFromUrl && !selectedBranch) {
+    navigate('/select-outlet');
+    return null;
+  }
 
   if (loading) {
     return (
@@ -102,6 +144,9 @@ function ProductListingPage(): JSX.Element {
         <h1 className="text-2xl font-bold text-gray-800">{getCategoryTitle()}</h1>
         <div className="flex items-center gap-2">
           <span className="text-sm text-[#4caf50]">{totalItems} items</span>
+          {selectedBranch && (
+            <span className="text-sm text-gray-600">• {selectedBranch.name}</span>
+          )}
         </div>
       </div>
 
@@ -117,6 +162,7 @@ function ProductListingPage(): JSX.Element {
         category={selectedCategory} 
         filters={activeFilters}
         onProductCountUpdate={handleProductCountUpdate}
+        branchId={branchIdFromUrl || selectedBranch?.id}
       />
     </div>
   );

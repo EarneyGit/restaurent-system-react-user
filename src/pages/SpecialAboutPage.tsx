@@ -1,83 +1,105 @@
 import React, { useEffect, useState } from 'react';
-import { ArrowLeft, Clock, MapPin, Phone, Globe, Mail, ExternalLink } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { X, MapPin, Clock, Phone, Mail, ArrowLeft } from 'lucide-react';
+import axios from '@/config/axios.config';
+import { toast } from 'sonner';
 
-interface BranchHours {
-  [key: string]: string[];
-}
-
-interface BranchAddress {
-  line1: string;
-  city: string;
-  postcode: string;
-  country: string;
-}
-
-interface Branch {
+interface BranchDetails {
   name: string;
-  address: BranchAddress;
-  phone: string;
-  email: string;
-  hours: BranchHours;
+  aboutUs: string;
+  contact: {
+    email: string;
+    phone: string;
+    telephone?: string;
+  };
+  address: {
+    street: string;
+    city: string;
+    postalCode: string;
+    state: string;
+    country: string;
+  };
+  openingTimes: {
+    [key: string]: {
+      open: string;
+      close: string;
+      isOpen: boolean;
+    };
+  };
+  orderingOptions: {
+    collection: {
+      displayFormat: string;
+      timeslotLength: number;
+    };
+    delivery: {
+      displayFormat: string;
+      timeslotLength: number;
+    };
+  };
+  preOrdering: {
+    allowCollectionPreOrders: boolean;
+    allowDeliveryPreOrders: boolean;
+  };
 }
-
-const branchesData: Branch[] = [
-  {
-    name: 'DUNFERMLINE',
-    address: {
-      line1: '26 Bruce Street',
-      city: 'Dunfermline',
-      postcode: 'KY12 7AG',
-      country: 'United Kingdom',
-    },
-    phone: '01383623409',
-    email: 'dunfermline@restroman.com',
-    hours: {
-      Monday: ['11:45–14:30', '16:30–22:00'],
-      Tuesday: ['16:30–22:00'],
-      Wednesday: ['16:30–22:00'],
-      Thursday: ['11:45–14:30', '16:30–22:00'],
-      Friday: ['11:45–14:30', '16:30–23:00'],
-      Saturday: ['11:45–14:30', '16:30–23:00'],
-      Sunday: ['11:45–14:30', '16:30–22:00'],
-    },
-  },
-  {
-    name: 'EDINBURGH',
-    address: {
-      line1: '175 Dalry Road',
-      city: 'Edinburgh',
-      postcode: 'EH11 2EB',
-      country: 'United Kingdom',
-    },
-    phone: '01312374516',
-    email: 'edinburgh@restroman.com',
-    hours: {
-      Monday: ['11:45–22:55'],
-      Tuesday: ['11:45–22:55'],
-      Wednesday: ['11:45–22:55'],
-      Thursday: ['11:45–22:55'],
-      Friday: ['11:45–22:55'],
-      Saturday: ['11:45–22:55'],
-      Sunday: ['11:45–22:55'],
-    },
-  },
-];
 
 const SpecialAboutPage = () => {
-  const [branches, setBranches] = useState<Branch[]>([]);
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const branchId = searchParams.get('branchId');
+  const [branchDetails, setBranchDetails] = useState<BranchDetails | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    setBranches(branchesData);
-  }, []);
+    const fetchBranchDetails = async () => {
+      if (!branchId) {
+        navigate('/select-outlet');
+        return;
+      }
+
+      try {
+        const response = await axios.get(`/api/branches/outlet-settings`);
+        if (response.data?.success) {
+          setBranchDetails(response.data.data);
+        }
+      } catch (error) {
+        console.error('Error fetching branch details:', error);
+        toast.error('Failed to load branch details');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchBranchDetails();
+  }, [branchId, navigate]);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-black">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-green-500"></div>
+      </div>
+    );
+  }
+
+  if (!branchDetails) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-black">
+        <div className="text-white text-center">
+          <p className="text-xl">Branch details not found</p>
+          <button
+            onClick={() => navigate('/outlet-selection')}
+            className="mt-4 px-6 py-2 bg-green-600 rounded-lg hover:bg-green-700 transition-colors"
+          >
+            Back to Outlets
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen relative font-sans">
+    <div className="min-h-screen relative xl:pt-10 md:pt-5 pt-3 font-sans">
       {/* Background Layer */}
-      <div
-        className="fixed inset-0 w-full h-screen"
-        style={{ zIndex: -1 }}
-      >
+      <div className="absolute inset-0">
         <img
           src="/bg-home.png"
           alt="background"
@@ -86,108 +108,115 @@ const SpecialAboutPage = () => {
         <div className="absolute inset-0 bg-black/85" />
       </div>
 
-      {/* Content Container */}
-      <div className="relative z-10 max-w-4xl mx-auto px-4 py-10">
-        {/* Close/Back Button and Header */}
-        <header className="flex items-center justify-between mb-12">
-          <Link
-            to="/"
-            className="p-2 rounded-full bg-white/10 hover:bg-white/20 transition-colors"
-            aria-label="Go back"
+      {/* Content */}
+      <div className="relative z-10 max-w-4xl mx-auto px-4">
+        {/* Navigation */}
+        <div className="flex justify-between items-center mb-8">
+          <button 
+            onClick={() => navigate('/outlet-selection')}
+            className="flex items-center gap-2 text-white/80 hover:text-white transition-colors"
           >
-            <ArrowLeft size={24} className="text-white" />
-          </Link>
-          <h1 className="text-3xl font-bold text-white">About Us</h1>
-          {/* Placeholder to keep header balanced */}
-          <div style={{ width: 40 }} />
-        </header>
+            <ArrowLeft size={20} />
+            <span>Back to Outlets</span>
+          </button>
+          <button 
+            onClick={() => navigate(-1)}
+            className="p-2 rounded-full bg-white/10 hover:bg-white/20 transition-colors"
+          >
+            <X size={24} className="text-white" />
+          </button>
+        </div>
 
-        {/* Company Description */}
-        <section className="bg-white/10 backdrop-blur-sm rounded-2xl p-8 mb-16 border border-white/20 shadow-lg">
-          <h2 className="md:text-3xl text-2xl font-bold text-white mb-6">RESTROMAN</h2>
-          <p className="text-white/80 text-lg leading-relaxed mb-6">
-            Discover the warmth of authentic cuisine and personalized service. At Restroman,
-            every dish tells a story, and every guest is family.
-          </p>
-          <div className="flex items-center gap-2 text-green-500">
-            <Globe size={20} />
-            <a
-              href="https://www.restroman.com"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-1 underline hover:text-green-400 transition"
-            >
-              www.restroman.com <ExternalLink size={14} />
-            </a>
-          </div>
-        </section>
-
-        {/* Branches Grid */}
-        <section className="grid md:grid-cols-2 gap-6">
-          {branches.map((branch, i) => (
-            <div
-              key={i}
-              className="bg-white/10 backdrop-blur-sm rounded-2xl p-8 border border-white/20 hover:bg-white/20 transition-colors shadow-lg"
-            >
-              <h3 className="text-2xl font-semibold text-green-400 mb-6">{branch.name}</h3>
-
-              {/* Contact Info */}
-              <div className="space-y-6 mb-8 text-white/90">
-                <div className="flex items-start gap-3">
-                  <MapPin className="w-5 h-5 text-green-500 mt-1" />
-                  <address className="not-italic leading-relaxed">
-                    {branch.address.line1}
-                    <br />
-                    {branch.address.city}, {branch.address.postcode}
-                    <br />
-                    {branch.address.country}
-                  </address>
-                </div>
-
-                <div className="flex items-center gap-3">
-                  <Phone className="w-5 h-5 text-green-500" />
-                  <a
-                    href={`tel:${branch.phone}`}
-                    className="hover:text-green-400 underline transition"
-                  >
-                    {branch.phone}
-                  </a>
-                </div>
-
-                <div className="flex items-center gap-3">
-                  <Mail className="w-5 h-5 text-green-500" />
-                  <a
-                    href={`mailto:${branch.email}`}
-                    className="hover:text-green-400 underline transition"
-                  >
-                    {branch.email}
-                  </a>
-                </div>
+        {/* Branch Details */}
+        <div className="bg-white/10 backdrop-blur-sm rounded-2xl overflow-hidden border border-white/20">
+          <div className="p-8">
+            {/* Header */}
+            <div className="flex items-start gap-6 mb-8">
+              <div className="p-4 rounded-xl bg-green-600/20">
+                <MapPin size={32} className="text-green-500" />
               </div>
+              <div>
+                <h1 className="text-3xl font-bold text-white mb-2">{branchDetails.name}</h1>
+                <p className="text-white/70">
+                  {branchDetails.address.street}, {branchDetails.address.city} {branchDetails.address.postalCode}
+                </p>
+              </div>
+            </div>
 
-              {/* Hours */}
-              <div className="bg-white/10 rounded-lg p-6 border border-white/20">
-                <div className="flex items-center gap-2 mb-4 text-white">
-                  <Clock className="w-5 h-5 text-green-500" />
-                  <h4 className="font-semibold">Opening Hours</h4>
+            {/* About Section */}
+            {branchDetails.aboutUs && (
+              <div className="mb-8">
+                <h2 className="text-xl font-semibold text-white mb-4">About Us</h2>
+                <p className="text-white/70">{branchDetails.aboutUs}</p>
+              </div>
+            )}
+
+            {/* Contact Information */}
+            <div className="mb-8">
+              <h2 className="text-xl font-semibold text-white mb-4">Contact Information</h2>
+              <div className="space-y-3">
+                <div className="flex items-center gap-3 text-white/70">
+                  <Phone size={18} />
+                  <span>{branchDetails.contact.phone}</span>
                 </div>
-                <div className="space-y-2 text-white/90 text-sm">
-                  {Object.entries(branch.hours).map(([day, times]) => (
-                    <div key={day} className="flex justify-between">
-                      <span className="font-medium">{day}</span>
-                      <span>{times.length ? times.join(', ') : 'Closed'}</span>
-                    </div>
-                  ))}
+                {branchDetails.contact.telephone && (
+                  <div className="flex items-center gap-3 text-white/70">
+                    <Phone size={18} />
+                    <span>{branchDetails.contact.telephone}</span>
+                  </div>
+                )}
+                <div className="flex items-center gap-3 text-white/70">
+                  <Mail size={18} />
+                  <span>{branchDetails.contact.email}</span>
                 </div>
               </div>
             </div>
-          ))}
-        </section>
 
-        {/* Note */}
-        <section className="bg-green-600 rounded-xl p-6 mt-16 text-center text-white font-semibold shadow-lg">
-          Kitchen closes 30 minutes before closing. Please ensure last orders are placed accordingly.
-        </section>
+            {/* Opening Hours */}
+            <div className="mb-8">
+              <h2 className="text-xl font-semibold text-white mb-4">Opening Hours</h2>
+              <div className="grid gap-3">
+                {Object.entries(branchDetails.openingTimes).map(([day, times]) => (
+                  <div key={day} className="flex justify-between items-center py-2 border-b border-white/10">
+                    <span className="text-white/70 capitalize">{day}</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-white">
+                        {times.isOpen ? `${times.open} - ${times.close}` : 'Closed'}
+                      </span>
+                      {times.isOpen && (
+                        <Clock size={16} className="text-green-500" />
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Ordering Options */}
+            <div className="mb-8">
+              <h2 className="text-xl font-semibold text-white mb-4">Ordering Options</h2>
+              <div className="grid gap-4">
+                {/* Delivery */}
+                <div className="bg-white/5 rounded-xl p-4">
+                  <h3 className="text-lg font-medium text-white mb-2">Delivery</h3>
+                  <div className="text-white/70">
+                    <p>Time Slot Length: {branchDetails.orderingOptions.delivery.timeslotLength} minutes</p>
+                    <p>Pre-ordering: {branchDetails.preOrdering.allowDeliveryPreOrders ? 'Available' : 'Not Available'}</p>
+                  </div>
+                </div>
+
+                {/* Collection */}
+                <div className="bg-white/5 rounded-xl p-4">
+                  <h3 className="text-lg font-medium text-white mb-2">Collection</h3>
+                  <div className="text-white/70">
+                    <p>Time Slot Length: {branchDetails.orderingOptions.collection.timeslotLength} minutes</p>
+                    <p>Pre-ordering: {branchDetails.preOrdering.allowCollectionPreOrders ? 'Available' : 'Not Available'}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );

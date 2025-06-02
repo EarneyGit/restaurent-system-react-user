@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Product } from "@/services/api";
 import { useCart } from "@/context/CartContext";
 import { Minus, Plus, Loader2 } from "lucide-react";
@@ -10,9 +10,11 @@ import { useAuth } from "@/context/AuthContext";
 import { useGuestCart } from "@/context/GuestCartContext";
 import { useBranch } from "@/context/BranchContext";
 import { useNavigate } from "react-router-dom";
+import { formatPrice } from "@/lib/utils";
 
 interface ProductCardProps {
   product: Product;
+  isOutletAvailable?: boolean;
 }
 
 const VariantPlaceholderSVG = ({ color }: { color: string }) => (
@@ -39,26 +41,43 @@ const VariantPlaceholderSVG = ({ color }: { color: string }) => (
   </svg>
 );
 
-// Add price formatting function
-const formatPrice = (amount: number) => {
-  return new Intl.NumberFormat("en-GB", {
-    style: "currency",
-    currency: "GBP",
-    minimumFractionDigits: 2,
-  }).format(amount);
-};
-
-const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
+const ProductCard: React.FC<ProductCardProps> = ({ product, isOutletAvailable = true }) => {
   const [selectedVariant, setSelectedVariant] = useState(0);
   const [quantity, setQuantity] = useState(1);
   const [isOptionsModalOpen, setIsOptionsModalOpen] = useState(false);
-  const { addToCart, updateCartItemQuantity, cartItems } = useCart();
+  const { addToCart, updateCartItemQuantity, cartItems, removeFromCart, getItemQuantity } = useCart();
   const [imageError, setImageError] = useState(false);
   const [isAddingToCart, setIsAddingToCart] = useState(false);
   const { isAuthenticated, token } = useAuth();
   const { sessionId } = useGuestCart();
   const { selectedBranch } = useBranch();
   const navigate = useNavigate();
+  const [isBranchAvailable, setIsBranchAvailable] = useState<boolean>(true);
+
+  useEffect(() => {
+    const checkBranchAvailability = async () => {
+      if (selectedBranch?.id) {
+        try {
+          const currentDate = new Date();
+          const formattedDate = currentDate.toISOString().split('T')[0];
+          const formattedTime = currentDate.toTimeString().slice(0, 5);
+
+          const response = await axios.post(`/api/ordering-times/${selectedBranch.id}/check-availability`, {
+            orderType: "delivery",
+            date: formattedDate,
+            time: formattedTime
+          });
+
+          setIsBranchAvailable(response.data.available);
+        } catch (error) {
+          console.error('Error checking branch availability:', error);
+          setIsBranchAvailable(false);
+        }
+      }
+    };
+
+    checkBranchAvailability();
+  }, [selectedBranch?.id]);
 
   console.log("cartItems", cartItems);
   // Check if product is in cart - update to check by productId instead of id
@@ -197,6 +216,11 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
       ? product.category
       : product.category?.name || "";
 
+  const handleRemoveFromCart = () => {
+    removeFromCart(product.id);
+    toast.success("Removed from cart");
+  };
+
   return (
     <>
       <div className="bg-white rounded-3xl overflow-hidden border border-gray-200 shadow-sm hover:shadow-md transition-all duration-300 relative flex flex-col h-full">
@@ -289,51 +313,50 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
 
         {/* Sticky Cart Controls */}
         <div className="sticky bottom-0 left-0 right-0 p-4 bg-white border-t border-gray-100">
-          {isInCart ? (
-            <div className="w-full bg-gray-100 rounded-xl flex items-center">
+          {isBranchAvailable ? (
+            isInCart ? (
+              <div className="w-full bg-gray-100 rounded-xl flex items-center">
+                <button
+                  onClick={handleRemoveFromCart}
+                  className="p-3 hover:text-gray-700 text-gray-500 flex-shrink-0"
+                >
+                  <Minus size={20} />
+                </button>
+                <span className="flex-1 text-center font-medium">
+                  {isAddingToCart ? (
+                    <Loader2 size={16} className="animate-spin mx-auto" />
+                  ) : (
+                    cartItem?.quantity || 1
+                  )}
+                </span>
+                <button
+                  onClick={handleAddToCart}
+                  className="p-3 hover:text-gray-700 text-gray-500 flex-shrink-0"
+                  disabled={isAddingToCart}
+                >
+                  <Plus size={20} />
+                </button>
+              </div>
+            ) : (
               <button
-                onClick={() =>
-                  handleQuantityChange(
-                    Math.max(1, (cartItem?.quantity || 1) - 1)
-                  )
-                }
-                className="p-3 hover:text-gray-700 text-gray-500 flex-shrink-0"
-                disabled={isAddingToCart || cartItem?.quantity === 1}
-              >
-                <Minus size={20} />
-              </button>
-              <span className="flex-1 text-center font-medium">
-                {isAddingToCart ? (
-                  <Loader2 size={16} className="animate-spin mx-auto" />
-                ) : (
-                  cartItem?.quantity || 1
-                )}
-              </span>
-              <button
-                onClick={() =>
-                  handleQuantityChange((cartItem?.quantity || 1) + 1)
-                }
-                className="p-3 hover:text-gray-700 text-gray-500 flex-shrink-0"
+                onClick={handleAddToCart}
                 disabled={isAddingToCart}
+                className="w-full bg-neutral-800 text-white py-2.5 rounded-xl font-medium hover:bg-gray-800 transition-colors flex items-center justify-center gap-2"
               >
-                <Plus size={20} />
+                {isAddingToCart ? (
+                  <>
+                    <Loader2 size={20} className="animate-spin" />
+                    Adding...
+                  </>
+                ) : (
+                  "Add to Cart"
+                )}
               </button>
-            </div>
+            )
           ) : (
-            <button
-              onClick={handleAddToCart}
-              disabled={isAddingToCart}
-              className="w-full bg-neutral-800 text-white py-2.5 rounded-xl font-medium hover:bg-gray-800 transition-colors flex items-center justify-center gap-2"
-            >
-              {isAddingToCart ? (
-                <>
-                  <Loader2 size={20} className="animate-spin" />
-                  Adding...
-                </>
-              ) : (
-                "Add to Cart"
-              )}
-            </button>
+            <div className="text-center text-sm text-gray-500">
+              Currently unavailable for ordering
+            </div>
           )}
         </div>
       </div>
