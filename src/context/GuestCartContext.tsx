@@ -143,7 +143,7 @@ export const GuestCartProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         }
       );
       await getGuestCart();
-      toast.success('Item added to cart');
+      // toast.success('Item added to cart');
     } catch (error) {
       console.error('Error adding item to guest cart:', error);
       toast.error('Failed to add item to cart');
@@ -164,7 +164,7 @@ export const GuestCartProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         }
       );
       await getGuestCart();
-      toast.success('Cart updated');
+      toast.success('');
     } catch (error) {
       console.error('Error updating guest cart item:', error);
       toast.error('Failed to update cart');

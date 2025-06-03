@@ -170,7 +170,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }));
       }
 
-      toast.success('Added to cart');
+      // toast.success('Added to cart');
     } catch (error) {
       console.error('Error adding to cart:', error);
       toast.error('Failed to add to cart');
@@ -249,7 +249,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       }
       
-      toast.success('Cart updated');
+      // toast.success('Cart updated');
     } catch (error) {
       console.error('Error updating quantity:', error);
       toast.error('Failed to update quantity');

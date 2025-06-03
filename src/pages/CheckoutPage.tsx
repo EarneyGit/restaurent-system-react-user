@@ -13,12 +13,12 @@ import {
 } from "lucide-react";
 import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
-import { toast } from 'sonner';
-import DeliveryAddressForm from '@/components/cart/DeliveryAddressForm';
-import { useBranch } from '@/context/BranchContext';
-import axios from '@/config/axios.config';
+import { toast } from "sonner";
+import DeliveryAddressForm from "@/components/cart/DeliveryAddressForm";
+import { useBranch } from "@/context/BranchContext";
+import axios from "@/config/axios.config";
 import { CartItem as CartItemType } from "@/context/CartContext";
-import { CART_ENDPOINTS, ORDER_ENDPOINTS, BASE_URL } from '@/config/api.config';
+import { CART_ENDPOINTS, ORDER_ENDPOINTS, BASE_URL } from "@/config/api.config";
 import { useGuestCart } from "@/context/GuestCartContext";
 
 // Update the NoImage component to be more cart-friendly
@@ -50,9 +50,9 @@ const ImageWithFallback = ({ src, alt }: { src: string; alt: string }) => {
 
 // Format price in GBP
 const formatPrice = (amount: number) => {
-  return new Intl.NumberFormat('en-GB', {
-    style: 'currency',
-    currency: 'GBP',
+  return new Intl.NumberFormat("en-GB", {
+    style: "currency",
+    currency: "GBP",
     minimumFractionDigits: 2,
   }).format(amount);
 };
@@ -60,20 +60,20 @@ const formatPrice = (amount: number) => {
 // Calculate total price for an item including options
 const calculateItemTotal = (item: CartItemType) => {
   let itemTotal = item.price;
-  
+
   // Add option prices if they exist
   if (item.selectedOptions && item.attributes) {
-    item.attributes.forEach(attr => {
+    item.attributes.forEach((attr) => {
       const selectedChoiceId = item.selectedOptions?.[attr.id];
       if (selectedChoiceId) {
-        const choice = attr.choices.find(c => c.id === selectedChoiceId);
+        const choice = attr.choices.find((c) => c.id === selectedChoiceId);
         if (choice) {
           itemTotal += choice.price;
         }
       }
     });
   }
-  
+
   return itemTotal * item.quantity;
 };
 
@@ -108,7 +108,9 @@ const generateTimeSlots = () => {
   const slots = [];
   for (let hour = 10; hour < 22; hour++) {
     for (let minute = 0; minute < 60; minute += 30) {
-      const time = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
+      const time = `${hour.toString().padStart(2, "0")}:${minute
+        .toString()
+        .padStart(2, "0")}`;
       slots.push(time);
     }
   }
@@ -144,7 +146,7 @@ const OrderConfirmationModal: React.FC<OrderConfirmationModalProps> = ({
   onClose,
   onConfirm,
   isLoading,
-  orderDetails
+  orderDetails,
 }) => {
   if (!isOpen) return null;
 
@@ -166,7 +168,9 @@ const OrderConfirmationModal: React.FC<OrderConfirmationModalProps> = ({
             <h4 className="font-medium text-gray-900">Order Items:</h4>
             {orderDetails.items.map((item) => (
               <div key={item.id} className="flex justify-between text-sm">
-                <span>{item.quantity}x {item.name}</span>
+                <span>
+                  {item.quantity}x {item.name}
+                </span>
                 <span>{formatPrice(item.price * item.quantity)}</span>
               </div>
             ))}
@@ -211,7 +215,7 @@ const OrderConfirmationModal: React.FC<OrderConfirmationModalProps> = ({
                 Processing...
               </>
             ) : (
-              'Confirm Order'
+              "Confirm Order"
             )}
           </button>
         </div>
@@ -237,12 +241,22 @@ const CheckoutPage = () => {
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [promoCode, setPromoCode] = useState("");
   const [isApplyingPromo, setIsApplyingPromo] = useState(false);
-  const [appliedPromo, setAppliedPromo] = useState<{ code: string; discount: number } | null>(null);
+  const [appliedPromo, setAppliedPromo] = useState<{
+    code: string;
+    discount: number;
+  } | null>(null);
   const [cartSummary, setCartSummary] = useState({
     subtotal: 0,
     deliveryFee: 0,
     total: 0,
-    itemCount: 0
+    itemCount: 0,
+    taxRate: 0,
+    serviceCharges: {
+      totalMandatory: 0,
+      totalOptional: 0,
+      totalAll: 0,
+      breakdown: [],
+    },
   });
   const [isLoading, setIsLoading] = useState(true);
 
@@ -250,44 +264,108 @@ const CheckoutPage = () => {
   useEffect(() => {
     const fetchCartSummary = async () => {
       try {
-        const headers = isAuthenticated ? {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        } : {
-          'x-session-id': sessionId,
-          'Content-Type': 'application/json'
-        };
+        const headers = isAuthenticated
+          ? {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            }
+          : {
+              "x-session-id": sessionId,
+              "Content-Type": "application/json",
+            };
 
-        const response = await axios.get(
-          isAuthenticated ? CART_ENDPOINTS.USER_CART : CART_ENDPOINTS.GUEST_CART,
+        // First get cart data
+        const cartResponse = await axios.get(
+          isAuthenticated
+            ? CART_ENDPOINTS.USER_CART
+            : CART_ENDPOINTS.GUEST_CART,
           { headers }
         );
 
-        if (response.data?.data) {
-          setCartSummary({
-            subtotal: response.data.data.subtotal || 0,
-            deliveryFee: response.data.data.deliveryFee || 0,
-            total: response.data.data.total || 0,
-            itemCount: response.data.data.itemCount || 0
-          });
+        if (!cartResponse.data?.data) {
+          throw new Error("Failed to fetch cart data");
         }
+
+        const cartData = cartResponse.data.data;
+
+        // Then calculate service charges
+        let serviceCharges = {
+          totalMandatory: 0,
+          totalOptional: 0,
+          totalAll: 0,
+          breakdown: [],
+        };
+
+        // Get deliveryMethod from localStorage and determine orderType
+        const deliveryMethod = localStorage.getItem("deliveryMethod");
+        let orderType = "dine_in"; // default value
+
+        if (deliveryMethod === "deliver") {
+          orderType = "delivery";
+        } else if (deliveryMethod === "collect") {
+          orderType = "pickup";
+        }
+
+        if (selectedBranch?.id) {
+          try {
+            const serviceChargeResponse = await axios.post(
+              "/api/settings/service-charges/calculate",
+              {
+                branchId: selectedBranch.id,
+                orderType,
+                orderTotal: cartData.subtotal,
+                includeOptional: true,
+              },
+              { headers }
+            );
+
+            if (serviceChargeResponse.data?.success) {
+              serviceCharges = serviceChargeResponse.data.data;
+            }
+          } catch (error) {
+            console.error("Error calculating service charges:", error);
+            toast.error(
+              "Failed to calculate service charges. Please try again."
+            );
+          }
+        }
+
+        // Calculate final total including all charges
+        const subtotal = cartData.subtotal || 0;
+        const deliveryFee = cartData.deliveryFee || 0;
+        const mandatoryCharges = serviceCharges.totalMandatory || 0;
+        const optionalCharges = serviceCharges.totalOptional || 0;
+        const taxRate = cartData.taxRate || 0; // Get tax rate from response
+        const taxAmount = (subtotal * taxRate) / 100;
+        const total =
+          subtotal + deliveryFee + mandatoryCharges + optionalCharges + taxAmount;
+
+        setCartSummary({
+          subtotal,
+          deliveryFee,
+          total,
+          itemCount: cartData.itemCount || 0,
+          taxRate,
+          serviceCharges,
+        });
       } catch (error) {
-        console.error('Error fetching cart summary:', error);
+        console.error("Error fetching cart summary:", error);
+        toast.error("Failed to fetch cart details. Please try again.");
       } finally {
         setIsLoading(false);
       }
     };
 
     fetchCartSummary();
-  }, [isAuthenticated, token, sessionId, cartItems]);
+  }, [isAuthenticated, token, sessionId, cartItems, selectedBranch?.id]);
 
   // Check authentication
   React.useEffect(() => {
-    const isGuest = localStorage.getItem('isGuest') === 'true';
+    const isGuest = localStorage.getItem("isGuest") === "true";
     if (!isAuthenticated && !isGuest) {
-      localStorage.setItem('returnUrl', '/checkout');
+      localStorage.setItem("returnUrl", "/checkout");
       toast.error("Please login or continue as guest to proceed");
-      navigate('/login', { state: { returnUrl: '/checkout' } });
+      navigate("/login", { state: { returnUrl: "/checkout" } });
     }
   }, [isAuthenticated, navigate]);
 
@@ -296,7 +374,7 @@ const CheckoutPage = () => {
     firstName: user?.firstName || "",
     lastName: user?.lastName || "",
     phone: user?.phone || "",
-    email: user?.email || ""
+    email: user?.email || "",
   });
 
   // Update the delivery address state initialization
@@ -305,13 +383,13 @@ const CheckoutPage = () => {
     city: user?.address?.city || "",
     state: user?.address?.state || "",
     zipCode: user?.address?.zipCode || "",
-    country: "GB"
+    country: "GB",
   });
 
   // Handle address search
   const handleAddressSearch = (query: string) => {
     setAddressSearchQuery(query);
-    const filtered = mockUKAddresses.filter(addr => 
+    const filtered = mockUKAddresses.filter((addr) =>
       addr.toLowerCase().includes(query.toLowerCase())
     );
     setFilteredAddresses(filtered);
@@ -320,7 +398,7 @@ const CheckoutPage = () => {
   // Handle address selection
   const handleAddressSelect = (address: string) => {
     const [street, city, postcode] = address.split(", ");
-    setDeliveryAddress(prev => ({
+    setDeliveryAddress((prev) => ({
       ...prev,
       street,
       city,
@@ -337,11 +415,15 @@ const CheckoutPage = () => {
 
   // Update the validateAddress function
   const validateAddress = (address: Address): boolean => {
-    const requiredFields = ['street', 'city', 'state', 'zipCode', 'country'];
-    const emptyFields = requiredFields.filter(field => !address[field as keyof Address]?.trim());
-    
+    const requiredFields = ["street", "city", "state", "zipCode", "country"];
+    const emptyFields = requiredFields.filter(
+      (field) => !address[field as keyof Address]?.trim()
+    );
+
     if (emptyFields.length > 0) {
-      toast.error(`Please fill in all required address fields: ${emptyFields.join(', ')}`);
+      toast.error(
+        `Please fill in all required address fields: ${emptyFields.join(", ")}`
+      );
       return false;
     }
     return true;
@@ -349,33 +431,37 @@ const CheckoutPage = () => {
 
   const handleApplyPromo = async () => {
     if (!promoCode.trim()) return;
-    
+
     setIsApplyingPromo(true);
     try {
       // Mock API call - replace with actual API
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await new Promise((resolve) => setTimeout(resolve, 1000));
       setAppliedPromo({ code: promoCode, discount: 10 }); // Mock 10% discount
-      toast.success('Promo code applied successfully!');
+      toast.success("Promo code applied successfully!");
     } catch (error) {
-      toast.error('Invalid promo code');
+      toast.error("Invalid promo code");
     } finally {
       setIsApplyingPromo(false);
     }
   };
 
   const handlePlaceOrder = async () => {
-    if (!selectedTimeSlot || !deliveryAddress.street || !personalDetails.firstName) {
-      toast.error('Please fill in all required fields');
+    if (
+      !selectedTimeSlot ||
+      !deliveryAddress.street ||
+      !personalDetails.firstName
+    ) {
+      toast.error("Please fill in all required fields");
       return;
     }
 
     if (!acceptedTerms) {
-      toast.error('Please accept the terms and conditions');
+      toast.error("Please accept the terms and conditions");
       return;
     }
 
     if (!selectedBranch?.id) {
-      toast.error('Please select a branch first');
+      toast.error("Please select a branch first");
       return;
     }
 
@@ -387,42 +473,49 @@ const CheckoutPage = () => {
     setIsProcessing(true);
     try {
       if (!selectedBranch?.id) {
-        toast.error('Please select a branch first');
-        navigate('/outlet-selection');
+        toast.error("Please select a branch first");
+        navigate("/outlet-selection");
         return;
       }
 
       // Validate required fields
-      if (!personalDetails.firstName || !personalDetails.phone || !deliveryAddress.street) {
-        toast.error('Please fill in all required fields');
+      if (
+        !personalDetails.firstName ||
+        !personalDetails.phone ||
+        !deliveryAddress.street
+      ) {
+        toast.error("Please fill in all required fields");
         setIsProcessing(false);
         return;
       }
 
       // Format products data according to backend requirements
-      const formattedProducts = cartItems.map(item => {
+      const formattedProducts = cartItems.map((item) => {
         const productId = item.productId || item.id;
-        
+
         // Format selected attributes according to backend schema
-        const selectedAttributes = item.attributes?.map(attr => {
-          const selectedChoiceId = item.selectedOptions?.[attr.id];
-          return {
-            attributeId: attr.id,
-            selectedItems: selectedChoiceId ? [
-              {
-                itemId: selectedChoiceId,
-                quantity: 1
-              }
-            ] : []
-          };
-        }) || [];
+        const selectedAttributes =
+          item.attributes?.map((attr) => {
+            const selectedChoiceId = item.selectedOptions?.[attr.id];
+            return {
+              attributeId: attr.id,
+              selectedItems: selectedChoiceId
+                ? [
+                    {
+                      itemId: selectedChoiceId,
+                      quantity: 1,
+                    },
+                  ]
+                : [],
+            };
+          }) || [];
 
         return {
           product: productId,
           quantity: item.quantity,
           price: item.price,
-          notes: item.specialRequirements || '',
-          selectedAttributes
+          notes: item.specialRequirements || "",
+          selectedAttributes,
         };
       });
 
@@ -430,20 +523,33 @@ const CheckoutPage = () => {
       const subtotal = cartSummary.subtotal;
       const deliveryFeeAmount = cartSummary.deliveryFee;
       const taxAmount = 0;
-      const discountAmount = appliedPromo ? (subtotal * appliedPromo.discount) / 100 : 0;
-      const finalTotal = subtotal + deliveryFeeAmount + taxAmount - discountAmount;
+      const discountAmount = appliedPromo
+        ? (subtotal * appliedPromo.discount) / 100
+        : 0;
+      const finalTotal =
+        subtotal + deliveryFeeAmount + taxAmount - discountAmount;
+
+      // Get deliveryMethod from localStorage and determine orderType
+      const deliveryMethod = localStorage.getItem("deliveryMethod");
+      let orderType = "dine_in"; // default value
+
+      if (deliveryMethod === "deliver") {
+        orderType = "delivery";
+      } else if (deliveryMethod === "collect") {
+        orderType = "pickup";
+      }
 
       // Prepare order data according to backend schema
       const orderData = {
         branchId: selectedBranch.id,
         products: formattedProducts,
-        deliveryMethod: "delivery",
-        deliveryAddress: {
+        deliveryMethod: orderType,
+        deliveryAddress: orderType === "delivery" ? {
           street: deliveryAddress.street,
           city: deliveryAddress.city,
           postalCode: deliveryAddress.zipCode,
-          country: deliveryAddress.country || "GB"
-        },
+          country: deliveryAddress.country || "GB",
+        } : undefined,
         contactNumber: personalDetails.phone,
         paymentMethod: paymentMethod,
         specialInstructions: orderNotes,
@@ -452,7 +558,7 @@ const CheckoutPage = () => {
           firstName: personalDetails.firstName,
           lastName: personalDetails.lastName,
           phone: personalDetails.phone,
-          email: personalDetails.email
+          email: personalDetails.email,
         },
         promoCode: appliedPromo?.code,
         subtotal,
@@ -460,18 +566,18 @@ const CheckoutPage = () => {
         tax: taxAmount,
         discount: discountAmount,
         totalAmount: finalTotal,
-        status: 'pending' // Set initial status
+        status: "pending", // Set initial status
       };
 
       // Set up headers based on authentication status
       const headers: Record<string, string> = {
-        'Content-Type': 'application/json'
+        "Content-Type": "application/json",
       };
 
       if (isAuthenticated && token) {
         headers.Authorization = `Bearer ${token}`;
       } else if (sessionId) {
-        headers['x-session-id'] = sessionId;
+        headers["x-session-id"] = sessionId;
       }
 
       // Make the API call with branchId in query params
@@ -484,12 +590,12 @@ const CheckoutPage = () => {
       if (response.data?.success && response.data?.data) {
         // Clear cart
         await clearCart();
-        
+
         // Store necessary data for order tracking
-        localStorage.setItem('selectedBranchId', selectedBranch.id);
-        
+        localStorage.setItem("selectedBranchId", selectedBranch.id);
+
         const createdOrder = response.data.data;
-        
+
         // Navigate to order status with complete order details
         navigate(`/order-status/${createdOrder._id}`, {
           state: {
@@ -497,34 +603,38 @@ const CheckoutPage = () => {
               ...createdOrder,
               branchId: {
                 _id: selectedBranch.id,
-                name: selectedBranch.name
-              }
-            }
+                name: selectedBranch.name,
+              },
+            },
           },
-          replace: true // Prevent back navigation to checkout
+          replace: true, // Prevent back navigation to checkout
         });
-        
+
         setShowConfirmation(false);
-        toast.success('Order placed successfully!');
+        toast.success("Order placed successfully!");
       } else {
-        throw new Error(response.data?.message || 'Failed to create order');
+        throw new Error(response.data?.message || "Failed to create order");
       }
     } catch (error: unknown) {
-      const err = error as { response?: { data?: { message?: string }; status?: number } };
-      console.error('Order placement error:', error);
-      
+      const err = error as {
+        response?: { data?: { message?: string }; status?: number };
+      };
+      console.error("Order placement error:", error);
+
       // Handle specific error cases
       if (err.response?.status === 401) {
-        localStorage.setItem('returnUrl', '/checkout');
-        toast.error('Please login or continue as guest to place your order');
-        navigate('/login', { state: { returnUrl: '/checkout' } });
+        localStorage.setItem("returnUrl", "/checkout");
+        toast.error("Please login or continue as guest to place your order");
+        navigate("/login", { state: { returnUrl: "/checkout" } });
       } else if (err.response?.status === 400) {
         // Handle validation errors
-        toast.error(err.response.data?.message || 'Please check your order details');
+        toast.error(
+          err.response.data?.message || "Please check your order details"
+        );
       } else {
         toast.error(
-          err.response?.data?.message || 
-          'Failed to place order. Please try again.'
+          err.response?.data?.message ||
+            "Failed to place order. Please try again."
         );
       }
     } finally {
@@ -551,17 +661,22 @@ const CheckoutPage = () => {
   };
 
   // Handle credit card change
-  const [creditCardDetails, setCreditCardDetails] = useState<CreditCardDetails>({
-    number: '',
-    expiry: '',
-    cvc: '',
-    name: ''
-  });
+  const [creditCardDetails, setCreditCardDetails] = useState<CreditCardDetails>(
+    {
+      number: "",
+      expiry: "",
+      cvc: "",
+      name: "",
+    }
+  );
 
-  const handleCreditCardChange = (field: keyof CreditCardDetails, value: string) => {
-    setCreditCardDetails(prev => ({
+  const handleCreditCardChange = (
+    field: keyof CreditCardDetails,
+    value: string
+  ) => {
+    setCreditCardDetails((prev) => ({
       ...prev,
-      [field]: value
+      [field]: value,
     }));
   };
 
@@ -583,7 +698,8 @@ const CheckoutPage = () => {
           </h2>
 
           <p className="text-gray-600 text-base mb-6 max-w-sm mx-auto">
-            Looks like your cart is empty. Please add items to your cart before proceeding to checkout.
+            Looks like your cart is empty. Please add items to your cart before
+            proceeding to checkout.
           </p>
         </div>
       </div>
@@ -597,7 +713,9 @@ const CheckoutPage = () => {
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-3xl font-bold text-gray-900 mb-2">Checkout</h1>
-            <p className="text-gray-500">Complete your order in just a few steps</p>
+            <p className="text-gray-500">
+              Complete your order in just a few steps
+            </p>
           </div>
           <button
             onClick={() => navigate(-1)}
@@ -615,28 +733,36 @@ const CheckoutPage = () => {
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
               <div className="p-6 border-b border-gray-100 bg-gray-50">
                 <h2 className="text-xl font-semibold text-gray-900 flex items-center">
-                  <span className="w-8 h-8 rounded-full bg-black text-white flex items-center justify-center text-lg mr-3">1</span>
+                  <span className="w-8 h-8 rounded-full bg-black text-white flex items-center justify-center text-lg mr-3">
+                    1
+                  </span>
                   Order Details
                 </h2>
               </div>
               <div className="p-6">
                 {/* Time Slot Selection */}
                 <div className="mb-6">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Choose your timeslot</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Choose your timeslot
+                  </label>
                   <select
                     value={selectedTimeSlot}
                     onChange={(e) => setSelectedTimeSlot(e.target.value)}
                     className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-green-500 focus:border-transparent"
                   >
                     {timeSlots.map((time) => (
-                      <option key={time} value={time}>{time}</option>
+                      <option key={time} value={time}>
+                        {time}
+                      </option>
                     ))}
                   </select>
                 </div>
 
                 {/* Order Notes */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Add your notes</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Add your notes
+                  </label>
                   <textarea
                     value={orderNotes}
                     onChange={(e) => setOrderNotes(e.target.value)}
@@ -651,7 +777,9 @@ const CheckoutPage = () => {
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
               <div className="p-6 border-b border-gray-100 bg-gray-50">
                 <h2 className="text-xl font-semibold text-gray-900 flex items-center">
-                  <span className="w-8 h-8 rounded-full bg-black text-white flex items-center justify-center text-lg mr-3">2</span>
+                  <span className="w-8 h-8 rounded-full bg-black text-white flex items-center justify-center text-lg mr-3">
+                    2
+                  </span>
                   Personal Information & Delivery
                 </h2>
               </div>
@@ -659,38 +787,61 @@ const CheckoutPage = () => {
                 {/* Personal Details */}
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">First Name</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      First Name
+                    </label>
                     <input
                       type="text"
                       value={personalDetails.firstName}
-                      onChange={(e) => setPersonalDetails(prev => ({ ...prev, firstName: e.target.value }))}
+                      onChange={(e) =>
+                        setPersonalDetails((prev) => ({
+                          ...prev,
+                          firstName: e.target.value,
+                        }))
+                      }
                       className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-green-500 focus:border-transparent"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Last Name</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Last Name
+                    </label>
                     <input
                       type="text"
                       value={personalDetails.lastName}
-                      onChange={(e) => setPersonalDetails(prev => ({ ...prev, lastName: e.target.value }))}
+                      onChange={(e) =>
+                        setPersonalDetails((prev) => ({
+                          ...prev,
+                          lastName: e.target.value,
+                        }))
+                      }
                       className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-green-500 focus:border-transparent"
                     />
                   </div>
                 </div>
-                
+
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Phone Number
+                  </label>
                   <input
                     type="tel"
                     value={personalDetails.phone}
-                    onChange={(e) => setPersonalDetails(prev => ({ ...prev, phone: e.target.value }))}
+                    onChange={(e) =>
+                      setPersonalDetails((prev) => ({
+                        ...prev,
+                        phone: e.target.value,
+                      }))
+                    }
                     className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-green-500 focus:border-transparent"
                   />
                 </div>
 
                 {/* Delivery Address */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Delivery Address</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Delivery Address
+                  </label>
                   <button
                     onClick={() => setShowAddressSearch(true)}
                     className="w-full px-4 py-3 border border-gray-200 rounded-xl text-left text-gray-600 hover:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-500"
@@ -723,9 +874,15 @@ const CheckoutPage = () => {
 
                   {deliveryAddress.street && (
                     <div className="mt-4 p-4 bg-gray-50 rounded-xl">
-                      <p className="text-sm text-gray-600">{deliveryAddress.street}</p>
-                      <p className="text-sm text-gray-600">{deliveryAddress.city}, {deliveryAddress.state}</p>
-                      <p className="text-sm text-gray-600">{deliveryAddress.zipCode}</p>
+                      <p className="text-sm text-gray-600">
+                        {deliveryAddress.street}
+                      </p>
+                      <p className="text-sm text-gray-600">
+                        {deliveryAddress.city}, {deliveryAddress.state}
+                      </p>
+                      <p className="text-sm text-gray-600">
+                        {deliveryAddress.zipCode}
+                      </p>
                     </div>
                   )}
                 </div>
@@ -735,24 +892,34 @@ const CheckoutPage = () => {
             {/* Update Cart Items Display */}
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
               <div className="p-4 border-b border-gray-100 bg-gray-50">
-                <h2 className="text-lg font-semibold text-gray-900">Order Items ({cartItems.length})</h2>
+                <h2 className="text-lg font-semibold text-gray-900">
+                  Order Items ({cartItems.length})
+                </h2>
               </div>
               <div className="p-4">
                 <div className="space-y-3 max-h-[300px] overflow-y-auto">
                   {cartItems.map((item) => (
-                    <div key={item.id} className="flex items-start gap-3 pb-3 border-b border-gray-100 last:border-0">
+                    <div
+                      key={item.id}
+                      className="flex items-start gap-3 pb-3 border-b border-gray-100 last:border-0"
+                    >
                       <div className="w-16 h-16 bg-gray-50 rounded-lg overflow-hidden flex-shrink-0">
                         {item.images?.[0] ? (
                           <img
-                            src={item.images[0].startsWith('http') ? item.images[0] : `${BASE_URL}${item.images[0]}`}
+                            src={
+                              item.images[0].startsWith("http")
+                                ? item.images[0]
+                                : `${BASE_URL}${item.images[0]}`
+                            }
                             alt={item.name}
                             className="w-full h-full object-cover"
                             onError={(e) => {
                               const target = e.target as HTMLImageElement;
-                              target.style.display = 'none';
+                              target.style.display = "none";
                               const parent = target.parentElement;
                               if (parent) {
-                                parent.innerHTML = '<div class="w-full h-full flex items-center justify-center bg-gray-100"><div class="text-gray-400"><NoImage /></div></div>';
+                                parent.innerHTML =
+                                  '<div class="w-full h-full flex items-center justify-center bg-gray-100"><div class="text-gray-400"><NoImage /></div></div>';
                               }
                             }}
                           />
@@ -761,26 +928,39 @@ const CheckoutPage = () => {
                         )}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <h3 className="font-medium text-gray-900 truncate">{item.name}</h3>
-                        <p className="text-sm text-gray-500 mt-0.5">Qty: {item.quantity}</p>
-                        {item.selectedOptions && Object.keys(item.selectedOptions).length > 0 && (
-                          <div className="mt-1">
-                            {item.attributes?.map(attr => {
-                              const selectedChoiceId = item.selectedOptions?.[attr.id];
-                              if (!selectedChoiceId) return null;
-                              const choice = attr.choices.find(c => c.id === selectedChoiceId);
-                              if (!choice) return null;
-                              return (
-                                <p key={attr.id} className="text-xs text-gray-500">
-                                  {attr.name}: {choice.name}
-                                </p>
-                              );
-                            })}
-                          </div>
-                        )}
+                        <h3 className="font-medium text-gray-900 truncate">
+                          {item.name}
+                        </h3>
+                        <p className="text-sm text-gray-500 mt-0.5">
+                          Qty: {item.quantity}
+                        </p>
+                        {item.selectedOptions &&
+                          Object.keys(item.selectedOptions).length > 0 && (
+                            <div className="mt-1">
+                              {item.attributes?.map((attr) => {
+                                const selectedChoiceId =
+                                  item.selectedOptions?.[attr.id];
+                                if (!selectedChoiceId) return null;
+                                const choice = attr.choices.find(
+                                  (c) => c.id === selectedChoiceId
+                                );
+                                if (!choice) return null;
+                                return (
+                                  <p
+                                    key={attr.id}
+                                    className="text-xs text-gray-500"
+                                  >
+                                    {attr.name}: {choice.name}
+                                  </p>
+                                );
+                              })}
+                            </div>
+                          )}
                       </div>
                       <div className="text-right">
-                        <p className="font-medium text-gray-900">{formatCurrency(item.price * item.quantity)}</p>
+                        <p className="font-medium text-gray-900">
+                          {formatCurrency(item.price * item.quantity)}
+                        </p>
                       </div>
                     </div>
                   ))}
@@ -795,14 +975,16 @@ const CheckoutPage = () => {
               {/* Payment Method - Compact Version */}
               <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
                 <div className="p-4 border-b border-gray-100 bg-gray-50">
-                  <h2 className="text-lg font-semibold text-gray-900">Payment Method</h2>
+                  <h2 className="text-lg font-semibold text-gray-900">
+                    Payment Method
+                  </h2>
                 </div>
                 <div className="p-4">
                   <div className="grid grid-cols-3 gap-3">
                     {[
                       { id: "card", label: "Card", icon: CreditCard },
                       { id: "cash", label: "Cash", icon: Wallet },
-                      { id: "online", label: "Online", icon: Check }
+                      { id: "online", label: "Online", icon: Check },
                     ].map(({ id, label, icon: Icon }) => (
                       <button
                         key={id}
@@ -819,12 +1001,14 @@ const CheckoutPage = () => {
                     ))}
                   </div>
 
-                  {paymentMethod === 'card' && (
+                  {paymentMethod === "card" && (
                     <div className="mt-4 space-y-3">
                       <input
                         type="text"
                         value={creditCardDetails.name}
-                        onChange={(e) => handleCreditCardChange('name', e.target.value)}
+                        onChange={(e) =>
+                          handleCreditCardChange("name", e.target.value)
+                        }
                         placeholder="Card holder name"
                         className="w-full px-3 py-2 text-sm rounded-lg border border-gray-200 focus:ring-2 focus:ring-green-500 focus:border-transparent"
                       />
@@ -832,7 +1016,12 @@ const CheckoutPage = () => {
                         <input
                           type="text"
                           value={creditCardDetails.number}
-                          onChange={(e) => handleCreditCardChange('number', e.target.value.replace(/\D/g, '').slice(0, 16))}
+                          onChange={(e) =>
+                            handleCreditCardChange(
+                              "number",
+                              e.target.value.replace(/\D/g, "").slice(0, 16)
+                            )
+                          }
                           placeholder="Card number"
                           className="w-full px-3 py-2 text-sm rounded-lg border border-gray-200 focus:ring-2 focus:ring-green-500 focus:border-transparent"
                         />
@@ -841,11 +1030,12 @@ const CheckoutPage = () => {
                             type="text"
                             value={creditCardDetails.expiry}
                             onChange={(e) => {
-                              let value = e.target.value.replace(/\D/g, '');
+                              let value = e.target.value.replace(/\D/g, "");
                               if (value.length >= 2) {
-                                value = value.slice(0, 2) + '/' + value.slice(2, 4);
+                                value =
+                                  value.slice(0, 2) + "/" + value.slice(2, 4);
                               }
-                              handleCreditCardChange('expiry', value);
+                              handleCreditCardChange("expiry", value);
                             }}
                             placeholder="MM/YY"
                             className="w-full px-3 py-2 text-sm rounded-lg border border-gray-200 focus:ring-2 focus:ring-green-500 focus:border-transparent"
@@ -853,7 +1043,12 @@ const CheckoutPage = () => {
                           <input
                             type="text"
                             value={creditCardDetails.cvc}
-                            onChange={(e) => handleCreditCardChange('cvc', e.target.value.replace(/\D/g, '').slice(0, 3))}
+                            onChange={(e) =>
+                              handleCreditCardChange(
+                                "cvc",
+                                e.target.value.replace(/\D/g, "").slice(0, 3)
+                              )
+                            }
                             placeholder="CVC"
                             className="w-full px-3 py-2 text-sm rounded-lg border border-gray-200 focus:ring-2 focus:ring-green-500 focus:border-transparent"
                           />
@@ -886,13 +1081,14 @@ const CheckoutPage = () => {
                           Applying...
                         </>
                       ) : (
-                        'Apply'
+                        "Apply"
                       )}
                     </button>
                   </div>
                   {appliedPromo && (
                     <div className="mt-2 p-2 bg-green-50 text-green-700 rounded-lg text-xs">
-                      Promo code "{appliedPromo.code}" applied - {appliedPromo.discount}% off
+                      Promo code "{appliedPromo.code}" applied -{" "}
+                      {appliedPromo.discount}% off
                     </div>
                   )}
                 </div>
@@ -901,7 +1097,9 @@ const CheckoutPage = () => {
               {/* Order Summary */}
               <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
                 <div className="p-4 border-b border-gray-100 bg-gray-50">
-                  <h3 className="text-lg font-semibold text-gray-900">Order Summary</h3>
+                  <h3 className="text-lg font-semibold text-gray-900">
+                    Order Summary
+                  </h3>
                 </div>
                 <div className="p-4">
                   <div className="space-y-3 mb-4">
@@ -913,18 +1111,61 @@ const CheckoutPage = () => {
                       <span>Delivery Fee</span>
                       <span>{formatCurrency(cartSummary.deliveryFee)}</span>
                     </div>
+
+                    {/* Tax Rate Display - Only show if tax data is available */}
+                    {cartSummary.taxRate > 0 && (
+                      <div className="flex justify-between text-sm text-gray-600">
+                        <span>Tax ({cartSummary.taxRate}%)</span>
+                        <span>{formatCurrency((cartSummary.subtotal * cartSummary.taxRate) / 100)}</span>
+                      </div>
+                    )}
+
+                    {/* Service Charges */}
+                    {/* {cartSummary.serviceCharges.breakdown.map((charge) => (
+                      <div
+                        key={charge.id}
+                        className="flex justify-between text-sm text-gray-600"
+                      >
+                        <span>
+                          {charge.name}
+                          {charge.type === "Fixed" ? " (Fixed)" : ` (${charge.value}%)`}
+                          {charge.optional ? " (Optional)" : ""}
+                        </span>
+                        <span>{formatCurrency(charge.amount)}</span>
+                      </div>
+                    ))} */}
+
+                    {/* Show total service charges if there are multiple charges */}
+                    {cartSummary.serviceCharges.breakdown.length > 1 && (
+                      <div className="flex justify-between text-sm font-medium text-gray-700 pt-1">
+                        <span>Total tax charges</span>
+                        <span>{formatCurrency(cartSummary.serviceCharges.totalAll)}</span>
+                      </div>
+                    )}
+
                     {appliedPromo && (
                       <div className="flex justify-between text-sm text-green-600">
                         <span>Discount ({appliedPromo.discount}%)</span>
-                        <span>-{formatCurrency((cartSummary.subtotal * appliedPromo.discount) / 100)}</span>
+                        <span>
+                          -
+                          {formatCurrency(
+                            (cartSummary.subtotal * appliedPromo.discount) / 100
+                          )}
+                        </span>
                       </div>
                     )}
+
                     <div className="border-t pt-3">
                       <div className="flex justify-between font-semibold">
                         <span>Total</span>
                         <span className="text-green-600">
                           {formatCurrency(
-                            cartSummary.total - (appliedPromo ? (cartSummary.subtotal * appliedPromo.discount) / 100 : 0)
+                            cartSummary.total -
+                              (appliedPromo
+                                ? (cartSummary.subtotal *
+                                    appliedPromo.discount) /
+                                  100
+                                : 0)
                           )}
                         </span>
                       </div>
@@ -958,8 +1199,11 @@ const CheckoutPage = () => {
                         className="mt-1 h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
                       />
                       <span className="text-xs text-gray-600">
-                        By placing this order you're agreeing to our{' '}
-                        <Link to="/terms" className="text-green-600 hover:text-green-700 underline">
+                        By placing this order you're agreeing to our{" "}
+                        <Link
+                          to="/terms"
+                          className="text-green-600 hover:text-green-700 underline"
+                        >
                           Terms & Conditions
                         </Link>
                       </span>
@@ -980,13 +1224,17 @@ const CheckoutPage = () => {
         isLoading={isProcessing}
         orderDetails={{
           items: cartItems,
-          total: cartSummary.total - (appliedPromo ? (cartSummary.subtotal * appliedPromo.discount) / 100 : 0),
+          total:
+            cartSummary.total -
+            (appliedPromo
+              ? (cartSummary.subtotal * appliedPromo.discount) / 100
+              : 0),
           address: `${deliveryAddress.street}, ${deliveryAddress.city}, ${deliveryAddress.zipCode}`,
-          deliveryTime: selectedTimeSlot
+          deliveryTime: selectedTimeSlot,
         }}
       />
     </div>
   );
 };
 
-export default CheckoutPage; 
+export default CheckoutPage;
