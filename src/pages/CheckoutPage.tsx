@@ -128,6 +128,23 @@ const mockUKAddresses = [
   "1 Cathedral Square, Glasgow, G1 2EN",
 ];
 
+interface PriceObject {
+  base: number;
+  attributes: number;
+  total: number;
+}
+
+// Add the type guard function
+function isPriceObject(price: unknown): price is PriceObject {
+  return (
+    price !== null &&
+    typeof price === 'object' &&
+    'base' in price &&
+    'attributes' in price &&
+    'total' in price
+  );
+}
+
 interface OrderConfirmationModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -141,6 +158,14 @@ interface OrderConfirmationModalProps {
   };
 }
 
+// Helper for safe item total calculation
+function getItemTotal(item: CartItemType): number {
+  if (typeof item.itemTotal === 'number') return item.itemTotal;
+  if (isPriceObject(item.price)) return item.price.total * item.quantity;
+  if (typeof item.price === 'number') return item.price * item.quantity;
+  return 0;
+}
+
 const OrderConfirmationModal: React.FC<OrderConfirmationModalProps> = ({
   isOpen,
   onClose,
@@ -148,6 +173,8 @@ const OrderConfirmationModal: React.FC<OrderConfirmationModalProps> = ({
   isLoading,
   orderDetails,
 }) => {
+  const { formatCurrency } = useCart();
+
   if (!isOpen) return null;
 
   return (
@@ -171,7 +198,7 @@ const OrderConfirmationModal: React.FC<OrderConfirmationModalProps> = ({
                 <span>
                   {item.quantity}x {item.name}
                 </span>
-                <span>{formatPrice(item.price * item.quantity)}</span>
+                <span>{formatCurrency(getItemTotal(item))}</span>
               </div>
             ))}
           </div>
@@ -191,7 +218,7 @@ const OrderConfirmationModal: React.FC<OrderConfirmationModalProps> = ({
           <div className="border-t pt-2">
             <div className="flex justify-between font-medium">
               <span>Total Amount:</span>
-              <span>{formatPrice(orderDetails.total)}</span>
+              <span>{formatCurrency(orderDetails.total)}</span>
             </div>
           </div>
         </div>
@@ -259,6 +286,24 @@ const CheckoutPage = () => {
     },
   });
   const [isLoading, setIsLoading] = useState(true);
+
+  // Restore credit card details state and handler
+  const [creditCardDetails, setCreditCardDetails] = useState<CreditCardDetails>({
+    number: "",
+    expiry: "",
+    cvc: "",
+    name: "",
+  });
+
+  const handleCreditCardChange = (
+    field: keyof CreditCardDetails,
+    value: string
+  ) => {
+    setCreditCardDetails((prev) => ({
+      ...prev,
+      [field]: value,
+    }));
+  };
 
   // Fetch cart summary
   useEffect(() => {
@@ -643,43 +688,6 @@ const CheckoutPage = () => {
     }
   };
 
-  // Guest user form state
-  const [guestInfo, setGuestInfo] = useState({
-    name: "",
-    email: "",
-    phone: "",
-    address: "",
-  });
-
-  // Handle guest info change
-  const handleGuestInfoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setGuestInfo((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-  };
-
-  // Handle credit card change
-  const [creditCardDetails, setCreditCardDetails] = useState<CreditCardDetails>(
-    {
-      number: "",
-      expiry: "",
-      cvc: "",
-      name: "",
-    }
-  );
-
-  const handleCreditCardChange = (
-    field: keyof CreditCardDetails,
-    value: string
-  ) => {
-    setCreditCardDetails((prev) => ({
-      ...prev,
-      [field]: value,
-    }));
-  };
-
   // Handle empty cart
   if (cartItems.length === 0) {
     return (
@@ -748,7 +756,7 @@ const CheckoutPage = () => {
                   <select
                     value={selectedTimeSlot}
                     onChange={(e) => setSelectedTimeSlot(e.target.value)}
-                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                    className="w-full px-4 py-3 rounded-xl border border-gray-200 "
                   >
                     {timeSlots.map((time) => (
                       <option key={time} value={time}>
@@ -767,7 +775,7 @@ const CheckoutPage = () => {
                     value={orderNotes}
                     onChange={(e) => setOrderNotes(e.target.value)}
                     placeholder="Add any special instructions or notes for your order..."
-                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-green-500 focus:border-transparent min-h-[100px]"
+                    className="w-full px-4 py-3 rounded-xl border border-gray-200  min-h-[100px]"
                   />
                 </div>
               </div>
@@ -799,7 +807,7 @@ const CheckoutPage = () => {
                           firstName: e.target.value,
                         }))
                       }
-                      className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                      className="w-full px-4 py-3 rounded-xl border border-gray-200 "
                     />
                   </div>
                   <div>
@@ -815,7 +823,7 @@ const CheckoutPage = () => {
                           lastName: e.target.value,
                         }))
                       }
-                      className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                      className="w-full px-4 py-3 rounded-xl border border-gray-200 "
                     />
                   </div>
                 </div>
@@ -833,7 +841,7 @@ const CheckoutPage = () => {
                         phone: e.target.value,
                       }))
                     }
-                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                    className="w-full px-4 py-3 rounded-xl border border-gray-200 "
                   />
                 </div>
 
@@ -844,7 +852,7 @@ const CheckoutPage = () => {
                   </label>
                   <button
                     onClick={() => setShowAddressSearch(true)}
-                    className="w-full px-4 py-3 border border-gray-200 rounded-xl text-left text-gray-600 hover:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-500"
+                    className="w-full px-4 py-3 border border-gray-200 rounded-xl text-left text-gray-600 hover:border-green-500 focus:outline-none focus:ring-0 focus:ring-green-500"
                   >
                     {deliveryAddress.street || "Search for your address"}
                   </button>
@@ -934,32 +942,24 @@ const CheckoutPage = () => {
                         <p className="text-sm text-gray-500 mt-0.5">
                           Qty: {item.quantity}
                         </p>
-                        {item.selectedOptions &&
-                          Object.keys(item.selectedOptions).length > 0 && (
-                            <div className="mt-1">
-                              {item.attributes?.map((attr) => {
-                                const selectedChoiceId =
-                                  item.selectedOptions?.[attr.id];
-                                if (!selectedChoiceId) return null;
-                                const choice = attr.choices.find(
-                                  (c) => c.id === selectedChoiceId
-                                );
-                                if (!choice) return null;
-                                return (
-                                  <p
-                                    key={attr.id}
-                                    className="text-xs text-gray-500"
-                                  >
-                                    {attr.name}: {choice.name}
-                                  </p>
-                                );
-                              })}
-                            </div>
-                          )}
+                        {/* Price breakdown if attributes price > 0 and price is object */}
+                        {isPriceObject(item.price) && item.price.attributes > 0 && (
+                          <div className="mt-1 text-xs text-gray-500">
+                            <span>
+                              <span className="font-semibold">Base:</span> {formatCurrency(item.price.base)}
+                            </span>
+                            <span className="mx-1">+</span>
+                            <span>
+                              <span className="font-semibold">Attributes:</span> {formatCurrency(item.price.attributes)}
+                            </span>
+                            <span className="mx-1">=</span>
+                            <span className="font-semibold">{formatCurrency(item.price.total)}</span>
+                          </div>
+                        )}
                       </div>
                       <div className="text-right">
                         <p className="font-medium text-gray-900">
-                          {formatCurrency(item.price * item.quantity)}
+                          {formatCurrency(getItemTotal(item))}
                         </p>
                       </div>
                     </div>
@@ -1010,7 +1010,7 @@ const CheckoutPage = () => {
                           handleCreditCardChange("name", e.target.value)
                         }
                         placeholder="Card holder name"
-                        className="w-full px-3 py-2 text-sm rounded-lg border border-gray-200 focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                        className="w-full px-3 py-2 text-sm rounded-lg border border-gray-200 "
                       />
                       <div className="grid grid-cols-2 gap-3">
                         <input
@@ -1023,7 +1023,7 @@ const CheckoutPage = () => {
                             )
                           }
                           placeholder="Card number"
-                          className="w-full px-3 py-2 text-sm rounded-lg border border-gray-200 focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                          className="w-full px-3 py-2 text-sm rounded-lg border border-gray-200 "
                         />
                         <div className="grid grid-cols-2 gap-2">
                           <input
@@ -1038,7 +1038,7 @@ const CheckoutPage = () => {
                               handleCreditCardChange("expiry", value);
                             }}
                             placeholder="MM/YY"
-                            className="w-full px-3 py-2 text-sm rounded-lg border border-gray-200 focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                            className="w-full px-3 py-2 text-sm rounded-lg border border-gray-200 "
                           />
                           <input
                             type="text"
@@ -1050,7 +1050,7 @@ const CheckoutPage = () => {
                               )
                             }
                             placeholder="CVC"
-                            className="w-full px-3 py-2 text-sm rounded-lg border border-gray-200 focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                            className="w-full px-3 py-2 text-sm rounded-lg border border-gray-200 "
                           />
                         </div>
                       </div>
@@ -1068,7 +1068,7 @@ const CheckoutPage = () => {
                       value={promoCode}
                       onChange={(e) => setPromoCode(e.target.value)}
                       placeholder="Enter promo code"
-                      className="flex-1 px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                      className="flex-1 px-3 py-2 text-sm border border-gray-200 rounded-lg "
                     />
                     <button
                       onClick={handleApplyPromo}
@@ -1103,13 +1103,19 @@ const CheckoutPage = () => {
                 </div>
                 <div className="p-4">
                   <div className="space-y-3 mb-4">
-                    <div className="flex justify-between text-sm text-gray-600">
+                    <div className="flex justify-between text-sm items-center text-gray-600">
                       <span>Subtotal</span>
                       <span>{formatCurrency(cartSummary.subtotal)}</span>
                     </div>
-                    <div className="flex justify-between text-sm text-gray-600">
+                    <div className="flex justify-between text-sm items-center text-gray-600">
                       <span>Delivery Fee</span>
-                      <span>{formatCurrency(cartSummary.deliveryFee)}</span>
+                      {cartSummary.deliveryFee === 0 ? (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                          Free
+                        </span>
+                      ) : (
+                        <span>{formatCurrency(cartSummary.deliveryFee)}</span>
+                      )}
                     </div>
 
                     {/* Tax Rate Display - Only show if tax data is available */}
@@ -1121,24 +1127,9 @@ const CheckoutPage = () => {
                     )}
 
                     {/* Service Charges */}
-                    {/* {cartSummary.serviceCharges.breakdown.map((charge) => (
-                      <div
-                        key={charge.id}
-                        className="flex justify-between text-sm text-gray-600"
-                      >
-                        <span>
-                          {charge.name}
-                          {charge.type === "Fixed" ? " (Fixed)" : ` (${charge.value}%)`}
-                          {charge.optional ? " (Optional)" : ""}
-                        </span>
-                        <span>{formatCurrency(charge.amount)}</span>
-                      </div>
-                    ))} */}
-
-                    {/* Show total service charges if there are multiple charges */}
-                    {cartSummary.serviceCharges.breakdown.length > 1 && (
+                    {cartSummary.serviceCharges.breakdown.length > 0 && (
                       <div className="flex justify-between text-sm font-medium text-gray-700 pt-1">
-                        <span>Total tax charges</span>
+                        <span>Service Charge</span>
                         <span>{formatCurrency(cartSummary.serviceCharges.totalAll)}</span>
                       </div>
                     )}
@@ -1162,8 +1153,7 @@ const CheckoutPage = () => {
                           {formatCurrency(
                             cartSummary.total -
                               (appliedPromo
-                                ? (cartSummary.subtotal *
-                                    appliedPromo.discount) /
+                                ? (cartSummary.subtotal * appliedPromo.discount) /
                                   100
                                 : 0)
                           )}
@@ -1196,9 +1186,9 @@ const CheckoutPage = () => {
                         type="checkbox"
                         checked={acceptedTerms}
                         onChange={(e) => setAcceptedTerms(e.target.checked)}
-                        className="mt-1 h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
+                        className="mt-1 h-4 w-4 text-green-600 focus:ring-green-500 hover:cursor-pointer border-gray-300 rounded"
                       />
-                      <span className="text-xs text-gray-600">
+                      <span className="text-xs text-gray-600 hover:cursor-pointer">
                         By placing this order you're agreeing to our{" "}
                         <Link
                           to="/terms"

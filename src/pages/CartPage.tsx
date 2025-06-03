@@ -1,5 +1,13 @@
 import React, { useState, useEffect } from "react";
-import { Minus, Plus, Heart, Trash2, ArrowLeft, ShoppingBag, Loader2 } from "lucide-react";
+import {
+  Minus,
+  Plus,
+  Heart,
+  Trash2,
+  ArrowLeft,
+  ShoppingBag,
+  Loader2,
+} from "lucide-react";
 import { useCart } from "@/context/CartContext";
 import { Link, useNavigate } from "react-router-dom";
 import OrderSummary from "@/components/cart/OrderSummary";
@@ -7,10 +15,10 @@ import NoImage from "@/components/common/NoImage";
 import { ProductAttribute } from "@/services/api";
 import { CartItem as CartItemType } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
-import { useGuestCart } from '@/context/GuestCartContext';
-import axios from '@/config/axios.config';
-import { CART_ENDPOINTS } from '@/config/api.config';
-
+import { useGuestCart } from "@/context/GuestCartContext";
+import axios from "@/config/axios.config";
+import { CART_ENDPOINTS } from "@/config/api.config";
+import { ChevronDown, ChevronUp } from "lucide-react";
 interface CartSummary {
   subtotal: number;
   deliveryFee: number;
@@ -18,11 +26,30 @@ interface CartSummary {
   itemCount: number;
 }
 
-interface CartItemProps extends CartItemType {
+interface CartItemProps {
+  id: string;
+  name: string;
+  price: number | { base: number; attributes: number; total: number };
+  quantity: number;
+  images?: string[];
+  description?: string;
+  selectedOptions?: Record<string, string>;
+  specialRequirements?: string;
+  attributes?: ProductAttribute[];
+  selectedAttributes?: {
+    attributeId: string;
+    attributeName: string;
+    selectedItems: {
+      itemId: string;
+      itemName: string;
+      itemPrice: number;
+      quantity?: number;
+    }[];
+  }[];
+  itemTotal: number;
   onUpdateQuantity: (id: string, quantity: number) => void;
   onRemove: (id: string) => void;
   onToggleWishlist: (id: string) => void;
-  images?: string[];
 }
 
 const CartItem: React.FC<CartItemProps> = ({
@@ -35,145 +62,151 @@ const CartItem: React.FC<CartItemProps> = ({
   selectedOptions = {},
   specialRequirements,
   attributes = [],
+  selectedAttributes = [],
+  itemTotal,
   onUpdateQuantity,
   onRemove,
   onToggleWishlist,
 }) => {
   const { formatCurrency } = useCart();
-  
-  // Calculate total price including options
-  const calculateTotalPrice = () => {
-    let total = price;
-    
-    // Add option prices
-    if (selectedOptions && attributes) {
-      attributes.forEach(attr => {
-        const selectedChoiceId = selectedOptions[attr.id];
-        if (selectedChoiceId) {
-          const choice = attr.choices.find(c => c.id === selectedChoiceId);
-          if (choice) {
-            total += choice.price;
-          }
-        }
-      });
-    }
-    
-    return total * quantity;
-  };
+  const [showAttributes, setShowAttributes] = useState(false);
 
   return (
-    <div className="flex items-start gap-4 pb-6 border-b border-gray-100 last:border-0 last:pb-0 group">
-      {/* Product Image */}
-      <div className="w-24 h-24 bg-gray-50 rounded-xl overflow-hidden flex-shrink-0 transform transition-transform group-hover:scale-105">
-        {images?.[0] ? (
-          <img
-            src={images[0]}
-            alt={name}
-            className="w-full h-full object-cover"
-            onError={(e) => {
-              const target = e.target as HTMLImageElement;
-              target.style.display = 'none';
-              const parent = target.parentElement;
-              if (parent) {
-                parent.innerHTML = '<div class="w-full h-full flex items-center justify-center bg-gray-100"><div class="text-gray-400"><NoImage /></div></div>';
-              }
-            }}
-          />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center bg-gray-100">
-            <div className="text-gray-400">
-              <NoImage />
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Product Details */}
-      <div className="flex-1 py-2">
-        <h3 className="text-lg font-medium text-gray-900 group-hover:text-green-600 transition-colors">
-          {name}
-        </h3>
-        {description && (
-          <p className="mt-2 text-sm text-gray-500 mb-3">
-            {description}
-          </p>
-        )}
-        
-        {/* Selected Options */}
-        {Object.keys(selectedOptions).length > 0 && (
-          <div className="mt-4 space-y-2">
-            {attributes.map(attr => {
-              const selectedChoiceId = selectedOptions[attr.id];
-              if (!selectedChoiceId) return null;
-              
-              const choice = attr.choices.find(c => c.id === selectedChoiceId);
-              if (!choice) return null;
-
-              return (
-                <div key={attr.id} className="flex items-center text-sm text-gray-500">
-                  <span className="font-medium">{attr.name}:</span>
-                  <span className="ml-2">{choice.name}</span>
-                  {choice.price > 0 && (
-                    <span className="ml-2 text-gray-400">
-                      (+{formatCurrency(choice.price)})
-                    </span>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        )}
-
-        {/* Special Requirements */}
-        {specialRequirements && (
-          <div className="mt-4">
-            <p className="text-sm text-gray-500">
-              <span className="font-medium">Special Instructions:</span>
-              <span className="ml-2 italic">{specialRequirements}</span>
-            </p>
-          </div>
-        )}
-      </div>
-
-      {/* Price and Actions */}
-      <div className="text-right space-y-3">
-        <p className="text-lg font-medium text-gray-900">
-          {formatCurrency(calculateTotalPrice())}
-        </p>
-        
-        {/* Quantity Controls */}
-        <div className="flex items-center justify-end gap-2 border border-gray-200 rounded-lg p-1">
-          <button
-            onClick={() => onUpdateQuantity(id, Math.max(1, quantity - 1))}
-            className="w-8 h-8 flex items-center justify-center text-gray-500 hover:text-green-600 transition-colors rounded-md hover:bg-gray-50"
-            disabled={quantity === 1}
-          >
-            <Minus size={16} />
-          </button>
-          <span className="w-8 text-center font-medium text-sm">{quantity}</span>
-          <button
-            onClick={() => onUpdateQuantity(id, quantity + 1)}
-            className="w-8 h-8 flex items-center justify-center text-gray-500 hover:text-green-600 transition-colors rounded-md hover:bg-gray-50"
-          >
-            <Plus size={16} />
-          </button>
+    <div className="flex flex-col md:flex-row items-start gap-6 p-6 rounded-2xl border border-gray-200 shadow-sm bg-white">
+    {/* Image */}
+    <div className="w-28 h-28 flex-shrink-0 overflow-hidden rounded-lg border border-gray-100 bg-gray-50">
+      {images?.[0] ? (
+        <img
+          src={`${import.meta.env.VITE_API_URL}${images[0]}`}
+          alt={name}
+          className="w-full h-full object-cover"
+          onError={(e) => (e.currentTarget.style.display = "none")}
+        />
+      ) : (
+        <div className="w-full h-full flex items-center justify-center text-gray-400 text-xs">
+          No Image
         </div>
+      )}
+    </div>
 
-        {/* Remove Button */}
+    {/* Info */}
+    <div className="flex-1 space-y-3">
+      <h3 className="text-lg font-semibold text-gray-900">{name}</h3>
+      {description && (
+        <p className="text-sm text-gray-600 leading-snug">{description}</p>
+      )}
+
+      {/* Attribute Dropdown */}
+      {selectedAttributes?.length > 0 && (
+        <div className="text-sm">
+          <button
+            type="button"
+            onClick={() => setShowAttributes((prev) => !prev)}
+            className="flex items-center gap-1 text-gray-600 underline"
+          >
+            {showAttributes ? "Hide Selected Attributes" : "See Selected Attributes"}
+            {showAttributes ? (
+              <ChevronUp className="w-4 h-4" />
+            ) : (
+              <ChevronDown className="w-4 h-4" />
+            )}
+          </button>
+
+          {showAttributes && (
+            <div className="mt-2 space-y-3 border rounded-lg p-4 bg-gray-50">
+              {selectedAttributes.map((attr) => (
+                <div key={attr.attributeId}>
+                  <span className="font-medium text-gray-800">
+                    {attr.attributeName}:
+                  </span>{" "}
+                  {attr.selectedItems?.map((item) => (
+                    <span key={item.itemId} className="ml-1 inline-block">
+                      {item.itemName}
+                      {item.itemPrice > 0 && (
+                        <span className="ml-1 text-gray-500 font-medium">
+                          (+{formatCurrency(item.itemPrice)})
+                        </span>
+                      )}
+                    </span>
+                  ))}
+                </div>
+              ))}
+
+              {/* Price inside dropdown */}
+              {price && (
+                <div className="pt-2 border-t text-sm text-gray-700 space-y-1">
+                  <div>
+                    Base Price:{" "}
+                    <span className="text-black font-medium">
+                      {formatCurrency(price.base)}
+                    </span>
+                  </div>
+                  <div>
+                    Attribute Price:{" "}
+                    <span className="text-black font-medium">
+                      {formatCurrency(price.attributes)}
+                    </span>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Special Requirements */}
+      {specialRequirements && (
+        <p className="text-sm text-gray-500 italic">
+          <span className="not-italic font-medium">Special Instructions:</span>{" "}
+          {specialRequirements}
+        </p>
+      )}
+    </div>
+
+    {/* Quantity & Remove */}
+    <div className="flex flex-col items-end gap-4 mt-4 md:mt-0 min-w-[120px]">
+      <span className="text-base font-semibold text-black">
+        {formatCurrency(itemTotal)}
+      </span>
+
+      <div className="flex items-center border border-gray-200 rounded-md px-3 py-1 gap-3 bg-gray-50">
         <button
-          onClick={() => onRemove(id)}
-          className="flex items-center gap-1.5 text-gray-400 hover:text-red-600 transition-colors text-sm ml-auto"
+          onClick={() => onUpdateQuantity(id, Math.max(1, quantity - 1))}
+          className="text-sm text-gray-600 font-medium disabled:opacity-50"
+          disabled={quantity === 1}
         >
-          <Trash2 size={16} />
-          <span className="font-medium">Remove</span>
+          −
+        </button>
+        <span className="w-8 text-center font-medium text-gray-800">{quantity}</span>
+        <button
+          onClick={() => onUpdateQuantity(id, quantity + 1)}
+          className="text-sm text-gray-600 font-medium"
+        >
+          +
         </button>
       </div>
+
+      <button
+        onClick={() => onRemove(id)}
+        className="text-sm text-gray-500 hover:text-red-500 flex items-center gap-1"
+      >
+        <Trash2 size={15} /> Remove
+      </button>
     </div>
+  </div>
+  
+  
   );
 };
 
 const CartPage = () => {
-  const { cartItems, updateCartItemQuantity, removeFromCart, formatCurrency } = useCart();
+  const {
+    cartItems,
+    updateCartItemQuantity,
+    removeFromCart,
+    formatCurrency,
+    getCartItemCount,
+  } = useCart();
   const { isAuthenticated, token } = useAuth();
   const { sessionId } = useGuestCart();
   const navigate = useNavigate();
@@ -181,23 +214,27 @@ const CartPage = () => {
     subtotal: 0,
     deliveryFee: 0,
     total: 0,
-    itemCount: 0
+    itemCount: 0,
   });
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const fetchCartSummary = async () => {
       try {
-        const headers = isAuthenticated ? {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        } : {
-          'x-session-id': sessionId,
-          'Content-Type': 'application/json'
-        };
+        const headers = isAuthenticated
+          ? {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            }
+          : {
+              "x-session-id": sessionId,
+              "Content-Type": "application/json",
+            };
 
         const response = await axios.get(
-          isAuthenticated ? CART_ENDPOINTS.USER_CART : CART_ENDPOINTS.GUEST_CART,
+          isAuthenticated
+            ? CART_ENDPOINTS.USER_CART
+            : CART_ENDPOINTS.GUEST_CART,
           { headers }
         );
 
@@ -206,11 +243,11 @@ const CartPage = () => {
             subtotal: response.data.data.subtotal || 0,
             deliveryFee: response.data.data.deliveryFee || 0,
             total: response.data.data.total || 0,
-            itemCount: response.data.data.itemCount || 0
+            itemCount: response.data.data.itemCount || 0,
           });
         }
       } catch (error) {
-        console.error('Error fetching cart summary:', error);
+        console.error("Error fetching cart summary:", error);
       } finally {
         setIsLoading(false);
       }
@@ -235,18 +272,18 @@ const CartPage = () => {
     // Check if user is authenticated or has a guest session
     if (!isAuthenticated && !sessionId) {
       // Store return URL and cart state
-      localStorage.setItem('returnUrl', '/checkout');
-      
+      localStorage.setItem("returnUrl", "/checkout");
+
       // Redirect to login
-      navigate('/login', { 
-        state: { from: '/checkout' },
-        replace: false 
+      navigate("/login", {
+        state: { from: "/checkout" },
+        replace: false,
       });
       return;
     }
 
     // If user is authenticated or has a guest session, proceed to checkout
-    navigate('/checkout');
+    navigate("/checkout");
   };
 
   if (cartItems.length === 0) {
@@ -296,7 +333,7 @@ const CartPage = () => {
               </p>
             </div>
             <button
-              onClick={() => navigate(-1)}
+              onClick={() => navigate("/app")}
               className="flex text-sm items-center border border-gray-200 rounded-md px-4 py-2 hover:border-green-600 hover:bg-green-50 text-gray-600 hover:text-gray-900 transition-colors"
             >
               <ArrowLeft size={18} className="mr-2" />
@@ -313,12 +350,14 @@ const CartPage = () => {
                   <span className="w-8 h-8 rounded-full bg-green-100 text-green-600 flex items-center justify-center text-lg mr-3">
                     1
                   </span>
-                  Cart Items ({cartSummary.itemCount})
+                  Cart Items ({getCartItemCount()})
                 </h2>
                 {cartItems.map((item) => (
                   <CartItem
                     key={item.id}
                     {...item}
+                    price={item.price}
+                    itemTotal={item.itemTotal}
                     onUpdateQuantity={handleUpdateQuantity}
                     onRemove={handleRemove}
                     onToggleWishlist={handleToggleWishlist}
@@ -332,28 +371,40 @@ const CartPage = () => {
               <div className="sticky top-24">
                 <div className="bg-white rounded-2xl shadow-lg p-6">
                   <h3 className="text-lg font-semibold mb-4">Order Summary</h3>
-                  
+
                   <div className="space-y-3">
                     <div className="flex justify-between text-sm">
                       <span className="text-gray-600">Subtotal</span>
-                      <span className="font-medium">{formatCurrency(cartSummary.subtotal)}</span>
+                      <span className="font-medium">
+                        {formatCurrency(cartSummary.subtotal)}
+                      </span>
                     </div>
-                    
-                    <div className="flex justify-between text-sm">
+
+                    <div className="flex justify-between text-sm items-center">
                       <span className="text-gray-600">Delivery Fee</span>
-                      <span className="font-medium">{formatCurrency(cartSummary.deliveryFee)}</span>
+                      {cartSummary.deliveryFee === 0 ? (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                          Free
+                        </span>
+                      ) : (
+                        <span className="font-medium">
+                          {formatCurrency(cartSummary.deliveryFee)}
+                        </span>
+                      )}
                     </div>
 
                     <div className="pt-3 border-t">
                       <div className="flex justify-between">
                         <span className="font-semibold">Total</span>
-                        <span className="font-bold text-neutral-900 text-xl">{formatCurrency(cartSummary.total)}</span>
+                        <span className="font-bold text-neutral-900 text-xl">
+                          {formatCurrency(cartSummary.total)}
+                        </span>
                       </div>
                     </div>
                   </div>
 
                   <button
-                    onClick={() => navigate('/checkout')}
+                    onClick={() => navigate("/checkout")}
                     disabled={isLoading || cartItems.length === 0}
                     className="w-full mt-6 bg-neutral-800 text-white py-3 rounded-xl font-semibold hover:bg-neutral-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                   >

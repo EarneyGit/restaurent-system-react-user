@@ -8,7 +8,7 @@ interface CartSummaryProps {
 }
 
 export const CartSummary: React.FC<CartSummaryProps> = ({ className = '' }) => {
-  const { cartItems, getCartTotal, getCartItemCount } = useCart();
+  const { cartItems, getCartTotal, getCartItemCount, formatCurrency } = useCart();
   const itemCount = getCartItemCount();
   const total = getCartTotal();
 
@@ -28,7 +28,7 @@ export const CartSummary: React.FC<CartSummaryProps> = ({ className = '' }) => {
       </div>
       {total > 0 && (
         <span className="hidden md:inline-block font-medium">
-          ${total.toFixed(2)}
+          {formatCurrency(total)}
         </span>
       )}
     </Link>

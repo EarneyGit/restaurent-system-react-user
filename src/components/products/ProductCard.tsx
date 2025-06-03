@@ -331,8 +331,9 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, isOutletAvailable = 
             isInCart ? (
               <div className="w-full bg-gray-100 rounded-xl flex items-center">
                 <button
-                  onClick={handleRemoveFromCart}
+                  onClick={() => handleQuantityChange(Math.max(1, (cartItem?.quantity || 1) - 1))}
                   className="p-3 hover:text-gray-700 text-gray-500 flex-shrink-0"
+                  disabled={(cartItem?.quantity || 1) === 1}
                 >
                   <Minus size={20} />
                 </button>

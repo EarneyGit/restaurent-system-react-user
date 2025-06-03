@@ -30,6 +30,7 @@ interface OrderProduct {
   };
   quantity: number;
   price: number;
+  itemTotal: number;
 }
 
 interface OrderDetails {
@@ -38,6 +39,21 @@ interface OrderDetails {
   products: OrderProduct[];
   totalAmount: number;
   finalTotal: number;
+  subtotal: number;
+  deliveryFee: number;
+  serviceCharges?: {
+    totalMandatory: number;
+    totalOptional: number;
+    totalAll: number;
+    breakdown: Array<{
+      id: string;
+      name: string;
+      type: string;
+      value: number;
+      amount: number;
+      optional: boolean;
+    }>;
+  };
   discount?: {
     discountAmount: number;
   };
@@ -415,11 +431,59 @@ const OrderSuccessPage = () => {
                       </div>
                       <div>
                         <p className="font-medium text-gray-900">{item.product.name}</p>
-                        <p className="text-sm text-gray-500">Quantity: {item.quantity}</p>
+                        <div className="flex items-center gap-2 text-sm text-gray-500">
+                          <span>Quantity: {item.quantity}</span>
+                          <span>×</span>
+                          <span>£{((item.itemTotal || 0) / (item.quantity || 1)).toFixed(2)}</span>
+                        </div>
                       </div>
                     </div>
+                    <span className="font-medium">£{(item.itemTotal || 0).toFixed(2)}</span>
                   </div>
                 ))}
+              </div>
+            </div>
+
+            {/* Order Summary */}
+            <div className="mt-6 pt-6 border-t border-gray-100">
+              {/* <h4 className="font-medium text-gray-900 mb-4">Order Summary</h4> */}
+              <div className="space-y-2">
+                {/* <div className="flex justify-between text-sm">
+                  <span className="text-gray-600">Subtotal</span>
+                  <span>£{(orderDetails.subtotal || 0).toFixed(2)}</span>
+                </div> */}
+                
+                {/* <div className="flex justify-between text-sm items-center">
+                  <span className="text-gray-600">Delivery Fee</span>
+                  {!orderDetails.deliveryFee || orderDetails.deliveryFee <= 0 ? (
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                      Free
+                    </span>
+                  ) : (
+                    <span>£{orderDetails.deliveryFee.toFixed(2)}</span>
+                  )}
+                </div> */}
+
+                {orderDetails.serviceCharges && orderDetails.serviceCharges.totalAll > 0 && (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600">Service Charge</span>
+                    <span>£{orderDetails.serviceCharges.totalAll.toFixed(2)}</span>
+                  </div>
+                )}
+
+                {orderDetails.discount && orderDetails.discount.discountAmount > 0 && (
+                  <div className="flex justify-between text-sm text-green-600">
+                    <span>Discount</span>
+                    <span>-£{orderDetails.discount.discountAmount.toFixed(2)}</span>
+                  </div>
+                )}
+
+                <div className="pt-2 border-t mt-2">
+                  <div className="flex justify-between font-medium">
+                    <span>Total</span>
+                    <span className="text-green-600">£{(orderDetails?.totalAmount || 0).toFixed(2)}</span>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
