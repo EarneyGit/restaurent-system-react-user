@@ -102,10 +102,17 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, isOutletAvailable = 
   };
 
   const handleQuantityChange = async (newQuantity: number) => {
+    if (!selectedBranch) {
+      toast.error("Please select a branch first");
+      return;
+    }
+
     if (isInCart && cartItem) {
       try {
         setIsAddingToCart(true);
+        // Use the existing options and special requirements when updating quantity
         await updateCartItemQuantity(cartItem.id, newQuantity);
+        toast.success("Cart updated successfully");
       } catch (error) {
         console.error("Error updating cart:", error);
         if (error.response?.data?.message) {
@@ -137,7 +144,13 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, isOutletAvailable = 
       return;
     }
 
-    // If product has attributes, show options modal
+    // If the item is already in cart, just update the quantity
+    if (isInCart && cartItem) {
+      await handleQuantityChange(cartItem.quantity + 1);
+      return;
+    }
+
+    // If product has attributes and it's a new addition, show options modal
     if (product.attributes && product.attributes.length > 0) {
       setIsOptionsModalOpen(true);
       return;
@@ -154,6 +167,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, isOutletAvailable = 
         itemTotal: product.price * quantity,
         branchId: selectedBranch.id,
       });
+      toast.success("Added to cart successfully");
     } catch (error) {
       console.error("Error adding to cart:", error);
       if (error.response?.data?.message) {
@@ -317,8 +331,9 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, isOutletAvailable = 
             isInCart ? (
               <div className="w-full bg-gray-100 rounded-xl flex items-center">
                 <button
-                  onClick={handleRemoveFromCart}
+                  onClick={() => handleQuantityChange(Math.max(1, (cartItem?.quantity || 1) - 1))}
                   className="p-3 hover:text-gray-700 text-gray-500 flex-shrink-0"
+                  disabled={(cartItem?.quantity || 1) === 1}
                 >
                   <Minus size={20} />
                 </button>
