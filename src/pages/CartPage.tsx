@@ -72,33 +72,69 @@ const CartItem: React.FC<CartItemProps> = ({
   const [showAttributes, setShowAttributes] = useState(false);
 
   return (
-    <div className="flex flex-col md:flex-row items-start gap-6 p-6 rounded-2xl border border-gray-200 shadow-sm bg-white">
-    {/* Image */}
-    <div className="w-28 h-28 flex-shrink-0 overflow-hidden rounded-lg border border-gray-100 bg-gray-50">
-      {images?.[0] ? (
-        <img
-          src={`${import.meta.env.VITE_API_URL}${images[0]}`}
-          alt={name}
-          className="w-full h-full object-cover"
-          onError={(e) => (e.currentTarget.style.display = "none")}
-        />
-      ) : (
-        <div className="w-full h-full flex items-center justify-center text-gray-400 text-xs">
-          No Image
+    <div className="flex flex-col p-4 rounded-xl border border-gray-200 shadow-sm bg-white">
+      <div className="flex gap-3">
+        {/* Image */}
+        <div className="w-16 h-16 flex-shrink-0 overflow-hidden rounded-lg border border-gray-100 bg-gray-50">
+          {images?.[0] ? (
+            <img
+              src={`${import.meta.env.VITE_API_URL}${images[0]}`}
+              alt={name}
+              className="w-full h-full object-cover"
+              onError={(e) => (e.currentTarget.style.display = "none")}
+            />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center text-gray-400 text-xs">
+              No Image
+            </div>
+          )}
         </div>
-      )}
-    </div>
 
-    {/* Info */}
-    <div className="flex-1 space-y-3">
-      <h3 className="text-lg font-semibold text-gray-900">{name}</h3>
-      {description && (
-        <p className="text-sm text-gray-600 leading-snug">{description}</p>
-      )}
+        {/* Info */}
+        <div className="flex-1 min-w-0">
+          <h3 className="text-base font-semibold text-gray-900">{name}</h3>
+          {description && (
+            <p className="text-sm text-gray-600 flex-wrap line-clamp-2">{description}</p>
+          )}
+          <div className="mt-1">
+            <span className="text-base font-semibold text-black">
+              {formatCurrency(itemTotal)}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Quantity Controls - Below Image and Info */}
+      <div className="flex items-center justify-between mt-4 pt-3 border-t border-gray-100">
+        <div className="flex items-center border border-gray-200 rounded-lg bg-gray-50">
+          <button
+            onClick={() => onUpdateQuantity(id, Math.max(1, quantity - 1))}
+            className="w-8 h-8 flex items-center justify-center text-gray-600 disabled:opacity-50"
+            disabled={quantity === 1}
+          >
+            −
+          </button>
+          <span className="w-8 text-center font-medium text-gray-800">{quantity}</span>
+          <button
+            onClick={() => onUpdateQuantity(id, quantity + 1)}
+            className="w-8 h-8 flex items-center justify-center text-gray-600"
+          >
+            +
+          </button>
+        </div>
+
+        <button
+          onClick={() => onRemove(id)}
+          className="flex items-center gap-1.5 text-sm text-gray-500"
+        >
+          <Trash2 size={16} />
+          Remove
+        </button>
+      </div>
 
       {/* Attribute Dropdown */}
       {selectedAttributes?.length > 0 && (
-        <div className="text-sm">
+        <div className="text-sm mt-3 border-t border-gray-100 pt-3">
           <button
             type="button"
             onClick={() => setShowAttributes((prev) => !prev)}
@@ -133,7 +169,7 @@ const CartItem: React.FC<CartItemProps> = ({
               ))}
 
               {/* Price inside dropdown */}
-              {price && (
+              {price && typeof price === 'object' && (
                 <div className="pt-2 border-t text-sm text-gray-700 space-y-1">
                   <div>
                     Base Price:{" "}
@@ -156,46 +192,12 @@ const CartItem: React.FC<CartItemProps> = ({
 
       {/* Special Requirements */}
       {specialRequirements && (
-        <p className="text-sm text-gray-500 italic">
+        <p className="text-sm text-gray-500 italic mt-3 pt-3 border-t border-gray-100">
           <span className="not-italic font-medium">Special Instructions:</span>{" "}
           {specialRequirements}
         </p>
       )}
     </div>
-
-    {/* Quantity & Remove */}
-    <div className="flex flex-col items-end gap-4 mt-4 md:mt-0 min-w-[120px]">
-      <span className="text-base font-semibold text-black">
-        {formatCurrency(itemTotal)}
-      </span>
-
-      <div className="flex items-center border border-gray-200 rounded-md px-3 py-1 gap-3 bg-gray-50">
-        <button
-          onClick={() => onUpdateQuantity(id, Math.max(1, quantity - 1))}
-          className="text-sm text-gray-600 font-medium disabled:opacity-50"
-          disabled={quantity === 1}
-        >
-          −
-        </button>
-        <span className="w-8 text-center font-medium text-gray-800">{quantity}</span>
-        <button
-          onClick={() => onUpdateQuantity(id, quantity + 1)}
-          className="text-sm text-gray-600 font-medium"
-        >
-          +
-        </button>
-      </div>
-
-      <button
-        onClick={() => onRemove(id)}
-        className="text-sm text-gray-500 hover:text-red-500 flex items-center gap-1"
-      >
-        <Trash2 size={15} /> Remove
-      </button>
-    </div>
-  </div>
-  
-  
   );
 };
 
@@ -367,9 +369,9 @@ const CartPage = () => {
             </div>
 
             {/* Order Summary */}
-            <div className="lg:col-span-1">
+            <div className="lg:col-span-1 ">
               <div className="sticky top-24">
-                <div className="bg-white rounded-2xl shadow-lg p-6">
+                <div className="bg-white rounded-2xl shadow-md p-6 border border-gray-200">
                   <h3 className="text-lg font-semibold mb-4">Order Summary</h3>
 
                   <div className="space-y-3">

@@ -1,8 +1,40 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { MapPin, Clock, Phone, Mail, ArrowLeft, X, Calendar, Info, Truck, Users, ShoppingBag } from 'lucide-react';
+import { 
+  MapPin, Clock, Phone, Mail, ArrowLeft, Calendar, Info, 
+  Truck, Users, ShoppingBag, ChevronDown, ChevronUp,
+  LucideIcon 
+} from 'lucide-react';
 import axios from '@/config/axios.config';
 import { toast } from 'sonner';
+
+interface ServiceTimes {
+  leadTime: number;
+  displayedTime: string;
+  customTimes?: {
+    start: string;
+    end: string;
+  };
+  useDifferentTimes: boolean;
+}
+
+interface DaySchedule {
+  defaultTimes: {
+    start: string;
+    end: string;
+  };
+  breakTime: {
+    enabled: boolean;
+    start: string;
+    end: string;
+  };
+  collection: ServiceTimes;
+  delivery: ServiceTimes;
+  tableOrdering: ServiceTimes;
+  isCollectionAllowed: boolean;
+  isDeliveryAllowed: boolean;
+  isTableOrderingAllowed: boolean;
+}
 
 interface BranchDetails {
   id: string;
@@ -22,27 +54,36 @@ interface BranchDetails {
   };
   orderingTimes: {
     weeklySchedule: {
-      [key: string]: {
-        defaultTimes: {
-          start: string;
-          end: string;
-        };
-        breakTime: {
-          enabled: boolean;
-          start: string;
-          end: string;
-        };
-        isCollectionAllowed: boolean;
-        isDeliveryAllowed: boolean;
-        isTableOrderingAllowed: boolean;
-      };
+      [key: string]: DaySchedule;
     };
     closedDates: Array<{
       date: string;
       type: string;
       endDate?: string;
       reason: string;
+      _id?: string;
+      createdAt?: string;
+      updatedAt?: string;
     }>;
+  };
+  orderingOptions: {
+    collection: {
+      displayFormat: string;
+      timeslotLength: number;
+      isEnabled: boolean;
+    };
+    delivery: {
+      displayFormat: string;
+      timeslotLength: number;
+      isEnabled: boolean;
+    };
+    tableOrdering: {
+      isEnabled: boolean;
+    };
+  };
+  preOrdering: {
+    allowCollectionPreOrders: boolean;
+    allowDeliveryPreOrders: boolean;
   };
 }
 
@@ -60,6 +101,7 @@ const AboutPage = () => {
   const [activeTabs, setActiveTabs] = useState<TabState>(() => ({
     [branchId || '']: initialTab
   }));
+  const [expandedDay, setExpandedDay] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchBranchDetails = async () => {
@@ -128,6 +170,168 @@ const AboutPage = () => {
     navigate(`/about?${newSearchParams.toString()}`, { replace: true });
   };
 
+  const formatTimeRange = (start: string, end: string) => {
+    return `${formatTime(start)} - ${formatTime(end)}`;
+  };
+
+  const ServiceCard = ({ 
+    icon: Icon, 
+    title, 
+    isEnabled, 
+    times, 
+    leadTime, 
+    displayedTime,
+    customTimes,
+    useDifferentTimes
+  }: {
+    icon: LucideIcon;
+    title: string;
+    isEnabled: boolean;
+    times?: { start: string; end: string };
+    leadTime?: number;
+    displayedTime?: string;
+    customTimes?: { start: string; end: string };
+    useDifferentTimes?: boolean;
+  }) => (
+    <div className="bg-white/5 rounded-xl p-4 backdrop-blur-sm border border-white/10">
+      <div className="flex items-center gap-3 mb-3">
+        <div className="p-2 rounded-lg bg-green-500/10">
+          <Icon className="w-5 h-5 text-green-400" />
+        </div>
+        <div>
+          <h4 className="text-white font-medium">{title}</h4>
+          <p className={`text-sm ${isEnabled ? 'text-green-400' : 'text-red-400'}`}>
+            {isEnabled ? 'Available' : 'Not Available'}
+          </p>
+        </div>
+      </div>
+      {isEnabled && (
+        <div className="space-y-2 mt-3 border-t border-white/10 pt-3">
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-white/60">Hours:</span>
+            <span className="text-white">
+              {useDifferentTimes && customTimes 
+                ? formatTimeRange(customTimes.start, customTimes.end)
+                : times && formatTimeRange(times.start, times.end)}
+            </span>
+          </div>
+          {leadTime && leadTime > 0 && (
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-white/60">Lead Time:</span>
+              <span className="text-green-400">{leadTime} minutes</span>
+            </div>
+          )}
+          {displayedTime && (
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-white/60">First Available:</span>
+              <span className="text-green-400">{formatTime(displayedTime)}</span>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+
+  const toggleDayExpansion = (day: string) => {
+    setExpandedDay(expandedDay === day ? null : day);
+  };
+
+  const ServiceOptionsSection = ({ branch }: { branch: BranchDetails }) => {
+    if (!branch.orderingOptions) {
+      return (
+        <div className="text-center py-8 bg-white/5 rounded-xl">
+          <Users className="w-12 h-12 text-white/20 mx-auto mb-3" />
+          <p className="text-white/60">No service information available</p>
+        </div>
+      );
+    }
+
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
+        {/* Delivery Card */}
+        <div className="bg-white/0 rounded-xl p-4 backdrop-blur-sm border border-white/10 transition-all duration-300 hover:bg-white/10">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="p-2 rounded-lg bg-green-500/10">
+              <Truck className="w-5 h-5 text-green-400" />
+            </div>
+            <div>
+              <h4 className="text-white font-medium">Delivery</h4>
+              <p className={`text-sm ${branch.orderingOptions.delivery.isEnabled ? 'text-green-400' : 'text-red-400'}`}>
+                {branch.orderingOptions.delivery.isEnabled ? 'Available' : 'Not Available'}
+              </p>
+            </div>
+          </div>
+          {branch.orderingOptions.delivery.isEnabled && (
+            <div className="space-y-2 mt-3 border-t border-white/10 pt-3">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-white/60">Time Slots:</span>
+                <span className="text-green-400">{branch.orderingOptions.delivery.timeslotLength}min</span>
+              </div>
+              {branch.preOrdering?.allowDeliveryPreOrders && (
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-white/60">Pre-ordering:</span>
+                  <span className="text-green-400">Available</span>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Collection Card */}
+        <div className="bg-white/0 rounded-xl p-4 backdrop-blur-sm border border-white/10 transition-all duration-300 hover:bg-white/10">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="p-2 rounded-lg bg-green-500/10">
+              <ShoppingBag className="w-5 h-5 text-green-400" />
+            </div>
+            <div>
+              <h4 className="text-white font-medium">Collection</h4>
+              <p className={`text-sm ${branch.orderingOptions.collection.isEnabled ? 'text-green-400' : 'text-red-400'}`}>
+                {branch.orderingOptions.collection.isEnabled ? 'Available' : 'Not Available'}
+              </p>
+            </div>
+          </div>
+          {branch.orderingOptions.collection.isEnabled && (
+            <div className="space-y-2 mt-3 border-t border-white/10 pt-3">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-white/60">Time Slots:</span>
+                <span className="text-green-400">{branch.orderingOptions.collection.timeslotLength}min</span>
+              </div>
+              {branch.preOrdering?.allowCollectionPreOrders && (
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-white/60">Pre-ordering:</span>
+                  <span className="text-green-400">Available</span>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Table Service Card */}
+        <div className="bg-white/0 rounded-xl p-4 backdrop-blur-sm border border-white/10 transition-all duration-300 hover:bg-white/10">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="p-2 rounded-lg bg-green-500/10">
+              <Users className="w-5 h-5 text-green-400" />
+            </div>
+            <div>
+              <h4 className="text-white font-medium">Table Service</h4>
+              <p className={`text-sm ${branch.orderingOptions.tableOrdering.isEnabled ? 'text-green-400' : 'text-red-400'}`}>
+                {branch.orderingOptions.tableOrdering.isEnabled ? 'Available' : 'Not Available'}
+              </p>
+            </div>
+          </div>
+          {branch.orderingOptions.tableOrdering.isEnabled && (
+            <div className="space-y-2 mt-3 border-t border-white/10 pt-3">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-white/60">Status:</span>
+                <span className="text-green-400">Active</span>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-black">
@@ -161,6 +365,7 @@ const AboutPage = () => {
 
         {branchDetails.map((branch) => {
           const currentTab = activeTabs[branch.id] || 'info';
+          const weeklySchedule = branch.orderingTimes?.weeklySchedule || {};
           
           return (
             <div key={branch.id} className="bg-white/10 backdrop-blur-sm rounded-2xl overflow-hidden mb-8">
@@ -216,108 +421,168 @@ const AboutPage = () => {
               {/* Tab Content */}
               <div className="p-6">
                 {currentTab === 'info' && (
-                  <div className="space-y-6">
+                  <div className="space-y-6 p-6">
                     {/* Contact Info */}
-                    <div className="flex items-start gap-4">
-                      <div className="p-3 rounded-xl bg-green-600/20">
-                        <MapPin className="text-green-400" />
+                    <div className="space-y-4">
+                      <div className="flex items-start gap-4">
+                        <div className="p-3 rounded-xl bg-green-600/20">
+                          <MapPin className="text-green-400" />
+                        </div>
+                        <div>
+                          <h3 className="text-white font-medium mb-1">Address</h3>
+                          <p className="text-white/70">
+                            {branch.address.street}
+                            {branch.address.addressLine2 && `, ${branch.address.addressLine2}`}
+                            <br />
+                            {branch.address.city}, {branch.address.postcode}
+                            <br />
+                            {branch.address.state}, {branch.address.country}
+                          </p>
+                        </div>
                       </div>
-                      <div>
-                        <h3 className="text-white font-medium mb-1">Address</h3>
-                        <p className="text-white/70">
-                          {branch.address.street}
-                          {branch.address.addressLine2 && `, ${branch.address.addressLine2}`}
-                          <br />
-                          {branch.address.city}, {branch.address.postcode}
-                          <br />
-                          {branch.address.state}, {branch.address.country}
-                        </p>
+
+                      <div className="flex items-start gap-4">
+                        <div className="p-3 rounded-xl bg-green-600/20">
+                          <Phone className="text-green-400" />
+                        </div>
+                        <div>
+                          <h3 className="text-white font-medium mb-1">Contact</h3>
+                          <p className="text-white/70">
+                            {branch.contactNumber}
+                            {branch.telephone && (
+                              <>
+                                <br />
+                                {branch.telephone}
+                              </>
+                            )}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-start gap-4">
+                        <div className="p-3 rounded-xl bg-green-600/20">
+                          <Mail className="text-green-400" />
+                        </div>
+                        <div>
+                          <h3 className="text-white font-medium mb-1">Email</h3>
+                          <p className="text-white/70">{branch.email}</p>
+                        </div>
                       </div>
                     </div>
 
-                    <div className="flex items-start gap-4">
-                      <div className="p-3 rounded-xl bg-green-600/20">
-                        <Phone className="text-green-400" />
-                      </div>
-                      <div>
-                        <h3 className="text-white font-medium mb-1">Contact</h3>
-                        <p className="text-white/70">
-                          {branch.contactNumber}
-                          {branch.telephone && (
-                            <>
-                              <br />
-                              {branch.telephone}
-                            </>
-                          )}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="flex items-start gap-4">
-                      <div className="p-3 rounded-xl bg-green-600/20">
-                        <Mail className="text-green-400" />
-                      </div>
-                      <div>
-                        <h3 className="text-white font-medium mb-1">Email</h3>
-                        <p className="text-white/70">{branch.email}</p>
-                      </div>
-                    </div>
-
-                    {/* Ordering Options */}
-                    <div className="grid grid-cols-3 gap-4 mt-6">
-                      <div className="bg-white/5 rounded-xl p-4 text-center">
-                        <Truck className="w-6 h-6 text-green-400 mx-auto mb-2" />
-                        <h4 className="text-white font-medium">Delivery</h4>
-                        <p className="text-white/70 text-sm">Available</p>
-                      </div>
-                      <div className="bg-white/5 rounded-xl p-4 text-center">
-                        <ShoppingBag className="w-6 h-6 text-green-400 mx-auto mb-2" />
-                        <h4 className="text-white font-medium">Collection</h4>
-                        <p className="text-white/70 text-sm">Available</p>
-                      </div>
-                      <div className="bg-white/5 rounded-xl p-4 text-center">
-                        <Users className="w-6 h-6 text-green-400 mx-auto mb-2" />
-                        <h4 className="text-white font-medium">Table Service</h4>
-                        <p className="text-white/70 text-sm">Available</p>
-                      </div>
-                    </div>
+                    {/* Service Options */}
+                    <ServiceOptionsSection branch={branch} />
                   </div>
                 )}
 
                 {currentTab === 'hours' && (
-                  <div className="space-y-4">
-                    {branch.orderingTimes?.weeklySchedule ? (
-                      Object.entries(branch.orderingTimes.weeklySchedule).map(([day, times]) => (
-                        <div key={day} className="flex justify-between items-center py-3 border-b border-white/10">
-                          <div>
-                            <h4 className="text-white capitalize">{day}</h4>
-                            {times.breakTime?.enabled && (
-                              <p className="text-amber-400/80 text-sm mt-1">
-                                Break: {formatTime(times.breakTime.start)} - {formatTime(times.breakTime.end)}
-                              </p>
+                  <div className="space-y-4 p-6">
+                    {Object.keys(weeklySchedule).length > 0 ? (
+                      Object.entries(weeklySchedule).map(([day, times]) => {
+                        const daySchedule = times as DaySchedule;
+                        const hasBreakTime = daySchedule.breakTime?.enabled;
+                        const hasDelivery = daySchedule.isDeliveryAllowed;
+                        const hasCollection = daySchedule.isCollectionAllowed;
+                        
+                        return (
+                          <div key={day} className="border border-white/10 rounded-lg overflow-hidden bg-white/0 transition-all duration-300 hover:bg-white/10">
+                            <button
+                              onClick={() => toggleDayExpansion(day)}
+                              className="w-full px-4 py-3 flex items-center justify-between text-left"
+                            >
+                              <div>
+                                <p className="font-medium text-white capitalize">{day}</p>
+                                <p className="text-sm text-white/60">
+                                  {formatTimeRange(daySchedule.defaultTimes.start, daySchedule.defaultTimes.end)}
+                                </p>
+                              </div>
+                              {expandedDay === day ? (
+                                <ChevronUp className="text-white/60" size={20} />
+                              ) : (
+                                <ChevronDown className="text-white/60" size={20} />
+                              )}
+                            </button>
+
+                            {expandedDay === day && (
+                              <div className="px-4 py-3 space-y-4 bg-black/20">
+                                {hasBreakTime && (
+                                  <div className="flex items-center justify-between text-sm">
+                                    <span className="text-white/60">Break Time:</span>
+                                    <span className="text-yellow-400">
+                                      {formatTimeRange(daySchedule.breakTime.start, daySchedule.breakTime.end)}
+                                    </span>
+                                  </div>
+                                )}
+
+                                {/* Delivery Times */}
+                                {hasDelivery && (
+                                  <div className={`pt-3 ${hasBreakTime ? 'border-t border-white/10' : ''}`}>
+                                    <div className="flex items-center justify-between mb-2">
+                                      <p className="text-sm font-medium text-white">Delivery Hours</p>
+                                      <span className="text-xs bg-green-500/20 text-green-400 px-2 py-1 rounded">
+                                        Available
+                                      </span>
+                                    </div>
+                                    <div className="space-y-2 text-sm">
+                                      <div className="flex justify-between">
+                                        <span className="text-white/60">Hours:</span>
+                                        <span className="text-white">
+                                          {daySchedule.delivery.useDifferentTimes && daySchedule.delivery.customTimes
+                                            ? formatTimeRange(daySchedule.delivery.customTimes.start, daySchedule.delivery.customTimes.end)
+                                            : formatTimeRange(daySchedule.defaultTimes.start, daySchedule.defaultTimes.end)}
+                                        </span>
+                                      </div>
+                                      {daySchedule.delivery.leadTime > 0 && (
+                                        <div className="flex justify-between">
+                                          <span className="text-white/60">Lead Time:</span>
+                                          <span className="text-green-400">{daySchedule.delivery.leadTime} minutes</span>
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+                                )}
+
+                                {/* Collection Times */}
+                                {hasCollection && (
+                                  <div className={`pt-3 ${(hasBreakTime || hasDelivery) ? 'border-t border-white/10' : ''}`}>
+                                    <div className="flex items-center justify-between mb-2">
+                                      <p className="text-sm font-medium text-white">Collection Hours</p>
+                                      <span className="text-xs bg-green-500/20 text-green-400 px-2 py-1 rounded">
+                                        Available
+                                      </span>
+                                    </div>
+                                    <div className="space-y-2 text-sm">
+                                      <div className="flex justify-between">
+                                        <span className="text-white/60">Hours:</span>
+                                        <span className="text-white">
+                                          {daySchedule.collection.useDifferentTimes && daySchedule.collection.customTimes
+                                            ? formatTimeRange(daySchedule.collection.customTimes.start, daySchedule.collection.customTimes.end)
+                                            : formatTimeRange(daySchedule.defaultTimes.start, daySchedule.defaultTimes.end)}
+                                        </span>
+                                      </div>
+                                      {daySchedule.collection.leadTime > 0 && (
+                                        <div className="flex justify-between">
+                                          <span className="text-white/60">Lead Time:</span>
+                                          <span className="text-green-400">{daySchedule.collection.leadTime} minutes</span>
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+                                )}
+
+                                {!hasBreakTime && !hasDelivery && !hasCollection && (
+                                  <div className="text-center py-4">
+                                    <Info className="w-8 h-8 text-white/20 mx-auto mb-2" />
+                                    <p className="text-white/60">No additional service information available</p>
+                                  </div>
+                                )}
+                              </div>
                             )}
                           </div>
-                          <div className="text-right">
-                            <p className="text-white/70">
-                              {formatTime(times.defaultTimes.start)} - {formatTime(times.defaultTimes.end)}
-                            </p>
-                            <div className="flex gap-2 mt-1">
-                              {times.isDeliveryAllowed && (
-                                <span className="text-xs bg-green-600/20 text-green-400 px-2 py-0.5 rounded">
-                                  Delivery
-                                </span>
-                              )}
-                              {times.isCollectionAllowed && (
-                                <span className="text-xs bg-blue-600/20 text-blue-400 px-2 py-0.5 rounded">
-                                  Collection
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      ))
+                        );
+                      })
                     ) : (
-                      <div className="text-center py-8">
+                      <div className="text-center py-2">
                         <Clock className="w-12 h-12 text-white/20 mx-auto mb-3" />
                         <p className="text-white/60">No opening hours information available</p>
                       </div>

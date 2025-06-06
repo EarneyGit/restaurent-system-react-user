@@ -112,8 +112,10 @@ const FoodCategories = () => {
 
   useEffect(() => {
     const fetchCategories = async () => {
+      setLoading(true);
+      setError(null);
       try {
-        const data = await getCategories();
+        const data = await getCategories(selectedBranch?.id);
         const visibleCategories = data
           .filter((cat) => !cat.hidden)
           .sort((a, b) => a.displayOrder - b.displayOrder);
@@ -129,8 +131,21 @@ const FoodCategories = () => {
       }
     };
 
-    fetchCategories();
-  }, []);
+    if (selectedBranch?.id) {
+      fetchCategories();
+    }
+  }, [selectedBranch]);
+
+  // Reset active category when branch changes
+  useEffect(() => {
+    if (categories.length > 0) {
+      setActiveCategory(categories[0].id);
+      const branchId = selectedBranch?.id;
+      if (branchId) {
+        navigate(`/app/products/${encodeURIComponent(categories[0].name)}?branchId=${branchId}`);
+      }
+    }
+  }, [selectedBranch, categories]);
 
   const handleCategoryClick = (categoryId: string, categoryName: string) => {
     setActiveCategory(categoryId);

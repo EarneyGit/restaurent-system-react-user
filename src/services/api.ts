@@ -43,6 +43,7 @@ export interface Product {
   id: string;
   name: string;
   price: number;
+  currentEffectivePrice?: number;
   description: string;
   images?: string[];
   category?: {
@@ -85,9 +86,14 @@ export const getCategoryColor = (categoryName: string): string => {
 };
 
 // API calls
-export const getCategories = async (): Promise<Category[]> => {
+export const getCategories = async (branchId?: string): Promise<Category[]> => {
   try {
-    const response = await axios.get<ApiResponse<Category[]>>(`${API_URL}/categories`);
+    const url = new URL(`${API_URL}/categories`);
+    if (branchId) {
+      url.searchParams.append('branchId', branchId);
+    }
+    
+    const response = await axios.get<ApiResponse<Category[]>>(url.toString());
     if (!response.data.success) {
       throw new Error(response.data.message || 'Failed to fetch categories');
     }

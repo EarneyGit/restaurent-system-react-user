@@ -310,16 +310,22 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, isOutletAvailable = 
         {/* Product Info */}
         <div className="flex-1 p-4">
           <h3 className="font-medium text-gray-900">{product.name}</h3>
-          <p className="text-left text-sm text-neutral-500 mt-1 line-clamp-2 break-words">
+          <p className="text-left text-sm text-neutral-500 mt-1 break-words">
             {product?.description}
           </p>
           <div className="flex items-baseline gap-2 mt-1">
-            <span className="font-bold text-lg">
-              {formatPrice(product.price)}
-            </span>
-            {product.originalPrice && (
-              <span className="text-sm text-gray-400 line-through">
-                {formatPrice(product?.originalPrice)}
+            {product.currentEffectivePrice !== undefined && product.currentEffectivePrice !== product.price ? (
+              <>
+                <span className="font-bold text-lg text-black">
+                  {formatPrice(product.currentEffectivePrice)}
+                </span>
+                <span className="text-sm text-gray-400 line-through">
+                  {formatPrice(product.price)}
+                </span>
+              </>
+            ) : (
+              <span className="font-bold text-lg">
+                {formatPrice(product.price)}
               </span>
             )}
           </div>
