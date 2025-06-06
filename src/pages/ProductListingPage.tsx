@@ -57,7 +57,7 @@ function ProductListingPage(): JSX.Element {
   useEffect(() => {
     const fetchCategories = async () => {
       try {
-        const data = await getCategories();
+        const data = await getCategories(selectedBranch?.id);
         // Filter out hidden categories and sort by displayOrder
         const visibleCategories = data
           .filter(cat => !cat.hidden)
@@ -75,8 +75,10 @@ function ProductListingPage(): JSX.Element {
       }
     };
 
-    fetchCategories();
-  }, []);
+    if (selectedBranch?.id) {
+      fetchCategories();
+    }
+  }, [selectedBranch]);
 
   // Update selected category when URL parameter changes
   useEffect(() => {
