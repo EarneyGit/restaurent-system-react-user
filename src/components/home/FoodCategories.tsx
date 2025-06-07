@@ -137,15 +137,15 @@ const FoodCategories = () => {
   }, [selectedBranch]);
 
   // Reset active category when branch changes
-  useEffect(() => {
-    if (categories.length > 0) {
-      setActiveCategory(categories[0].id);
-      const branchId = selectedBranch?.id;
-      if (branchId) {
-        navigate(`/app/products/${encodeURIComponent(categories[0].name)}?branchId=${branchId}`);
-      }
-    }
-  }, [selectedBranch, categories]);
+  // useEffect(() => {
+  //   if (categories.length > 0) {
+  //     setActiveCategory(categories[0].id);
+  //     const branchId = selectedBranch?.id;
+  //     if (branchId) {
+  //       navigate(`/app/products/${encodeURIComponent(categories[0].name)}?branchId=${branchId}`);
+  //     }
+  //   }
+  // }, [selectedBranch, categories]);
 
   const handleCategoryClick = (categoryId: string, categoryName: string) => {
     setActiveCategory(categoryId);

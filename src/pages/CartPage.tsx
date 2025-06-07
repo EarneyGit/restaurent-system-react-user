@@ -19,6 +19,7 @@ import { useGuestCart } from "@/context/GuestCartContext";
 import axios from "@/config/axios.config";
 import { CART_ENDPOINTS } from "@/config/api.config";
 import { ChevronDown, ChevronUp } from "lucide-react";
+
 interface CartSummary {
   subtotal: number;
   deliveryFee: number;
@@ -26,10 +27,17 @@ interface CartSummary {
   itemCount: number;
 }
 
+interface PriceStructure {
+  base: number;
+  currentEffectivePrice: number;
+  attributes: number;
+  total: number;
+}
+
 interface CartItemProps {
   id: string;
   name: string;
-  price: number | { base: number; attributes: number; total: number };
+  price: PriceStructure;
   quantity: number;
   images?: string[];
   description?: string;
@@ -39,11 +47,12 @@ interface CartItemProps {
   selectedAttributes?: {
     attributeId: string;
     attributeName: string;
+    attributeType: string;
     selectedItems: {
       itemId: string;
       itemName: string;
       itemPrice: number;
-      quantity?: number;
+      quantity: number;
     }[];
   }[];
   itemTotal: number;
@@ -96,10 +105,17 @@ const CartItem: React.FC<CartItemProps> = ({
           {description && (
             <p className="text-sm text-gray-600 flex-wrap line-clamp-2">{description}</p>
           )}
-          <div className="mt-1">
-            <span className="text-base font-semibold text-black">
-              {formatCurrency(itemTotal)}
-            </span>
+          <div className="mt-1 space-y-1">
+            <div className="flex items-center gap-2">
+              <span className="text-base font-semibold text-black">
+                {formatCurrency(price.total)}
+              </span>
+              {price.base !== price.currentEffectivePrice && (
+                <span className="text-sm line-through text-gray-400">
+                  {formatCurrency(price.base)}
+                </span>
+              )}
+            </div>
           </div>
         </div>
       </div>
@@ -123,13 +139,18 @@ const CartItem: React.FC<CartItemProps> = ({
           </button>
         </div>
 
-        <button
-          onClick={() => onRemove(id)}
-          className="flex items-center gap-1.5 text-sm text-gray-500"
-        >
-          <Trash2 size={16} />
-          Remove
-        </button>
+        <div className="flex items-center gap-4">
+          <span className="font-medium text-gray-900">
+            Total: {formatCurrency(price.total * quantity)}
+          </span>
+          <button
+            onClick={() => onRemove(id)}
+            className="flex items-center gap-1.5 text-sm text-gray-500"
+          >
+            <Trash2 size={16} />
+            Remove
+          </button>
+        </div>
       </div>
 
       {/* Attribute Dropdown */}
@@ -155,7 +176,7 @@ const CartItem: React.FC<CartItemProps> = ({
                   <span className="font-medium text-gray-800">
                     {attr.attributeName}:
                   </span>{" "}
-                  {attr.selectedItems?.map((item) => (
+                  {attr.selectedItems?.map((item, index) => (
                     <span key={item.itemId} className="ml-1 inline-block">
                       {item.itemName}
                       {item.itemPrice > 0 && (
@@ -163,28 +184,39 @@ const CartItem: React.FC<CartItemProps> = ({
                           (+{formatCurrency(item.itemPrice)})
                         </span>
                       )}
+                      {index < attr.selectedItems.length - 1 && ", "}
                     </span>
                   ))}
                 </div>
               ))}
 
-              {/* Price inside dropdown */}
-              {price && typeof price === 'object' && (
-                <div className="pt-2 border-t text-sm text-gray-700 space-y-1">
-                  <div>
-                    Base Price:{" "}
-                    <span className="text-black font-medium">
-                      {formatCurrency(price.base)}
-                    </span>
-                  </div>
-                  <div>
-                    Attribute Price:{" "}
-                    <span className="text-black font-medium">
-                      {formatCurrency(price.attributes)}
-                    </span>
-                  </div>
+              {/* Price Breakdown */}
+              <div className="pt-2 border-t text-sm text-gray-700 space-y-1">
+                <div className="flex justify-between">
+                  <span>Base Price:</span>
+                  <span className="font-medium">{formatCurrency(price.base)}</span>
                 </div>
-              )}
+                {price.currentEffectivePrice !== price.base && (
+                  <div className="flex justify-between">
+                    <span>Discounted Price:</span>
+                    <span className="font-medium">{formatCurrency(price.currentEffectivePrice)}</span>
+                  </div>
+                )}
+                {price.attributes > 0 && (
+                  <div className="flex justify-between">
+                    <span>Add-ons:</span>
+                    <span className="font-medium">{formatCurrency(price.attributes)}</span>
+                  </div>
+                )}
+                <div className="flex justify-between pt-1 border-t">
+                  <span className="font-medium">Item Total:</span>
+                  <span className="font-medium">{formatCurrency(price.total)}</span>
+                </div>
+                <div className="flex justify-between pt-1 border-t text-black">
+                  <span className="font-semibold">Final Total (× {quantity}):</span>
+                  <span className="font-semibold">{formatCurrency(price.total * quantity)}</span>
+                </div>
+              </div>
             </div>
           )}
         </div>
@@ -369,38 +401,94 @@ const CartPage = () => {
             </div>
 
             {/* Order Summary */}
-            <div className="lg:col-span-1 ">
+            <div className="lg:col-span-1">
               <div className="sticky top-24">
                 <div className="bg-white rounded-2xl shadow-md p-6 border border-gray-200">
                   <h3 className="text-lg font-semibold mb-4">Order Summary</h3>
 
                   <div className="space-y-3">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-600">Subtotal</span>
-                      <span className="font-medium">
-                        {formatCurrency(cartSummary.subtotal)}
-                      </span>
+                    {/* Items Summary */}
+                    <div className="space-y-2">
+                      {cartItems.map((item) => (
+                        <div key={item.id} className="flex justify-between text-sm">
+                          <span className="text-gray-600">
+                            {item.name} × {item.quantity}
+                          </span>
+                          <span className="font-medium">
+                            {formatCurrency(item.price.total * item.quantity)}
+                          </span>
+                        </div>
+                      ))}
                     </div>
 
-                    <div className="flex justify-between text-sm items-center">
-                      <span className="text-gray-600">Delivery Fee</span>
-                      {cartSummary.deliveryFee === 0 ? (
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                          Free
-                        </span>
-                      ) : (
+                    <div className="border-t pt-3 space-y-2">
+                      {/* Base Total */}
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-600">Items Subtotal</span>
                         <span className="font-medium">
-                          {formatCurrency(cartSummary.deliveryFee)}
+                          {formatCurrency(cartItems.reduce((total, item) => 
+                            total + (item.price.currentEffectivePrice * item.quantity), 0
+                          ))}
                         </span>
+                      </div>
+
+                      {/* Attributes Total */}
+                      {cartItems.some(item => item.price.attributes > 0) && (
+                        <div className="flex justify-between text-sm">
+                          <span className="text-gray-600">Add-ons Total</span>
+                          <span className="font-medium">
+                            {formatCurrency(cartItems.reduce((total, item) => 
+                              total + (item.price.attributes * item.quantity), 0
+                            ))}
+                          </span>
+                        </div>
+                      )}
+
+                      {/* Delivery Fee */}
+                      <div className="flex justify-between text-sm items-center">
+                        <span className="text-gray-600">Delivery Fee</span>
+                        {cartSummary.deliveryFee === 0 ? (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                            Free
+                          </span>
+                        ) : (
+                          <span className="font-medium">
+                            {formatCurrency(cartSummary.deliveryFee)}
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Total Savings */}
+                      {cartItems.some(item => item.price.base > item.price.currentEffectivePrice) && (
+                        <div className="flex justify-between text-sm text-green-600">
+                          <span>Total Savings</span>
+                          <span className="font-medium">
+                            {formatCurrency(cartItems.reduce((total, item) => 
+                              total + ((item.price.base - item.price.currentEffectivePrice) * item.quantity), 0
+                            ))}
+                          </span>
+                        </div>
                       )}
                     </div>
 
+                    {/* Final Total */}
                     <div className="pt-3 border-t">
                       <div className="flex justify-between">
                         <span className="font-semibold">Total</span>
-                        <span className="font-bold text-neutral-900 text-xl">
-                          {formatCurrency(cartSummary.total)}
-                        </span>
+                        <div className="text-right">
+                          <span className="font-bold text-neutral-900 text-xl">
+                            {formatCurrency(cartItems.reduce((total, item) => 
+                              total + (item.price.total * item.quantity), 0
+                            ) + cartSummary.deliveryFee)}
+                          </span>
+                          {cartItems.some(item => item.price.base > item.price.currentEffectivePrice) && (
+                            <div className="text-xs text-green-600 font-medium">
+                              You saved {formatCurrency(cartItems.reduce((total, item) => 
+                                total + ((item.price.base - item.price.currentEffectivePrice) * item.quantity), 0
+                              ))}!
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </div>

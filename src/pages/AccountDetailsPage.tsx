@@ -16,7 +16,7 @@ const AccountDetailsPage = () => {
     lastName: user?.lastName || '',
     email: user?.email || '',
     phone: user?.phone || '',
-    addressLine1: '',
+    addressLine1: user?.address || "",
     addressLine2: '',
     city: 'Dunfermline',
     postcode: 'KY12 7QF',
