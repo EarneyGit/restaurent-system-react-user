@@ -420,7 +420,7 @@ const OrderSuccessPage = () => {
             </div>
 
             {/* Order Items Section */}
-            <div className="mt-8 pt-8 border-t border-gray-100">
+            {/* <div className="mt-8 pt-8 border-t border-gray-100">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">Order Items</h3>
               <div className="space-y-4">
                 {orderDetails?.products.map((item, index) => (
@@ -442,13 +442,9 @@ const OrderSuccessPage = () => {
                   </div>
                 ))}
               </div>
-            </div>
+            </div> */}
 
-            {/* Order Summary */}
-            <div className="mt-6 pt-6 border-t border-gray-100">
-              {/* <h4 className="font-medium text-gray-900 mb-4">Order Summary</h4> */}
-              <div className="space-y-2">
-                {/* <div className="flex justify-between text-sm">
+                    {/* <div className="flex justify-between text-sm">
                   <span className="text-gray-600">Subtotal</span>
                   <span>£{(orderDetails.subtotal || 0).toFixed(2)}</span>
                 </div> */}
@@ -463,6 +459,11 @@ const OrderSuccessPage = () => {
                     <span>£{orderDetails.deliveryFee.toFixed(2)}</span>
                   )}
                 </div> */}
+
+            {/* Order Summary */}
+            {/* <div className="mt-6 pt-6 border-t border-gray-100">
+              <div className="space-y-2">
+        
 
                 {orderDetails.serviceCharges && orderDetails.serviceCharges.totalAll > 0 && (
                   <div className="flex justify-between text-sm">
@@ -485,7 +486,7 @@ const OrderSuccessPage = () => {
                   </div>
                 </div>
               </div>
-            </div>
+            </div> */}
           </div>
         </div>
       </div>

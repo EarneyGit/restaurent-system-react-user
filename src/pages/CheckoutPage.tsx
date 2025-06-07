@@ -57,24 +57,121 @@ const formatPrice = (amount: number) => {
   }).format(amount);
 };
 
+interface CartData {
+  subtotal: number;
+  deliveryFee: number;
+  taxRate: number;
+  itemCount: number;
+  serviceCharges?: {
+    totalMandatory: number;
+    totalOptional: number;
+    totalAll: number;
+    breakdown: Array<{
+      name: string;
+      amount: number;
+      type: string;
+    }>;
+  };
+}
+
+interface OrderTotals {
+  subtotal: number;
+  attributesTotal: number;
+  deliveryFee: number;
+  taxAmount: number;
+  taxRate: number;
+  mandatoryCharges: number;
+  optionalCharges: number;
+  discountAmount: number;
+  totalSavings: number;
+  total: number;
+}
+
 // Calculate total price for an item including options
 const calculateItemTotal = (item: CartItemType) => {
-  let itemTotal = item.price;
-
-  // Add option prices if they exist
-  if (item.selectedOptions && item.attributes) {
-    item.attributes.forEach((attr) => {
-      const selectedChoiceId = item.selectedOptions?.[attr.id];
-      if (selectedChoiceId) {
-        const choice = attr.choices.find((c) => c.id === selectedChoiceId);
-        if (choice) {
-          itemTotal += choice.price;
-        }
-      }
-    });
+  if (typeof item.itemTotal === 'number') {
+    return item.itemTotal;
   }
 
-  return itemTotal * item.quantity;
+  if (isPriceObject(item.price)) {
+    // Include attributes in total calculation
+    return item.price.total * item.quantity;
+  }
+
+  if (typeof item.price === 'number') {
+    let itemTotal: number = item.price;
+
+    // Add option prices if they exist
+    if (item.selectedOptions && item.attributes) {
+      item.attributes.forEach((attr) => {
+        const selectedChoiceId = item.selectedOptions?.[attr.id];
+        if (selectedChoiceId) {
+          const choice = attr.choices.find((c) => c.id === selectedChoiceId);
+          if (choice) {
+            itemTotal += choice.price;
+          }
+        }
+      });
+    }
+
+    return itemTotal * item.quantity;
+  }
+
+  return 0;
+};
+
+// Helper for safe item total calculation
+function getItemTotal(item: CartItemType): number {
+  return calculateItemTotal(item);
+}
+
+// Calculate order totals using CartContext methods
+const calculateOrderTotals = (cartData: CartData, items: CartItemType[], promoDiscount?: number): OrderTotals => {
+  // Calculate base subtotal from items
+  const subtotal = items.reduce((total, item) => 
+    total + (isPriceObject(item.price) ? item.price.currentEffectivePrice * item.quantity : 0), 0
+  );
+  
+  // Calculate attributes total
+  const attributesTotal = items.reduce((total, item) => 
+    total + (isPriceObject(item.price) ? item.price.attributes * item.quantity : 0), 0
+  );
+  
+  // Get delivery fee from cart response
+  const deliveryFee = cartData.deliveryFee || 0;
+  
+  // Calculate tax if rate is provided
+  const taxRate = cartData.taxRate || 0;
+  const taxAmount = (subtotal * taxRate) / 100;
+  
+  // Get service charges
+  const mandatoryCharges = cartData.serviceCharges?.totalMandatory || 0;
+  const optionalCharges = cartData.serviceCharges?.totalOptional || 0;
+  
+  // Calculate total savings
+  const totalSavings = items.reduce((total, item) => 
+    total + (isPriceObject(item.price) ? 
+      (item.price.base - item.price.currentEffectivePrice) * item.quantity : 0), 0
+  );
+  
+  // Calculate discount if promo is applied
+  const discountAmount = promoDiscount ? (subtotal * promoDiscount) / 100 : 0;
+  
+  // Calculate final total
+  const total = subtotal + attributesTotal + deliveryFee + taxAmount + mandatoryCharges + optionalCharges - discountAmount;
+  
+  return {
+    subtotal,
+    attributesTotal,
+    deliveryFee,
+    taxAmount,
+    taxRate,
+    mandatoryCharges,
+    optionalCharges,
+    discountAmount,
+    totalSavings,
+    total
+  };
 };
 
 interface ApiError {
@@ -158,12 +255,17 @@ interface OrderConfirmationModalProps {
   };
 }
 
-// Helper for safe item total calculation
-function getItemTotal(item: CartItemType): number {
-  if (typeof item.itemTotal === 'number') return item.itemTotal;
-  if (isPriceObject(item.price)) return item.price.total * item.quantity;
-  if (typeof item.price === 'number') return item.price * item.quantity;
-  return 0;
+interface OrderConfirmationModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onConfirm: () => void;
+  isLoading: boolean;
+  orderDetails: {
+    items: CartItemType[];
+    total: number;
+    address: string;
+    deliveryTime: string;
+  };
 }
 
 const OrderConfirmationModal: React.FC<OrderConfirmationModalProps> = ({
@@ -198,7 +300,7 @@ const OrderConfirmationModal: React.FC<OrderConfirmationModalProps> = ({
                 <span>
                   {item.quantity}x {item.name}
                 </span>
-                <span>{formatCurrency(getItemTotal(item))}</span>
+                <span>{formatCurrency(item.price.total * item.quantity)}</span>
               </div>
             ))}
           </div>
@@ -331,66 +433,25 @@ const CheckoutPage = () => {
           throw new Error("Failed to fetch cart data");
         }
 
-        const cartData = cartResponse.data.data;
+        const cartData: CartData = cartResponse.data.data;
 
-        // Then calculate service charges
-        let serviceCharges = {
-          totalMandatory: 0,
-          totalOptional: 0,
-          totalAll: 0,
-          breakdown: [],
+        // Get service charges from cart response
+        const serviceCharges = {
+          totalMandatory: cartData.serviceCharges?.totalMandatory || 0,
+          totalOptional: cartData.serviceCharges?.totalOptional || 0,
+          totalAll: cartData.serviceCharges?.totalAll || 0,
+          breakdown: cartData.serviceCharges?.breakdown || [],
         };
 
-        // Get deliveryMethod from localStorage and determine orderType
-        const deliveryMethod = localStorage.getItem("deliveryMethod");
-        let orderType = "dine_in"; // default value
-
-        if (deliveryMethod === "deliver") {
-          orderType = "delivery";
-        } else if (deliveryMethod === "collect") {
-          orderType = "pickup";
-        }
-
-        if (selectedBranch?.id) {
-          try {
-            const serviceChargeResponse = await axios.post(
-              "/api/settings/service-charges/calculate",
-              {
-                branchId: selectedBranch.id,
-                orderType,
-                orderTotal: cartData.subtotal,
-                includeOptional: true,
-              },
-              { headers }
-            );
-
-            if (serviceChargeResponse.data?.success) {
-              serviceCharges = serviceChargeResponse.data.data;
-            }
-          } catch (error) {
-            console.error("Error calculating service charges:", error);
-            toast.error(
-              "Failed to calculate service charges. Please try again."
-            );
-          }
-        }
-
-        // Calculate final total including all charges
-        const subtotal = cartData.subtotal || 0;
-        const deliveryFee = cartData.deliveryFee || 0;
-        const mandatoryCharges = serviceCharges.totalMandatory || 0;
-        const optionalCharges = serviceCharges.totalOptional || 0;
-        const taxRate = cartData.taxRate || 0; // Get tax rate from response
-        const taxAmount = (subtotal * taxRate) / 100;
-        const total =
-          subtotal + deliveryFee + mandatoryCharges + optionalCharges + taxAmount;
+        // Calculate all totals
+        const totals = calculateOrderTotals(cartData, cartItems, appliedPromo?.discount);
 
         setCartSummary({
-          subtotal,
-          deliveryFee,
-          total,
-          itemCount: cartData.itemCount || 0,
-          taxRate,
+          subtotal: totals.subtotal,
+          deliveryFee: totals.deliveryFee,
+          total: totals.total,
+          itemCount: cartData.itemCount || cartItems.length,
+          taxRate: totals.taxRate,
           serviceCharges,
         });
       } catch (error) {
@@ -402,7 +463,7 @@ const CheckoutPage = () => {
     };
 
     fetchCartSummary();
-  }, [isAuthenticated, token, sessionId, cartItems, selectedBranch?.id]);
+  }, [isAuthenticated, token, sessionId, cartItems, selectedBranch?.id, appliedPromo?.discount]);
 
   // Check authentication
   React.useEffect(() => {
@@ -422,6 +483,18 @@ const CheckoutPage = () => {
     email: user?.email || "",
   });
 
+  // Update personal details when user data changes
+  useEffect(() => {
+    if (user) {
+      setPersonalDetails({
+        firstName: user.firstName || "",
+        lastName: user.lastName || "",
+        phone: user.phone || "",
+        email: user.email || "",
+      });
+    }
+  }, [user]);
+
   // Update the delivery address state initialization
   const [deliveryAddress, setDeliveryAddress] = useState<Address>({
     street: user?.address?.street || "",
@@ -430,6 +503,19 @@ const CheckoutPage = () => {
     zipCode: user?.address?.zipCode || "",
     country: "GB",
   });
+
+  // Update delivery address when user data changes
+  useEffect(() => {
+    if (user?.address) {
+      setDeliveryAddress({
+        street: user.address.street || "",
+        city: user.address.city || "",
+        state: user.address.state || "",
+        zipCode: user.address.zipCode || "",
+        country: user.address.country || "GB",
+      });
+    }
+  }, [user]);
 
   // Handle address search
   const handleAddressSearch = (query: string) => {
@@ -905,7 +991,7 @@ const CheckoutPage = () => {
                 </h2>
               </div>
               <div className="p-4">
-                <div className="space-y-3 max-h-[300px] overflow-y-auto">
+                <div className="space-y-3 max-h-[300px] ">
                   {cartItems.map((item) => (
                     <div
                       key={item.id}
@@ -942,24 +1028,29 @@ const CheckoutPage = () => {
                         <p className="text-sm text-gray-500 mt-0.5">
                           Qty: {item.quantity}
                         </p>
-                        {/* Price breakdown if attributes price > 0 and price is object */}
-                        {isPriceObject(item.price) && item.price.attributes > 0 && (
-                          <div className="mt-1 text-xs text-gray-500">
-                            <span>
-                              <span className="font-semibold">Base:</span> {formatCurrency(item.price.base)}
-                            </span>
-                            <span className="mx-1">+</span>
-                            <span>
-                              <span className="font-semibold">Attributes:</span> {formatCurrency(item.price.attributes)}
-                            </span>
-                            <span className="mx-1">=</span>
-                            <span className="font-semibold">{formatCurrency(item.price.total)}</span>
+                        {isPriceObject(item.price) && (
+                          <div className="mt-1 space-y-1">
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm font-medium text-gray-900">
+                                {formatCurrency(item.price.currentEffectivePrice)}
+                              </span>
+                              {item.price.base !== item.price.currentEffectivePrice && (
+                                <span className="text-xs line-through text-gray-400">
+                                  {formatCurrency(item.price.base)}
+                                </span>
+                              )}
+                            </div>
+                            {item.price.attributes > 0 && (
+                              <div className="text-xs text-gray-500">
+                                + {formatCurrency(item.price.attributes)} (add-ons)
+                              </div>
+                            )}
                           </div>
                         )}
                       </div>
                       <div className="text-right">
                         <p className="font-medium text-gray-900">
-                          {formatCurrency(getItemTotal(item))}
+                          {formatCurrency(item.price.total * item.quantity)}
                         </p>
                       </div>
                     </div>
@@ -1103,61 +1194,118 @@ const CheckoutPage = () => {
                 </div>
                 <div className="p-4">
                   <div className="space-y-3 mb-4">
-                    <div className="flex justify-between text-sm items-center text-gray-600">
-                      <span>Subtotal</span>
-                      <span>{formatCurrency(cartSummary.subtotal)}</span>
+                    {/* Base Total */}
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-600">Items Subtotal</span>
+                      <span className="font-medium">
+                        {formatCurrency(cartItems.reduce((total, item) => 
+                          total + (isPriceObject(item.price) ? item.price.currentEffectivePrice * item.quantity : 0), 0
+                        ))}
+                      </span>
                     </div>
-                    <div className="flex justify-between text-sm items-center text-gray-600">
-                      <span>Delivery Fee</span>
+
+                    {/* Attributes Total */}
+                    {cartItems.some(item => isPriceObject(item.price) && item.price.attributes > 0) && (
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-600">Add-ons Total</span>
+                        <span className="font-medium">
+                          {formatCurrency(cartItems.reduce((total, item) => 
+                            total + (isPriceObject(item.price) ? item.price.attributes * item.quantity : 0), 0
+                          ))}
+                        </span>
+                      </div>
+                    )}
+
+                    {/* Delivery Fee */}
+                    <div className="flex justify-between text-sm items-center">
+                      <span className="text-gray-600">Delivery Fee</span>
                       {cartSummary.deliveryFee === 0 ? (
                         <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
                           Free
                         </span>
                       ) : (
-                        <span>{formatCurrency(cartSummary.deliveryFee)}</span>
+                        <span className="font-medium">
+                          {formatCurrency(cartSummary.deliveryFee)}
+                        </span>
                       )}
                     </div>
 
-                    {/* Tax Rate Display - Only show if tax data is available */}
-                    {cartSummary.taxRate > 0 && (
-                      <div className="flex justify-between text-sm text-gray-600">
-                        <span>Tax ({cartSummary.taxRate}%)</span>
-                        <span>{formatCurrency((cartSummary.subtotal * cartSummary.taxRate) / 100)}</span>
-                      </div>
-                    )}
-
                     {/* Service Charges */}
-                    {cartSummary.serviceCharges.breakdown.length > 0 && (
-                      <div className="flex justify-between text-sm font-medium text-gray-700 pt-1">
-                        <span>Service Charge</span>
-                        <span>{formatCurrency(cartSummary.serviceCharges.totalAll)}</span>
+                    {cartSummary.serviceCharges.totalMandatory > 0 && (
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-600">Service Charge (Mandatory)</span>
+                        <span className="font-medium">
+                          {formatCurrency(cartSummary.serviceCharges.totalMandatory)}
+                        </span>
                       </div>
                     )}
 
+                    {cartSummary.serviceCharges.totalOptional > 0 && (
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-600">Service Charge (Optional)</span>
+                        <span className="font-medium">
+                          {formatCurrency(cartSummary.serviceCharges.totalOptional)}
+                        </span>
+                      </div>
+                    )}
+
+                    {/* Tax */}
+                    {cartSummary.taxRate > 0 && (
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-600">Tax ({cartSummary.taxRate}%)</span>
+                        <span className="font-medium">
+                          {formatCurrency((cartSummary.subtotal * cartSummary.taxRate) / 100)}
+                        </span>
+                      </div>
+                    )}
+
+                    {/* Total Savings */}
+                    {cartItems.some(item => isPriceObject(item.price) && item.price.base > item.price.currentEffectivePrice) && (
+                      <div className="flex justify-between text-sm text-green-600">
+                        <span>Total Savings</span>
+                        <span className="font-medium">
+                          {formatCurrency(cartItems.reduce((total, item) => 
+                            total + (isPriceObject(item.price) ? 
+                              (item.price.base - item.price.currentEffectivePrice) * item.quantity : 0), 0
+                          ))}
+                        </span>
+                      </div>
+                    )}
+
+                    {/* Promo Discount */}
                     {appliedPromo && (
                       <div className="flex justify-between text-sm text-green-600">
-                        <span>Discount ({appliedPromo.discount}%)</span>
+                        <span>Promo Discount ({appliedPromo.discount}%)</span>
                         <span>
-                          -
-                          {formatCurrency(
-                            (cartSummary.subtotal * appliedPromo.discount) / 100
-                          )}
+                          -{formatCurrency((cartSummary.subtotal * appliedPromo.discount) / 100)}
                         </span>
                       </div>
                     )}
 
+                    {/* Final Total */}
                     <div className="border-t pt-3">
-                      <div className="flex justify-between font-semibold">
-                        <span>Total</span>
-                        <span className="text-green-600">
-                          {formatCurrency(
-                            cartSummary.total -
-                              (appliedPromo
-                                ? (cartSummary.subtotal * appliedPromo.discount) /
-                                  100
-                                : 0)
+                      <div className="flex justify-between">
+                        <span className="font-semibold">Total</span>
+                        <div className="text-right">
+                          <span className="text-green-600 text-lg font-bold">
+                            {formatCurrency(
+                              cartItems.reduce((total, item) => 
+                                total + (isPriceObject(item.price) ? item.price.total * item.quantity : 0), 0
+                              ) + cartSummary.deliveryFee + 
+                              (cartSummary.serviceCharges?.totalAll || 0) +
+                              ((cartSummary.subtotal * cartSummary.taxRate) / 100) -
+                              (appliedPromo ? (cartSummary.subtotal * appliedPromo.discount) / 100 : 0)
+                            )}
+                          </span>
+                          {cartItems.some(item => isPriceObject(item.price) && item.price.base > item.price.currentEffectivePrice) && (
+                            <div className="text-xs text-green-600 font-medium">
+                              You saved {formatCurrency(cartItems.reduce((total, item) => 
+                                total + (isPriceObject(item.price) ? 
+                                  (item.price.base - item.price.currentEffectivePrice) * item.quantity : 0), 0
+                              ))}!
+                            </div>
                           )}
-                        </span>
+                        </div>
                       </div>
                     </div>
                   </div>

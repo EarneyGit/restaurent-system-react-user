@@ -12,7 +12,28 @@ import { useNavigate } from 'react-router-dom';
 const DELIVERY_FEE = 5.00;
 const TAX_RATE = 0.10;
 
-export interface CartItem extends Product {
+export interface PriceStructure {
+  base: number;
+  currentEffectivePrice: number;
+  attributes: number;
+  total: number;
+}
+
+interface SelectedAttributeItem {
+  itemId: string;
+  itemName: string;
+  itemPrice: number;
+  quantity: number;
+}
+
+interface SelectedAttribute {
+  attributeId: string;
+  attributeName: string;
+  attributeType: string;
+  selectedItems: SelectedAttributeItem[];
+}
+
+export interface CartItem extends Omit<Product, 'price'> {
   quantity: number;
   selectedOptions?: Record<string, string>;
   specialRequirements?: string;
@@ -20,6 +41,8 @@ export interface CartItem extends Product {
   branchId: string;
   productId?: string;
   itemTotal?: number;
+  price: PriceStructure;
+  selectedAttributes?: SelectedAttribute[];
 }
 
 interface BranchCart {
@@ -314,20 +337,8 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const getCartTotal = () => {
     if (!selectedBranch) return 0;
     return cartItems.reduce((total, item) => {
-      let itemTotal = item.price * item.quantity;
-      // Add option prices
-      if (item.selectedOptions && item.attributes) {
-        item.attributes.forEach(attr => {
-          const selectedChoiceId = item.selectedOptions?.[attr.id];
-          if (selectedChoiceId) {
-            const choice = attr.choices.find(c => c.id === selectedChoiceId);
-            if (choice) {
-              itemTotal += choice.price * item.quantity;
-            }
-          }
-        });
-      }
-      return total + itemTotal;
+      // Use the total from price object and multiply by quantity
+      return total + (item.price.total * item.quantity);
     }, 0);
   };
 
