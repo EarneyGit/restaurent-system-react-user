@@ -12,7 +12,7 @@ const RegisterCompletePage = () => {
   const location = useLocation();
 
   // Get user details from location state
-  const { email, name, token, type = 'register' } = location.state || {};
+  const { email, firstName, lastName, token, type = 'register' } = location.state || {};
 
   // Redirect if missing required data
   React.useEffect(() => {
@@ -52,7 +52,8 @@ const RegisterCompletePage = () => {
       try {
         const response = await axios.post(AUTH_ENDPOINTS.REGISTER, {
           email,
-          name,
+          firstName,
+          lastName,
           token,
           password: values.password,
           phone: values.phone,

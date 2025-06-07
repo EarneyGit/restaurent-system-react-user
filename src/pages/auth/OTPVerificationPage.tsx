@@ -14,7 +14,7 @@ const OTPVerificationPage = () => {
   const [countdown, setCountdown] = useState(0);
 
   // Get email, name and type from location state
-  const { email, name, type = 'register' } = location.state || {};
+  const { email, firstName, lastName, type = 'register' } = location.state || {};
 
   // Handle countdown for resend button
   useEffect(() => {
@@ -60,7 +60,8 @@ const OTPVerificationPage = () => {
             navigate('/register/complete', {
               state: {
                 email,
-                name,
+                firstName,
+                lastName,
                 token: verifyResponse.data.token,
                 type: 'register'
               }

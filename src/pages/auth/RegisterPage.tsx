@@ -10,9 +10,12 @@ const RegisterPage = () => {
   const navigate = useNavigate();
 
   const validationSchema = Yup.object({
-    name: Yup.string()
-      .min(2, "Name must be at least 2 characters")
-      .required("Name is required"),
+    firstName: Yup.string()
+      .min(2, "First name must be at least 2 characters")
+      .required("First name is required"),
+    lastName: Yup.string()
+      .min(2, "Last name must be at least 2 characters")
+      .required("Last name is required"),
     email: Yup.string()
       .email("Invalid email address")
       .required("Email is required"),
@@ -20,7 +23,8 @@ const RegisterPage = () => {
 
   const formik = useFormik({
     initialValues: {
-      name: "",
+      firstName: "",
+      lastName: "",
       email: "",
     },
     validationSchema,
@@ -37,7 +41,8 @@ const RegisterPage = () => {
           navigate("/register/verify", {
             state: {
               email: values.email,
-              name: values.name,
+              firstName: values.firstName,
+              lastName: values.lastName,
               type: 'register'
             },
           });
@@ -85,25 +90,50 @@ const RegisterPage = () => {
           <form onSubmit={formik.handleSubmit} className="space-y-6">
             <div>
               <label
-                htmlFor="name"
+                htmlFor="firstName"
                 className="block text-xs uppercase font-medium text-gray-500 mb-2"
               >
-                Full Name
+                First Name
               </label>
               <input
-                id="name"
+                id="firstName"
                 type="text"
-                {...formik.getFieldProps("name")}
+                {...formik.getFieldProps("firstName")}
                 className={`mt-1 block w-full border ${
-                  formik.touched.name && formik.errors.name
+                  formik.touched.firstName && formik.errors.firstName
                     ? "border-red-500"
                     : "border-gray-300"
                 } rounded-md shadow-sm py-3 px-3 focus:outline-none focus:ring-foodyman-lime focus:border-foodyman-lime sm:text-sm`}
-                placeholder="Enter your full name"
+                placeholder="Enter your first name"
               />
-              {formik.touched.name && formik.errors.name && (
+                {formik.touched.firstName && formik.errors.firstName && (
                 <div className="text-red-500 text-xs mt-1">
-                  {formik.errors.name}
+                  {formik.errors.firstName}
+                </div>
+              )}
+            </div>
+
+            <div>
+              <label
+                htmlFor="lastName"
+                className="block text-xs uppercase font-medium text-gray-500 mb-2"
+              >
+                Last Name
+              </label>
+              <input
+                id="lastName"
+                type="text"
+                {...formik.getFieldProps("lastName")}
+                className={`mt-1 block w-full border ${
+                  formik.touched.lastName && formik.errors.lastName
+                    ? "border-red-500"
+                    : "border-gray-300"
+                } rounded-md shadow-sm py-3 px-3 focus:outline-none focus:ring-foodyman-lime focus:border-foodyman-lime sm:text-sm`}
+                placeholder="Enter your last name"
+              />
+              {formik.touched.lastName && formik.errors.lastName && (
+                <div className="text-red-500 text-xs mt-1">
+                  {formik.errors.lastName}
                 </div>
               )}
             </div>
