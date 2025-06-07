@@ -36,7 +36,7 @@ const LoginPage = () => {
 
   // Get the redirect path from state or localStorage
   const redirectPath =
-    location.state?.from || localStorage.getItem("returnUrl") || "/app";
+    location.state?.from || localStorage.getItem("returnUrl") || "/";
   const isCheckoutRedirect = redirectPath.includes("/checkout");
 
   // Clear returnUrl from localStorage after reading it
@@ -100,7 +100,7 @@ const LoginPage = () => {
     localStorage.setItem("isGuest", "true");
 
     // Force reload the page to ensure all contexts are properly initialized
-    window.location.href = redirectPath;
+    navigate(redirectPath, { replace: true });
   };
 
   return (
