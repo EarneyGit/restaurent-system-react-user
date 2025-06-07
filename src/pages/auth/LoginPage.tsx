@@ -1,12 +1,12 @@
-import React, { useState, useEffect } from 'react';
-import crypto from 'crypto';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { Eye, EyeOff, UserCircle2 } from 'lucide-react';
-import { useFormik } from 'formik';
-import * as Yup from 'yup';
-import { toast } from 'sonner';
-import { useAuth } from '@/context/AuthContext';
-import { useGuestCart } from '@/context/GuestCartContext';
+import React, { useState, useEffect } from "react";
+import { v4 as uuidv4 } from "uuid";
+import { Link, useNavigate, useLocation } from "react-router-dom";
+import { Eye, EyeOff, UserCircle2 } from "lucide-react";
+import { useFormik } from "formik";
+import * as Yup from "yup";
+import { toast } from "sonner";
+import { useAuth } from "@/context/AuthContext";
+import { useGuestCart } from "@/context/GuestCartContext";
 
 interface LoginFormValues {
   email: string;
@@ -35,27 +35,28 @@ const LoginPage = () => {
   const { mergeGuestCart, sessionId } = useGuestCart();
 
   // Get the redirect path from state or localStorage
-  const redirectPath = location.state?.from || localStorage.getItem('returnUrl') || '/app';
-  const isCheckoutRedirect = redirectPath.includes('/checkout');
+  const redirectPath =
+    location.state?.from || localStorage.getItem("returnUrl") || "/app";
+  const isCheckoutRedirect = redirectPath.includes("/checkout");
 
   // Clear returnUrl from localStorage after reading it
   useEffect(() => {
-    localStorage.removeItem('returnUrl');
+    localStorage.removeItem("returnUrl");
   }, []);
 
   const validationSchema = Yup.object({
     email: Yup.string()
-      .email('Invalid email address')
-      .required('Email is required'),
+      .email("Invalid email address")
+      .required("Email is required"),
     password: Yup.string()
-      .min(6, 'Password must be at least 6 characters')
-      .required('Password is required'),
+      .min(6, "Password must be at least 6 characters")
+      .required("Password is required"),
   });
 
   const formik = useFormik<LoginFormValues>({
     initialValues: {
-      email: '',
-      password: '',
+      email: "",
+      password: "",
       rememberMe: false,
     },
     validationSchema,
@@ -64,40 +65,40 @@ const LoginPage = () => {
         formik.setSubmitting(true);
         const response = await login(values.email, values.password);
         const result = response as unknown as LoginResponse;
-        
+
         // If there's a guest cart, merge it
         if (sessionId && result?.token) {
           try {
             await mergeGuestCart(result.token);
           } catch (error) {
-            console.error('Error merging guest cart:', error);
-            toast.error('Failed to merge guest cart');
+            console.error("Error merging guest cart:", error);
+            toast.error("Failed to merge guest cart");
           }
         }
-        
+
         // After successful login, navigate to the redirect path
         navigate(redirectPath, { replace: true });
       } catch (error) {
-        console.error('Login error:', error);
-        toast.error('Login failed. Please check your credentials.');
+        console.error("Login error:", error);
+        toast.error("Login failed. Please check your credentials.");
       } finally {
         formik.setSubmitting(false);
       }
-    }
+    },
   });
 
   const handleGuestCheckout = (e: React.MouseEvent) => {
     e.preventDefault();
-    
+
     // Clear any existing auth data to ensure clean guest state
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+
     // Generate a new session ID for guest user if not exists
-    const guestSessionId = crypto.randomUUID();
-    localStorage.setItem('guestSessionId', guestSessionId);
-    localStorage.setItem('isGuest', 'true');
-    
+    const guestSessionId = uuidv4();
+    localStorage.setItem("guestSessionId", guestSessionId);
+    localStorage.setItem("isGuest", "true");
+
     // Force reload the page to ensure all contexts are properly initialized
     window.location.href = redirectPath;
   };
@@ -120,48 +121,61 @@ const LoginPage = () => {
 
         {/* Login Form */}
         <div className="flex-grow flex flex-col justify-center max-w-md mx-auto w-full">
-          <h1 className="text-3xl font-medium text-gray-900 mb-2">Welcome back</h1>
+          <h1 className="text-3xl font-medium text-gray-900 mb-2">
+            Welcome back
+          </h1>
           <p className="text-gray-600 mb-8">
-            Don't have an account?{' '}
-            <Link to="/register" className="text-foodyman-lime hover:text-foodyman-lime/70 transition-colors">
+            Don't have an account?{" "}
+            <Link
+              to="/register"
+              className="text-foodyman-lime hover:text-foodyman-lime/70 transition-colors"
+            >
               Sign up
             </Link>
           </p>
 
           <form onSubmit={formik.handleSubmit} className="space-y-6">
             <div>
-              <label htmlFor="email" className="block text-xs uppercase font-medium text-gray-500 mb-2">
+              <label
+                htmlFor="email"
+                className="block text-xs uppercase font-medium text-gray-500 mb-2"
+              >
                 Email or phone
               </label>
               <input
                 id="email"
                 type="text"
-                {...formik.getFieldProps('email')}
+                {...formik.getFieldProps("email")}
                 className={`w-full border ${
                   formik.touched.email && formik.errors.email
-                    ? 'border-red-500'
-                    : 'border-gray-300'
+                    ? "border-red-500"
+                    : "border-gray-300"
                 } rounded-md p-3 focus:outline-none focus:ring-2 focus:ring-foodyman-lime focus:border-transparent`}
                 placeholder="Type here"
               />
               {formik.touched.email && formik.errors.email && (
-                <div className="text-red-500 text-sm mt-1">{formik.errors.email}</div>
+                <div className="text-red-500 text-sm mt-1">
+                  {formik.errors.email}
+                </div>
               )}
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-xs uppercase font-medium text-gray-500 mb-2">
+              <label
+                htmlFor="password"
+                className="block text-xs uppercase font-medium text-gray-500 mb-2"
+              >
                 Password
               </label>
               <div className="relative">
                 <input
                   id="password"
-                  type={showPassword ? 'text' : 'password'}
-                  {...formik.getFieldProps('password')}
+                  type={showPassword ? "text" : "password"}
+                  {...formik.getFieldProps("password")}
                   className={`w-full border ${
                     formik.touched.password && formik.errors.password
-                      ? 'border-red-500'
-                      : 'border-gray-300'
+                      ? "border-red-500"
+                      : "border-gray-300"
                   } rounded-md p-3 pr-10 focus:outline-none focus:ring-2 focus:ring-foodyman-lime focus:border-transparent`}
                   placeholder="Type here"
                 />
@@ -174,7 +188,9 @@ const LoginPage = () => {
                 </button>
               </div>
               {formik.touched.password && formik.errors.password && (
-                <div className="text-red-500 text-sm mt-1">{formik.errors.password}</div>
+                <div className="text-red-500 text-sm mt-1">
+                  {formik.errors.password}
+                </div>
               )}
             </div>
 
@@ -182,12 +198,17 @@ const LoginPage = () => {
               <label className="flex items-center">
                 <input
                   type="checkbox"
-                  {...formik.getFieldProps('rememberMe')}
+                  {...formik.getFieldProps("rememberMe")}
                   className="w-4 h-4 border-gray-300 rounded bg-green-600 text-white"
                 />
-                <span className="ml-2 text-sm text-gray-600">Keep me logged in</span>
+                <span className="ml-2 text-sm text-gray-600">
+                  Keep me logged in
+                </span>
               </label>
-              <Link to="/forgot-password" className="text-sm text-gray-600 hover:text-foodyman-lime transition-colors">
+              <Link
+                to="/forgot-password"
+                className="text-sm text-gray-600 hover:text-foodyman-lime transition-colors"
+              >
                 Forgot password
               </Link>
             </div>
@@ -198,7 +219,7 @@ const LoginPage = () => {
                 disabled={formik.isSubmitting}
                 className="w-full bg-foodyman-lime text-white font-medium py-3 rounded-md hover:bg-foodyman-lime/70 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
               >
-                {formik.isSubmitting ? 'Logging in...' : 'Login'}
+                {formik.isSubmitting ? "Logging in..." : "Login"}
               </button>
 
               <button
@@ -229,8 +250,8 @@ const LoginPage = () => {
               Welcome Back to Restroman
             </h2>
             <p className="text-white/90 text-lg mb-8">
-              Log in to your account to access your favorite restaurants, track orders,
-              and enjoy exclusive member benefits.
+              Log in to your account to access your favorite restaurants, track
+              orders, and enjoy exclusive member benefits.
             </p>
           </div>
         </div>
@@ -239,4 +260,4 @@ const LoginPage = () => {
   );
 };
 
-export default LoginPage; 
+export default LoginPage;

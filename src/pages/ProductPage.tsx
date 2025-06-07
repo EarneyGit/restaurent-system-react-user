@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import crypto from 'crypto';
+import { v4 as uuidv4 } from 'uuid';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import axios from '@/config/axios.config';
 import { useCart } from '@/context/CartContext';
@@ -69,7 +69,7 @@ const ProductPage = () => {
     if (!isAuthenticated && !hasGuestSession) {
       // Initialize guest session instead of redirecting to login
       localStorage.setItem('isGuest', 'true');
-      const newSessionId = crypto.randomUUID();
+      const newSessionId = uuidv4();
       localStorage.setItem('guestSessionId', newSessionId);
       // No need to store return URL or redirect
     }
