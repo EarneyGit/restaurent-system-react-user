@@ -51,7 +51,7 @@ const CategoryItem: React.FC<CategoryProps> = ({
         .join('/');
       
       // Construct the full URL
-      return `http://localhost:5000/${encodedUrl}`;
+      return `${import.meta.env.VITE_API_URL}/${encodedUrl}`;
     } catch (error) {
       console.error('Error processing image URL:', error);
       return null;

@@ -123,7 +123,8 @@ const OrdersPage = () => {
     const fetchBranches = async () => {
       try {
         setIsLoadingBranches(true);
-        const response = await axios.get("http://localhost:5000/api/branches");
+        const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+        const response = await axios.get(`${API_URL}/api/branches`);
         if (response.data?.success) {
           setAvailableBranches(response.data.data);
         }
