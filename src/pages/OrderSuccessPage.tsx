@@ -12,16 +12,10 @@ import {
   ShoppingBag
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
-import { initializeSocket, subscribeToOrderUpdates, joinBranchRoom, leaveBranchRoom } from "@/utils/socket";
+import { initializeSocket, subscribeToOrderUpdates, joinBranchRoom, leaveBranchRoom, OrderUpdate } from "@/utils/socket";
 import axios from "@/config/axios.config";
 import { toast } from "sonner";
-
-interface OrderStatus {
-  received: boolean;
-  preparing: boolean;
-  onTheWay: boolean;
-  delivered: boolean;
-}
+import { OrderStatus, OrderStatusType, ORDER_STATUS_STEPS } from "@/types/order.types";
 
 interface OrderProduct {
   id: string;
@@ -67,36 +61,11 @@ interface OrderDetails {
     _id: string;
     name: string;
   };
-  status: string;
+  status: OrderStatusType;
   createdAt: string;
 }
 
-const statusSteps = [
-  {
-    status: "pending",
-    label: "Order Pending",
-    icon: Check,
-    description: "We've received your order and it's being reviewed"
-  },
-  {
-    status: "preparing",
-    label: "Preparing",
-    icon: ChefHat,
-    description: "Our chefs are preparing your delicious meal"
-  },
-  {
-    status: "on_the_way",
-    label: "On the Way",
-    icon: Bike,
-    description: "Your order is on its way to you"
-  },
-  {
-    status: "delivered",
-    label: "Delivered",
-    icon: MapPin,
-    description: "Your order has been delivered. Enjoy!"
-  }
-];
+const statusSteps = ORDER_STATUS_STEPS;
 
 const OrderSuccessPage = () => {
   const location = useLocation();
@@ -106,16 +75,16 @@ const OrderSuccessPage = () => {
   const [orderDetails, setOrderDetails] = useState<OrderDetails | undefined>(location.state?.orderDetails);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<{ message: string; requiresAuth?: boolean } | null>(null);
-  const [currentStatus, setCurrentStatus] = useState<string>("pending");
+  const [currentStatus, setCurrentStatus] = useState<OrderStatusType>(OrderStatus.PENDING);
 
   // Add auto-update timer
   useEffect(() => {
     let timer: NodeJS.Timeout;
     
-    if (orderDetails && !['delivered', 'cancelled'].includes(orderDetails.status)) {
+    if (orderDetails && ![OrderStatus.COMPLETED, OrderStatus.CANCELLED].includes(orderDetails.status as OrderStatus)) {
       timer = setInterval(() => {
         fetchOrderDetails();
-      }, 30000); // Check every 30 seconds
+      }, 30000);
     }
 
     return () => {
@@ -232,7 +201,7 @@ const OrderSuccessPage = () => {
 
       console.log('Socket initialized, joining branch room:', orderDetails.branchId._id);
 
-      const unsubscribe = subscribeToOrderUpdates((data) => {
+      const unsubscribe = subscribeToOrderUpdates((data: OrderUpdate) => {
         console.log('Socket update received:', data);
         
         if (data.orderId === orderId) {
@@ -253,15 +222,15 @@ const OrderSuccessPage = () => {
   }, [orderDetails?.branchId?._id, orderId]);
 
   // Helper function to determine if a step is active
-  const isStepActive = (stepStatus: string) => {
-    const statusOrder = ['pending', 'preparing', 'on_the_way', 'delivered'];
+  const isStepActive = (stepStatus: OrderStatusType) => {
+    const statusOrder: OrderStatusType[] = [OrderStatus.PENDING, OrderStatus.PROCESSING, OrderStatus.COMPLETED];
     const currentIndex = statusOrder.indexOf(currentStatus);
     const stepIndex = statusOrder.indexOf(stepStatus);
     return stepIndex <= currentIndex;
   };
 
   // Helper function to get step status class
-  const getStepStatusClass = (stepStatus: string) => {
+  const getStepStatusClass = (stepStatus: OrderStatusType) => {
     if (currentStatus === stepStatus) return 'bg-green-600 text-white animate-pulse';
     if (isStepActive(stepStatus)) return 'bg-green-600 text-white';
     return 'bg-gray-100 text-gray-400';
@@ -360,7 +329,12 @@ const OrderSuccessPage = () => {
               </p>
               <div className="mt-4 inline-flex items-center px-4 py-2 rounded-full bg-green-50 text-green-700">
                 <span className="font-medium">Current Status: </span>
-                <span className="ml-2 capitalize">{currentStatus.replace(/_/g, ' ')}</span>
+                <span className="ml-2 capitalize">
+                  {currentStatus === OrderStatus.COMPLETED ? "Completed" :
+                   currentStatus === OrderStatus.PROCESSING ? "Processing" :
+                   currentStatus === OrderStatus.PENDING ? "Pending" :
+                   currentStatus === OrderStatus.CANCELLED ? "Cancelled" : currentStatus}
+                </span>
               </div>
               {orderDetails?.estimatedTimeToComplete && (
                 <div className="mt-4 bg-green-50 rounded-lg p-3">
@@ -372,16 +346,16 @@ const OrderSuccessPage = () => {
             </div>
 
             <div className="space-y-8">
-              {statusSteps.map(({ status, label, icon: Icon, description }) => (
+              {statusSteps.map(({ status, label, icon: Icon, description }, idx) => (
                 <div key={status} className="relative">
-                  {status !== 'delivered' && (
-                    <div 
+                  {/* Only render the vertical line if not the last step */}
+                  {idx < statusSteps.length - 1 && (
+                    <div
                       className={`absolute left-5 top-10 w-0.5 h-16 transition-colors duration-300 ${
                         isStepActive(status) ? 'bg-green-500' : 'bg-gray-200'
-                      }`} 
+                      }`}
                     />
                   )}
-                  
                   <div className="flex items-start gap-4">
                     <div
                       className={`relative z-10 w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 ${
@@ -406,7 +380,7 @@ const OrderSuccessPage = () => {
                       )}
                     </div>
                     {isStepActive(status) && (
-                      <motion.div 
+                      <motion.div
                         initial={{ scale: 0 }}
                         animate={{ scale: 1 }}
                         className="text-green-600"

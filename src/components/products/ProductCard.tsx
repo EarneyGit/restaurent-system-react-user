@@ -17,6 +17,30 @@ interface ProductCardProps {
   isOutletAvailable?: boolean;
 }
 
+interface PriceChange {
+  _id: string;
+  tempPrice: number;
+  originalPrice: number;
+  endDate: string;
+  active: boolean;
+}
+
+const getActivePriceChange = (priceChanges?: PriceChange[]): PriceChange | null => {
+  if (!priceChanges?.length) return null;
+  const now = new Date();
+  return priceChanges.find(change => 
+    change.active && 
+    new Date(change.endDate) > now
+  ) || null;
+};
+
+const getDaysLeft = (endDate: string): number => {
+  const now = new Date();
+  const end = new Date(endDate);
+  const diffTime = end.getTime() - now.getTime();
+  return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+};
+
 const VariantPlaceholderSVG = ({ color }: { color: string }) => (
   <svg
     viewBox="0 0 40 40"
@@ -54,6 +78,9 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, isOutletAvailable = 
   const navigate = useNavigate();
   const [isBranchAvailable, setIsBranchAvailable] = useState<boolean>(true);
 
+  const activePriceChange = getActivePriceChange(product.priceChanges);
+  const daysLeft = activePriceChange ? getDaysLeft(activePriceChange.endDate) : 0;
+
   useEffect(() => {
     const checkBranchAvailability = async () => {
       if (selectedBranch?.id) {
@@ -86,7 +113,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, isOutletAvailable = 
 
   // Get the API URL from environment variable and ensure it ends with a slash
   const API_URL = (
-    import.meta.env.VITE_API_URL || "http://localhost:5000"
+    import.meta.env.VITE_API_URL || "http://82.25.104.117:5001"
   ).replace(/\/?$/, "/");
 
   const getImageUrl = (url: string | undefined): string | null => {
@@ -314,13 +341,16 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, isOutletAvailable = 
             {product?.description}
           </p>
           <div className="flex items-baseline gap-2 mt-1">
-            {product.currentEffectivePrice !== undefined && product.currentEffectivePrice !== product.price ? (
+            {activePriceChange ? (
               <>
                 <span className="font-bold text-lg text-black">
-                  {formatPrice(product.currentEffectivePrice)}
+                  {formatPrice(activePriceChange.tempPrice)}
                 </span>
                 <span className="text-sm text-gray-400 line-through">
-                  {formatPrice(product.price)}
+                  {formatPrice(activePriceChange.originalPrice)}
+                </span>
+                <span className="text-xs text-green-600 font-medium">
+                  {daysLeft} {daysLeft === 1 ? 'day' : 'days'} left
                 </span>
               </>
             ) : (

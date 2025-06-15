@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import {
   MapPin,
@@ -20,6 +20,7 @@ import axios from "@/config/axios.config";
 import { CartItem as CartItemType } from "@/context/CartContext";
 import { CART_ENDPOINTS, ORDER_ENDPOINTS, BASE_URL } from "@/config/api.config";
 import { useGuestCart } from "@/context/GuestCartContext";
+import { Address, searchAddresses } from "@/data/addresses";
 
 // Update the NoImage component to be more cart-friendly
 const NoImage = () => (
@@ -89,7 +90,7 @@ interface OrderTotals {
 
 // Calculate total price for an item including options
 const calculateItemTotal = (item: CartItemType) => {
-  if (typeof item.itemTotal === 'number') {
+  if (typeof item.itemTotal === "number") {
     return item.itemTotal;
   }
 
@@ -98,7 +99,7 @@ const calculateItemTotal = (item: CartItemType) => {
     return item.price.total * item.quantity;
   }
 
-  if (typeof item.price === 'number') {
+  if (typeof item.price === "number") {
     let itemTotal: number = item.price;
 
     // Add option prices if they exist
@@ -126,40 +127,63 @@ function getItemTotal(item: CartItemType): number {
 }
 
 // Calculate order totals using CartContext methods
-const calculateOrderTotals = (cartData: CartData, items: CartItemType[], promoDiscount?: number): OrderTotals => {
+const calculateOrderTotals = (
+  cartData: CartData,
+  items: CartItemType[],
+  promoDiscount?: number
+): OrderTotals => {
   // Calculate base subtotal from items
-  const subtotal = items.reduce((total, item) => 
-    total + (isPriceObject(item.price) ? item.price.currentEffectivePrice * item.quantity : 0), 0
+  const subtotal = items.reduce(
+    (total, item) =>
+      total +
+      (isPriceObject(item.price)
+        ? item.price.currentEffectivePrice * item.quantity
+        : 0),
+    0
   );
-  
+
   // Calculate attributes total
-  const attributesTotal = items.reduce((total, item) => 
-    total + (isPriceObject(item.price) ? item.price.attributes * item.quantity : 0), 0
+  const attributesTotal = items.reduce(
+    (total, item) =>
+      total +
+      (isPriceObject(item.price) ? item.price.attributes * item.quantity : 0),
+    0
   );
-  
+
   // Get delivery fee from cart response
   const deliveryFee = cartData.deliveryFee || 0;
-  
+
   // Calculate tax if rate is provided
   const taxRate = cartData.taxRate || 0;
   const taxAmount = (subtotal * taxRate) / 100;
-  
+
   // Get service charges
   const mandatoryCharges = cartData.serviceCharges?.totalMandatory || 0;
   const optionalCharges = cartData.serviceCharges?.totalOptional || 0;
-  
+
   // Calculate total savings
-  const totalSavings = items.reduce((total, item) => 
-    total + (isPriceObject(item.price) ? 
-      (item.price.base - item.price.currentEffectivePrice) * item.quantity : 0), 0
+  const totalSavings = items.reduce(
+    (total, item) =>
+      total +
+      (isPriceObject(item.price)
+        ? (item.price.base - item.price.currentEffectivePrice) * item.quantity
+        : 0),
+    0
   );
-  
+
   // Calculate discount if promo is applied
   const discountAmount = promoDiscount ? (subtotal * promoDiscount) / 100 : 0;
-  
+
   // Calculate final total
-  const total = subtotal + attributesTotal + deliveryFee + taxAmount + mandatoryCharges + optionalCharges - discountAmount;
-  
+  const total =
+    subtotal +
+    attributesTotal +
+    deliveryFee +
+    taxAmount +
+    mandatoryCharges +
+    optionalCharges -
+    discountAmount;
+
   return {
     subtotal,
     attributesTotal,
@@ -170,7 +194,7 @@ const calculateOrderTotals = (cartData: CartData, items: CartItemType[], promoDi
     optionalCharges,
     discountAmount,
     totalSavings,
-    total
+    total,
   };
 };
 
@@ -181,15 +205,6 @@ interface ApiError {
     };
   };
   message?: string;
-}
-
-// Update the Address interface
-interface Address {
-  street: string;
-  city: string;
-  state: string;
-  zipCode: string;
-  country: string;
 }
 
 // Add new interface for credit card
@@ -216,15 +231,6 @@ const generateTimeSlots = () => {
 
 const timeSlots = generateTimeSlots();
 
-// Mock UK addresses for demo
-const mockUKAddresses = [
-  "10 Downing Street, London, SW1A 2AA",
-  "221B Baker Street, London, NW1 6XE",
-  "48 Leicester Square, London, WC2H 7LU",
-  "Tower Bridge Road, London, SE1 2UP",
-  "1 Cathedral Square, Glasgow, G1 2EN",
-];
-
 interface PriceObject {
   base: number;
   attributes: number;
@@ -235,10 +241,10 @@ interface PriceObject {
 function isPriceObject(price: unknown): price is PriceObject {
   return (
     price !== null &&
-    typeof price === 'object' &&
-    'base' in price &&
-    'attributes' in price &&
-    'total' in price
+    typeof price === "object" &&
+    "base" in price &&
+    "attributes" in price &&
+    "total" in price
   );
 }
 
@@ -366,7 +372,7 @@ const CheckoutPage = () => {
   const [orderNotes, setOrderNotes] = useState("");
   const [showAddressSearch, setShowAddressSearch] = useState(false);
   const [addressSearchQuery, setAddressSearchQuery] = useState("");
-  const [filteredAddresses, setFilteredAddresses] = useState(mockUKAddresses);
+  const [filteredAddresses, setFilteredAddresses] = useState<Address[]>([]);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [promoCode, setPromoCode] = useState("");
   const [isApplyingPromo, setIsApplyingPromo] = useState(false);
@@ -388,14 +394,17 @@ const CheckoutPage = () => {
     },
   });
   const [isLoading, setIsLoading] = useState(true);
+  const addressDropdownRef = useRef<HTMLDivElement>(null);
 
   // Restore credit card details state and handler
-  const [creditCardDetails, setCreditCardDetails] = useState<CreditCardDetails>({
-    number: "",
-    expiry: "",
-    cvc: "",
-    name: "",
-  });
+  const [creditCardDetails, setCreditCardDetails] = useState<CreditCardDetails>(
+    {
+      number: "",
+      expiry: "",
+      cvc: "",
+      name: "",
+    }
+  );
 
   const handleCreditCardChange = (
     field: keyof CreditCardDetails,
@@ -444,7 +453,11 @@ const CheckoutPage = () => {
         };
 
         // Calculate all totals
-        const totals = calculateOrderTotals(cartData, cartItems, appliedPromo?.discount);
+        const totals = calculateOrderTotals(
+          cartData,
+          cartItems,
+          appliedPromo?.discount
+        );
 
         setCartSummary({
           subtotal: totals.subtotal,
@@ -463,7 +476,14 @@ const CheckoutPage = () => {
     };
 
     fetchCartSummary();
-  }, [isAuthenticated, token, sessionId, cartItems, selectedBranch?.id, appliedPromo?.discount]);
+  }, [
+    isAuthenticated,
+    token,
+    sessionId,
+    cartItems,
+    selectedBranch?.id,
+    appliedPromo?.discount,
+  ]);
 
   // Check authentication
   React.useEffect(() => {
@@ -496,47 +516,95 @@ const CheckoutPage = () => {
   }, [user]);
 
   // Update the delivery address state initialization
-  const [deliveryAddress, setDeliveryAddress] = useState<Address>({
-    street: user?.address?.street || "",
-    city: user?.address?.city || "",
-    state: user?.address?.state || "",
-    zipCode: user?.address?.zipCode || "",
-    country: "GB",
+  const [deliveryAddress, setDeliveryAddress] = useState<Address>(() => {
+    // Try to get the stored address from localStorage
+    const storedAddress = localStorage.getItem("deliveryAddress");
+    if (storedAddress) {
+      try {
+        return JSON.parse(storedAddress);
+      } catch (e) {
+        console.error("Error parsing stored address:", e);
+      }
+    }
+
+    // Fallback to user's address or empty address
+    if (user?.address) {
+      return {
+        street: user.address.street || "",
+        city: user.address.city || "",
+        state: user.address.state || "",
+        postcode: user.address.zipCode || "", // Map zipCode to postcode
+        country: user.address.country || "GB",
+        fullAddress: `${user.address.street}, ${user.address.city}, ${user.address.zipCode}`,
+      };
+    }
+
+    return {
+      street: "",
+      city: "",
+      state: "",
+      postcode: "",
+      country: "GB",
+      fullAddress: "",
+    };
   });
 
   // Update delivery address when user data changes
   useEffect(() => {
-    if (user?.address) {
+    const storedAddress = localStorage.getItem("deliveryAddress");
+    if (storedAddress) {
+      try {
+        const parsedAddress = JSON.parse(storedAddress);
+        setDeliveryAddress(parsedAddress);
+      } catch (e) {
+        console.error("Error parsing stored address:", e);
+      }
+    } else if (user?.address) {
+      // Map user address to our Address type
       setDeliveryAddress({
         street: user.address.street || "",
         city: user.address.city || "",
         state: user.address.state || "",
-        zipCode: user.address.zipCode || "",
+        postcode: user.address.zipCode || "", // Map zipCode to postcode
         country: user.address.country || "GB",
+        fullAddress: `${user.address.street}, ${user.address.city}, ${user.address.zipCode}`,
       });
     }
   }, [user]);
 
+  // Add click outside handler
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        addressDropdownRef.current &&
+        !addressDropdownRef.current.contains(event.target as Node)
+      ) {
+        setShowAddressSearch(false);
+      }
+    };
+
+    if (showAddressSearch) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [showAddressSearch]);
+
   // Handle address search
   const handleAddressSearch = (query: string) => {
     setAddressSearchQuery(query);
-    const filtered = mockUKAddresses.filter((addr) =>
-      addr.toLowerCase().includes(query.toLowerCase())
-    );
-    setFilteredAddresses(filtered);
+    const results = searchAddresses(query);
+    setFilteredAddresses(results);
   };
 
   // Handle address selection
-  const handleAddressSelect = (address: string) => {
-    const [street, city, postcode] = address.split(", ");
-    setDeliveryAddress((prev) => ({
-      ...prev,
-      street,
-      city,
-      zipCode: postcode,
-      state: city.split(" ")[0], // Simplified for demo
-    }));
+  const handleAddressSelect = (address: Address) => {
+    setDeliveryAddress(address);
+    setAddressSearchQuery(address.fullAddress);
     setShowAddressSearch(false);
+    // Update localStorage with the new address
+    localStorage.setItem("deliveryAddress", JSON.stringify(address));
   };
 
   // Calculate order totals using CartContext methods
@@ -546,7 +614,7 @@ const CheckoutPage = () => {
 
   // Update the validateAddress function
   const validateAddress = (address: Address): boolean => {
-    const requiredFields = ["street", "city", "state", "zipCode", "country"];
+    const requiredFields = ["street", "city", "state", "postcode", "country"];
     const emptyFields = requiredFields.filter(
       (field) => !address[field as keyof Address]?.trim()
     );
@@ -624,22 +692,26 @@ const CheckoutPage = () => {
       const formattedProducts = cartItems.map((item) => {
         const productId = item.productId || item.id;
 
-        // Format selected attributes according to backend schema
+        // Use selectedAttributes from cart if present, fallback to reconstructing
         const selectedAttributes =
-          item.attributes?.map((attr) => {
-            const selectedChoiceId = item.selectedOptions?.[attr.id];
-            return {
-              attributeId: attr.id,
-              selectedItems: selectedChoiceId
-                ? [
-                    {
-                      itemId: selectedChoiceId,
-                      quantity: 1,
-                    },
-                  ]
-                : [],
-            };
-          }) || [];
+          item.selectedAttributes && Array.isArray(item.selectedAttributes)
+            ? item.selectedAttributes
+            : (
+                item.attributes?.map((attr) => {
+                  const selectedChoiceId = item.selectedOptions?.[attr.id];
+                  return {
+                    attributeId: attr.id,
+                    selectedItems: selectedChoiceId
+                      ? [
+                          {
+                            itemId: selectedChoiceId,
+                            quantity: 1,
+                          },
+                        ]
+                      : [],
+                  };
+                }) || []
+              );
 
         return {
           product: productId,
@@ -675,12 +747,15 @@ const CheckoutPage = () => {
         branchId: selectedBranch.id,
         products: formattedProducts,
         deliveryMethod: orderType,
-        deliveryAddress: orderType === "delivery" ? {
-          street: deliveryAddress.street,
-          city: deliveryAddress.city,
-          postalCode: deliveryAddress.zipCode,
-          country: deliveryAddress.country || "GB",
-        } : undefined,
+        deliveryAddress:
+          orderType === "delivery"
+            ? {
+                street: deliveryAddress.street,
+                city: deliveryAddress.city,
+                postalCode: deliveryAddress.postcode,
+                country: deliveryAddress.country || "GB",
+              }
+            : undefined,
         contactNumber: personalDetails.phone,
         paymentMethod: paymentMethod,
         specialInstructions: orderNotes,
@@ -868,117 +943,161 @@ const CheckoutPage = () => {
             </div>
 
             {/* Step 2: Personal Info & Delivery */}
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-              <div className="p-6 border-b border-gray-100 bg-gray-50">
-                <h2 className="text-xl font-semibold text-gray-900 flex items-center">
-                  <span className="w-8 h-8 rounded-full bg-black text-white flex items-center justify-center text-lg mr-3">
-                    2
-                  </span>
-                  Personal Information & Delivery
-                </h2>
-              </div>
-              <div className="p-6 space-y-6">
-                {/* Personal Details */}
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      First Name
-                    </label>
-                    <input
-                      type="text"
-                      value={personalDetails.firstName}
-                      onChange={(e) =>
-                        setPersonalDetails((prev) => ({
-                          ...prev,
-                          firstName: e.target.value,
-                        }))
-                      }
-                      className="w-full px-4 py-3 rounded-xl border border-gray-200 "
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Last Name
-                    </label>
-                    <input
-                      type="text"
-                      value={personalDetails.lastName}
-                      onChange={(e) =>
-                        setPersonalDetails((prev) => ({
-                          ...prev,
-                          lastName: e.target.value,
-                        }))
-                      }
-                      className="w-full px-4 py-3 rounded-xl border border-gray-200 "
-                    />
-                  </div>
+            <div className="relative z-0">
+              {" "}
+              {/* Ensures stacking context */}
+              <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-visible">
+                {" "}
+                {/* changed overflow-hidden → overflow-visible */}
+                <div className="p-6 border-b border-gray-100 bg-gray-50">
+                  <h2 className="text-xl font-semibold text-gray-900 flex items-center">
+                    <span className="w-8 h-8 rounded-full bg-black text-white flex items-center justify-center text-lg mr-3">
+                      2
+                    </span>
+                    Personal Information & Delivery
+                  </h2>
                 </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Phone Number
-                  </label>
-                  <input
-                    type="tel"
-                    value={personalDetails.phone}
-                    onChange={(e) =>
-                      setPersonalDetails((prev) => ({
-                        ...prev,
-                        phone: e.target.value,
-                      }))
-                    }
-                    className="w-full px-4 py-3 rounded-xl border border-gray-200 "
-                  />
-                </div>
-
-                {/* Delivery Address */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Delivery Address
-                  </label>
-                  <button
-                    onClick={() => setShowAddressSearch(true)}
-                    className="w-full px-4 py-3 border border-gray-200 rounded-xl text-left text-gray-600 hover:border-green-500 focus:outline-none focus:ring-0 focus:ring-green-500"
-                  >
-                    {deliveryAddress.street || "Search for your address"}
-                  </button>
-
-                  {showAddressSearch && (
-                    <div className="mt-2 border rounded-xl overflow-hidden">
+                <div className="p-6 space-y-6">
+                  {/* Personal Details */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        First Name
+                      </label>
                       <input
                         type="text"
-                        value={addressSearchQuery}
-                        onChange={(e) => handleAddressSearch(e.target.value)}
-                        placeholder="Start typing your address..."
-                        className="w-full px-4 py-3 border-b focus:outline-none"
+                        value={personalDetails.firstName}
+                        onChange={(e) =>
+                          setPersonalDetails((prev) => ({
+                            ...prev,
+                            firstName: e.target.value,
+                          }))
+                        }
+                        className="w-full px-4 py-3 rounded-xl border border-gray-200"
                       />
-                      <div className="max-h-60 overflow-y-auto">
-                        {filteredAddresses.map((address, index) => (
-                          <button
-                            key={index}
-                            onClick={() => handleAddressSelect(address)}
-                            className="w-full px-4 py-2 text-left hover:bg-gray-50 focus:outline-none focus:bg-gray-50"
-                          >
-                            {address}
-                          </button>
-                        ))}
-                      </div>
                     </div>
-                  )}
 
-                  {deliveryAddress.street && (
-                    <div className="mt-4 p-4 bg-gray-50 rounded-xl">
-                      <p className="text-sm text-gray-600">
-                        {deliveryAddress.street}
-                      </p>
-                      <p className="text-sm text-gray-600">
-                        {deliveryAddress.city}, {deliveryAddress.state}
-                      </p>
-                      <p className="text-sm text-gray-600">
-                        {deliveryAddress.zipCode}
-                      </p>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Last Name
+                      </label>
+                      <input
+                        type="text"
+                        value={personalDetails.lastName}
+                        onChange={(e) =>
+                          setPersonalDetails((prev) => ({
+                            ...prev,
+                            lastName: e.target.value,
+                          }))
+                        }
+                        className="w-full px-4 py-3 rounded-xl border border-gray-200"
+                      />
                     </div>
-                  )}
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Phone Number
+                    </label>
+                    <input
+                      type="tel"
+                      value={personalDetails.phone}
+                      onChange={(e) =>
+                        setPersonalDetails((prev) => ({
+                          ...prev,
+                          phone: e.target.value,
+                        }))
+                      }
+                      className="w-full px-4 py-3 rounded-xl border border-gray-200"
+                    />
+                  </div>
+
+                  {/* Delivery Address */}
+                  <div className="relative z-30">
+                    {" "}
+                    {/* Key: ensure stacking context */}
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Delivery Address
+                    </label>
+                    <div ref={addressDropdownRef} className="relative">
+                      <button
+                        onClick={() => setShowAddressSearch(true)}
+                        className="w-full px-4 py-3 border border-gray-200 rounded-xl text-left text-gray-600 hover:border-green-500 focus:outline-none focus:ring-0 focus:ring-green-500"
+                      >
+                        {deliveryAddress.fullAddress ||
+                          "Search for your address"}
+                      </button>
+
+                      {showAddressSearch && (
+                        <div className="absolute top-full left-0 z-50 w-full mt-2 border rounded-xl overflow-hidden bg-white shadow-lg">
+                          <input
+                            type="text"
+                            value={addressSearchQuery}
+                            onChange={(e) =>
+                              handleAddressSearch(e.target.value)
+                            }
+                            placeholder="Search by postcode or address..."
+                            className="w-full px-4 py-3 border-b focus:outline-none"
+                            autoFocus
+                          />
+                          <div className="max-h-[40vh] overflow-y-auto">
+                            {filteredAddresses.length > 0 ? (
+                              filteredAddresses.map((address, index) => (
+                                <button
+                                  key={index}
+                                  onClick={() => handleAddressSelect(address)}
+                                  className="w-full px-4 py-3 text-left hover:bg-gray-50 focus:outline-none focus:bg-gray-50 border-b last:border-b-0"
+                                >
+                                  <div className="flex items-start gap-2">
+                                    <MapPin
+                                      size={18}
+                                      className="text-green-500 mt-1 flex-shrink-0"
+                                    />
+                                    <div className="flex-1">
+                                      <div className="font-medium text-gray-900">
+                                        {address.street}
+                                      </div>
+                                      <div className="text-sm text-gray-500">
+                                        {address.city}, {address.state}
+                                      </div>
+                                      <div className="text-sm text-gray-500">
+                                        {address.postcode}
+                                      </div>
+                                    </div>
+                                  </div>
+                                </button>
+                              ))
+                            ) : (
+                              <div className="px-4 py-3 text-gray-500 text-center">
+                                No addresses found
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                    {deliveryAddress.fullAddress && (
+                      <div className="mt-4 p-4 bg-gray-50 rounded-xl">
+                        <div className="flex items-start gap-2">
+                          <MapPin
+                            size={18}
+                            className="text-green-500 mt-1 flex-shrink-0"
+                          />
+                          <div>
+                            <p className="text-sm font-medium text-gray-900">
+                              {deliveryAddress.street}
+                            </p>
+                            <p className="text-sm text-gray-600">
+                              {deliveryAddress.city}, {deliveryAddress.state}
+                            </p>
+                            <p className="text-sm text-gray-600">
+                              {deliveryAddress.postcode}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
@@ -1032,9 +1151,12 @@ const CheckoutPage = () => {
                           <div className="mt-1 space-y-1">
                             <div className="flex items-center gap-2">
                               <span className="text-sm font-medium text-gray-900">
-                                {formatCurrency(item.price.currentEffectivePrice)}
+                                {formatCurrency(
+                                  item.price.currentEffectivePrice
+                                )}
                               </span>
-                              {item.price.base !== item.price.currentEffectivePrice && (
+                              {item.price.base !==
+                                item.price.currentEffectivePrice && (
                                 <span className="text-xs line-through text-gray-400">
                                   {formatCurrency(item.price.base)}
                                 </span>
@@ -1042,7 +1164,8 @@ const CheckoutPage = () => {
                             </div>
                             {item.price.attributes > 0 && (
                               <div className="text-xs text-gray-500">
-                                + {formatCurrency(item.price.attributes)} (add-ons)
+                                + {formatCurrency(item.price.attributes)}{" "}
+                                (add-ons)
                               </div>
                             )}
                           </div>
@@ -1198,20 +1321,38 @@ const CheckoutPage = () => {
                     <div className="flex justify-between text-sm">
                       <span className="text-gray-600">Items Subtotal</span>
                       <span className="font-medium">
-                        {formatCurrency(cartItems.reduce((total, item) => 
-                          total + (isPriceObject(item.price) ? item.price.currentEffectivePrice * item.quantity : 0), 0
-                        ))}
+                        {formatCurrency(
+                          cartItems.reduce(
+                            (total, item) =>
+                              total +
+                              (isPriceObject(item.price)
+                                ? item.price.currentEffectivePrice *
+                                  item.quantity
+                                : 0),
+                            0
+                          )
+                        )}
                       </span>
                     </div>
 
                     {/* Attributes Total */}
-                    {cartItems.some(item => isPriceObject(item.price) && item.price.attributes > 0) && (
+                    {cartItems.some(
+                      (item) =>
+                        isPriceObject(item.price) && item.price.attributes > 0
+                    ) && (
                       <div className="flex justify-between text-sm">
                         <span className="text-gray-600">Add-ons Total</span>
                         <span className="font-medium">
-                          {formatCurrency(cartItems.reduce((total, item) => 
-                            total + (isPriceObject(item.price) ? item.price.attributes * item.quantity : 0), 0
-                          ))}
+                          {formatCurrency(
+                            cartItems.reduce(
+                              (total, item) =>
+                                total +
+                                (isPriceObject(item.price)
+                                  ? item.price.attributes * item.quantity
+                                  : 0),
+                              0
+                            )
+                          )}
                         </span>
                       </div>
                     )}
@@ -1233,18 +1374,26 @@ const CheckoutPage = () => {
                     {/* Service Charges */}
                     {cartSummary.serviceCharges.totalMandatory > 0 && (
                       <div className="flex justify-between text-sm">
-                        <span className="text-gray-600">Service Charge (Mandatory)</span>
+                        <span className="text-gray-600">
+                          Service Charge (Mandatory)
+                        </span>
                         <span className="font-medium">
-                          {formatCurrency(cartSummary.serviceCharges.totalMandatory)}
+                          {formatCurrency(
+                            cartSummary.serviceCharges.totalMandatory
+                          )}
                         </span>
                       </div>
                     )}
 
                     {cartSummary.serviceCharges.totalOptional > 0 && (
                       <div className="flex justify-between text-sm">
-                        <span className="text-gray-600">Service Charge (Optional)</span>
+                        <span className="text-gray-600">
+                          Service Charge (Optional)
+                        </span>
                         <span className="font-medium">
-                          {formatCurrency(cartSummary.serviceCharges.totalOptional)}
+                          {formatCurrency(
+                            cartSummary.serviceCharges.totalOptional
+                          )}
                         </span>
                       </div>
                     )}
@@ -1252,22 +1401,38 @@ const CheckoutPage = () => {
                     {/* Tax */}
                     {cartSummary.taxRate > 0 && (
                       <div className="flex justify-between text-sm">
-                        <span className="text-gray-600">Tax ({cartSummary.taxRate}%)</span>
+                        <span className="text-gray-600">
+                          Tax ({cartSummary.taxRate}%)
+                        </span>
                         <span className="font-medium">
-                          {formatCurrency((cartSummary.subtotal * cartSummary.taxRate) / 100)}
+                          {formatCurrency(
+                            (cartSummary.subtotal * cartSummary.taxRate) / 100
+                          )}
                         </span>
                       </div>
                     )}
 
                     {/* Total Savings */}
-                    {cartItems.some(item => isPriceObject(item.price) && item.price.base > item.price.currentEffectivePrice) && (
+                    {cartItems.some(
+                      (item) =>
+                        isPriceObject(item.price) &&
+                        item.price.base > item.price.currentEffectivePrice
+                    ) && (
                       <div className="flex justify-between text-sm text-green-600">
                         <span>Total Savings</span>
                         <span className="font-medium">
-                          {formatCurrency(cartItems.reduce((total, item) => 
-                            total + (isPriceObject(item.price) ? 
-                              (item.price.base - item.price.currentEffectivePrice) * item.quantity : 0), 0
-                          ))}
+                          {formatCurrency(
+                            cartItems.reduce(
+                              (total, item) =>
+                                total +
+                                (isPriceObject(item.price)
+                                  ? (item.price.base -
+                                      item.price.currentEffectivePrice) *
+                                    item.quantity
+                                  : 0),
+                              0
+                            )
+                          )}
                         </span>
                       </div>
                     )}
@@ -1277,7 +1442,10 @@ const CheckoutPage = () => {
                       <div className="flex justify-between text-sm text-green-600">
                         <span>Promo Discount ({appliedPromo.discount}%)</span>
                         <span>
-                          -{formatCurrency((cartSummary.subtotal * appliedPromo.discount) / 100)}
+                          -
+                          {formatCurrency(
+                            (cartSummary.subtotal * appliedPromo.discount) / 100
+                          )}
                         </span>
                       </div>
                     )}
@@ -1289,20 +1457,45 @@ const CheckoutPage = () => {
                         <div className="text-right">
                           <span className="text-green-600 text-lg font-bold">
                             {formatCurrency(
-                              cartItems.reduce((total, item) => 
-                                total + (isPriceObject(item.price) ? item.price.total * item.quantity : 0), 0
-                              ) + cartSummary.deliveryFee + 
-                              (cartSummary.serviceCharges?.totalAll || 0) +
-                              ((cartSummary.subtotal * cartSummary.taxRate) / 100) -
-                              (appliedPromo ? (cartSummary.subtotal * appliedPromo.discount) / 100 : 0)
+                              cartItems.reduce(
+                                (total, item) =>
+                                  total +
+                                  (isPriceObject(item.price)
+                                    ? item.price.total * item.quantity
+                                    : 0),
+                                0
+                              ) +
+                                cartSummary.deliveryFee +
+                                (cartSummary.serviceCharges?.totalAll || 0) +
+                                (cartSummary.subtotal * cartSummary.taxRate) /
+                                  100 -
+                                (appliedPromo
+                                  ? (cartSummary.subtotal *
+                                      appliedPromo.discount) /
+                                    100
+                                  : 0)
                             )}
                           </span>
-                          {cartItems.some(item => isPriceObject(item.price) && item.price.base > item.price.currentEffectivePrice) && (
+                          {cartItems.some(
+                            (item) =>
+                              isPriceObject(item.price) &&
+                              item.price.base > item.price.currentEffectivePrice
+                          ) && (
                             <div className="text-xs text-green-600 font-medium">
-                              You saved {formatCurrency(cartItems.reduce((total, item) => 
-                                total + (isPriceObject(item.price) ? 
-                                  (item.price.base - item.price.currentEffectivePrice) * item.quantity : 0), 0
-                              ))}!
+                              You saved{" "}
+                              {formatCurrency(
+                                cartItems.reduce(
+                                  (total, item) =>
+                                    total +
+                                    (isPriceObject(item.price)
+                                      ? (item.price.base -
+                                          item.price.currentEffectivePrice) *
+                                        item.quantity
+                                      : 0),
+                                  0
+                                )
+                              )}
+                              !
                             </div>
                           )}
                         </div>
@@ -1367,7 +1560,7 @@ const CheckoutPage = () => {
             (appliedPromo
               ? (cartSummary.subtotal * appliedPromo.discount) / 100
               : 0),
-          address: `${deliveryAddress.street}, ${deliveryAddress.city}, ${deliveryAddress.zipCode}`,
+          address: `${deliveryAddress.street}, ${deliveryAddress.city}, ${deliveryAddress.postcode}`,
           deliveryTime: selectedTimeSlot,
         }}
       />

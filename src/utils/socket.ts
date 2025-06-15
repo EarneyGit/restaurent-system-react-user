@@ -1,8 +1,15 @@
 import { io, Socket } from 'socket.io-client';
+import { OrderStatusType } from "@/types/order.types";
 
-const SOCKET_URL = import.meta.env.REACT_APP_API_URL || 'http://localhost:5000';
+const SOCKET_URL = import.meta.env.REACT_APP_API_URL || 'http://82.25.104.117:5001';
 
 let socket: Socket | null = null;
+
+export interface OrderUpdate {
+  orderId: string;
+  status: OrderStatusType;
+  message?: string;
+}
 
 export const initializeSocket = () => {
   if (!socket) {
@@ -51,7 +58,7 @@ export const joinRestaurantRoom = (token: string) => {
   socket.emit('join_restaurant', { token });
 };
 
-export const subscribeToOrderUpdates = (callback: (data: any) => void) => {
+export const subscribeToOrderUpdates = (callback: (data: OrderUpdate) => void) => {
   if (!socket?.connected) {
     socket = initializeSocket();
   }
@@ -61,7 +68,7 @@ export const subscribeToOrderUpdates = (callback: (data: any) => void) => {
     if (data.type === 'order_status_changed') {
       callback({
         orderId: data.orderId,
-        status: data.newStatus,
+        status: data.newStatus as OrderStatusType,
         message: data.message
       });
     }

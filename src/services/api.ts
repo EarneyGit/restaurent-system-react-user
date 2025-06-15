@@ -1,7 +1,11 @@
 import axios, { AxiosError } from 'axios';
 
-export const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+export const BASE_URL = import.meta.env.VITE_API_URL || 'http://82.25.104.117:5001';
 export const API_URL = `${BASE_URL}/api`;
+
+
+
+console.log("BASE_URL", import.meta.env.VITE_APP_URL);
 
 // Types
 export interface CategoryReference {
@@ -39,6 +43,27 @@ export interface ProductAttribute {
   }[];
 }
 
+export interface PriceChange {
+  _id: string;
+  id: string;
+  productId: string;
+  branchId: string;
+  name: string;
+  type: string;
+  originalPrice: number;
+  tempPrice: number;
+  revertPrice: number;
+  value: number;
+  startDate: string;
+  endDate: string;
+  daysOfWeek: string[];
+  active: boolean;
+  autoRevert: boolean;
+  deleted: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface Product {
   id: string;
   name: string;
@@ -57,6 +82,7 @@ export interface Product {
   delivery?: boolean;
   collection?: boolean;
   dineIn?: boolean;
+  priceChanges?: PriceChange[];
 }
 
 interface ApiResponse<T> {

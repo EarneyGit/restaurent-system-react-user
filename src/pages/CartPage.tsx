@@ -32,6 +32,14 @@ interface PriceStructure {
   currentEffectivePrice: number;
   attributes: number;
   total: number;
+  priceChanges?: PriceChange[];
+}
+
+interface PriceChange {
+  active: boolean;
+  endDate: string;
+  originalPrice: number;
+  tempPrice: number;
 }
 
 interface CartItemProps {
@@ -80,6 +88,17 @@ const CartItem: React.FC<CartItemProps> = ({
   const { formatCurrency } = useCart();
   const [showAttributes, setShowAttributes] = useState(false);
 
+  const getActivePriceChange = (priceChanges?: PriceChange[]): PriceChange | null => {
+    if (!priceChanges?.length) return null;
+    const now = new Date();
+    return priceChanges.find(change => 
+      change.active && 
+      new Date(change.endDate) > now
+    ) || null;
+  };
+
+  const activePriceChange = getActivePriceChange(price.priceChanges);
+
   return (
     <div className="flex flex-col p-4 rounded-xl border border-gray-200 shadow-sm bg-white">
       <div className="flex gap-3">
@@ -108,11 +127,11 @@ const CartItem: React.FC<CartItemProps> = ({
           <div className="mt-1 space-y-1">
             <div className="flex items-center gap-2">
               <span className="text-base font-semibold text-black">
-                {formatCurrency(price.total)}
+                {formatCurrency(activePriceChange ? activePriceChange.tempPrice : price.base)}
               </span>
-              {price.base !== price.currentEffectivePrice && (
+              {activePriceChange && (
                 <span className="text-sm line-through text-gray-400">
-                  {formatCurrency(price.base)}
+                  {formatCurrency(activePriceChange.originalPrice)}
                 </span>
               )}
             </div>
@@ -194,12 +213,16 @@ const CartItem: React.FC<CartItemProps> = ({
               <div className="pt-2 border-t text-sm text-gray-700 space-y-1">
                 <div className="flex justify-between">
                   <span>Base Price:</span>
-                  <span className="font-medium">{formatCurrency(price.base)}</span>
+                  <span className="font-medium">
+                    {formatCurrency(activePriceChange ? activePriceChange.tempPrice : price.base)}
+                  </span>
                 </div>
-                {price.currentEffectivePrice !== price.base && (
-                  <div className="flex justify-between">
-                    <span>Discounted Price:</span>
-                    <span className="font-medium">{formatCurrency(price.currentEffectivePrice)}</span>
+                {activePriceChange && (
+                  <div className="flex justify-between text-green-600">
+                    <span>Original Price:</span>
+                    <span className="font-medium line-through">
+                      {formatCurrency(activePriceChange.originalPrice)}
+                    </span>
                   </div>
                 )}
                 {price.attributes > 0 && (
@@ -210,11 +233,15 @@ const CartItem: React.FC<CartItemProps> = ({
                 )}
                 <div className="flex justify-between pt-1 border-t">
                   <span className="font-medium">Item Total:</span>
-                  <span className="font-medium">{formatCurrency(price.total)}</span>
+                  <span className="font-medium">
+                    {formatCurrency((activePriceChange ? activePriceChange.tempPrice : price.base) * quantity + (price.attributes * quantity))}
+                  </span>
                 </div>
                 <div className="flex justify-between pt-1 border-t text-black">
                   <span className="font-semibold">Final Total (× {quantity}):</span>
-                  <span className="font-semibold">{formatCurrency(price.total * quantity)}</span>
+                  <span className="font-semibold">
+                    {formatCurrency((activePriceChange ? activePriceChange.tempPrice : price.base) * quantity + (price.attributes * quantity))}
+                  </span>
                 </div>
               </div>
             </div>

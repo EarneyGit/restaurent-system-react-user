@@ -67,11 +67,10 @@ const ProductPage = () => {
     const hasGuestSession = sessionId && localStorage.getItem('isGuest') === 'true';
     
     if (!isAuthenticated && !hasGuestSession) {
-      // Initialize guest session instead of redirecting to login
+      // Initialize guest session
       localStorage.setItem('isGuest', 'true');
       const newSessionId = uuidv4();
       localStorage.setItem('guestSessionId', newSessionId);
-      // No need to store return URL or redirect
     }
 
     // If product has options, show the modal
@@ -86,7 +85,12 @@ const ProductPage = () => {
       id: product.id,
       name: product.name,
       description: product.description,
-      price: product.price,
+      price: {
+        base: product.price,
+        currentEffectivePrice: product.price,
+        attributes: 0,
+        total: product.price
+      },
       images: product.images,
       quantity: 1,
       category: product.category,
@@ -102,7 +106,12 @@ const ProductPage = () => {
       id: selectedProduct.id,
       name: selectedProduct.name,
       description: selectedProduct.description,
-      price: selectedProduct.price,
+      price: {
+        base: selectedProduct.price,
+        currentEffectivePrice: selectedProduct.price,
+        attributes: 0,
+        total: selectedProduct.price
+      },
       images: selectedProduct.images,
       quantity: 1,
       category: selectedProduct.category,

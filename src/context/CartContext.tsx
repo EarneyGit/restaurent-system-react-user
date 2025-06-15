@@ -7,6 +7,7 @@ import { useGuestCart } from './GuestCartContext';
 import axios from 'axios';
 import { CART_ENDPOINTS } from '@/config/api.config';
 import { useNavigate } from 'react-router-dom';
+import { v4 as uuidv4 } from 'uuid';
 
 // Constants for calculations
 const DELIVERY_FEE = 5.00;
@@ -147,12 +148,12 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     }
 
-    // If user is not authenticated and no guest session exists, redirect to login
+    // Initialize guest session if neither authenticated nor guest session exists
     if (!isAuthenticated && !sessionId) {
-      // Store the current path to redirect back after login
-      localStorage.setItem('returnUrl', window.location.pathname);
-      navigate('/login');
-      return;
+      const newSessionId = uuidv4();
+      localStorage.setItem('guestSessionId', newSessionId);
+      localStorage.setItem('isGuest', 'true');
+      // Don't redirect to login, continue as guest
     }
 
     try {

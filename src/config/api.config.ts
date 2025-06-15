@@ -1,6 +1,8 @@
-export const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+export const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://82.25.104.117:5001';
 export const BASE_URL = API_BASE_URL;
 
+
+console.log("API_BASE_URL",import.meta.env.VITE_APP_URL);
 export const AUTH_ENDPOINTS = {
   LOGIN: `${API_BASE_URL}/api/auth/login`,
   REGISTER: `${API_BASE_URL}/api/auth/register`,

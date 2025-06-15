@@ -1,56 +1,41 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Search, MapPin, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-
-// Mock UK addresses for demonstration
-const mockAddresses = {
-  'SW1A': [
-    { fullAddress: '10 Downing Street, London SW1A 2AA', postcode: 'SW1A 2AA' },
-    { fullAddress: '12 Downing Street, London SW1A 2AA', postcode: 'SW1A 2AA' },
-    { fullAddress: 'Houses of Parliament, London SW1A 0AA', postcode: 'SW1A 0AA' },
-  ],
-  'E1': [
-    { fullAddress: '123 Brick Lane, London E1 6QL', postcode: 'E1 6QL' },
-    { fullAddress: '45 Commercial Street, London E1 6LT', postcode: 'E1 6LT' },
-    { fullAddress: '78 Whitechapel High Street, London E1 7QX', postcode: 'E1 7QX' },
-  ],
-  'M1': [
-    { fullAddress: '15 Portland Street, Manchester M1 4GX', postcode: 'M1 4GX' },
-    { fullAddress: '25 Piccadilly, Manchester M1 1LY', postcode: 'M1 1LY' },
-    { fullAddress: '100 Oxford Road, Manchester M1 5QA', postcode: 'M1 5QA' },
-  ],
-  'B1': [
-    { fullAddress: '45 New Street, Birmingham B1 2AA', postcode: 'B1 2AA' },
-    { fullAddress: '88 Corporation Street, Birmingham B1 3AB', postcode: 'B1 3AB' },
-    { fullAddress: '120 Broad Street, Birmingham B1 1AB', postcode: 'B1 1AB' },
-  ],
-};
-
-interface Address {
-  fullAddress: string;
-  postcode: string;
-}
+import { Address, searchAddresses } from '@/data/addresses';
 
 const AddressSelector = () => {
   const navigate = useNavigate();
   const [searchValue, setSearchValue] = useState('');
   const [selectedAddress, setSelectedAddress] = useState<Address | null>(null);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [filteredAddresses, setFilteredAddresses] = useState<Address[]>([]);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
-  const getSuggestions = () => {
-    const searchUpper = searchValue.toUpperCase();
-    for (const [postcode, addresses] of Object.entries(mockAddresses)) {
-      if (postcode.startsWith(searchUpper)) {
-        return addresses;
+  // Add click outside handler
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setShowSuggestions(false);
       }
-    }
-    return [];
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
+  const handleSearch = (query: string) => {
+    setSearchValue(query);
+    const results = searchAddresses(query);
+    setFilteredAddresses(results);
+    setShowSuggestions(true);
   };
 
   const handleSelect = (address: Address) => {
     setSelectedAddress(address);
-    setShowSuggestions(false);
     setSearchValue(address.fullAddress);
+    setShowSuggestions(false);
   };
 
   const handleClear = () => {
@@ -72,7 +57,7 @@ const AddressSelector = () => {
   };
 
   return (
-    <div className="relative  md:py-20 py-10  rounded-xl font-sans"> 
+    <div className="relative md:py-20 py-10 rounded-xl font-sans"> 
       {/* Background Layer */}
       <div className="absolute inset-0">
         <img
@@ -80,7 +65,7 @@ const AddressSelector = () => {
           alt="background"
           className="w-full h-full object-cover opacity-50 blur-sm"
         />
-        <div className="absolute inset-0 bg-black/85 " />
+        <div className="absolute inset-0 bg-black/85" />
       </div>
 
       {/* Content */}
@@ -90,15 +75,12 @@ const AddressSelector = () => {
           <p className="text-white/80">Enter your delivery address to continue</p>
         </div>
 
-        <div className="relative">
+        <div ref={dropdownRef} className="relative">
           <div className="relative">
             <input
               value={searchValue}
-              onChange={(e) => {
-                setSearchValue(e.target.value);
-                setShowSuggestions(true);
-              }}
-              placeholder="Enter UK postcode (e.g., SW1A, E1, M1, B1)..."
+              onChange={(e) => handleSearch(e.target.value)}
+              placeholder="Search by postcode or address..."
               className="w-full px-4 py-3 pl-12 bg-white/10 backdrop-blur-sm rounded-xl border border-white/20 text-white placeholder-white/50 focus:outline-none focus:border-green-500"
             />
             <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-white/50" />
@@ -113,26 +95,48 @@ const AddressSelector = () => {
           </div>
 
           {showSuggestions && searchValue && (
-            <ul className="absolute z-10 w-full bg-black/90 backdrop-blur-sm mt-1 rounded-xl border border-white/20 overflow-hidden">
-              {getSuggestions().map((address, index) => (
-                <li
-                  key={index}
-                  onClick={() => handleSelect(address)}
-                  className="px-4 py-3 hover:bg-white/10 cursor-pointer text-white flex items-center gap-2"
-                >
-                  <MapPin size={18} className="text-green-500" />
-                  <span>{address.fullAddress}</span>
-                </li>
-              ))}
-            </ul>
+            <div className="absolute z-50 w-full max-h-[40vh] overflow-y-auto mt-1 bg-black/90 backdrop-blur-sm rounded-xl border border-white/20 overflow-hidden shadow-xl">
+              {filteredAddresses.length > 0 ? (
+                filteredAddresses.map((address, index) => (
+                  <button
+                    key={index}
+                    onClick={() => handleSelect(address)}
+                    className="w-full px-6 py-4 hover:bg-white/10 cursor-pointer text-white flex items-start gap-3 border-b border-white/10 last:border-b-0"
+                  >
+                    <MapPin size={20} className="text-green-500 mt-1 flex-shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium text-base truncate">{address.street}</div>
+                      <div className="text-sm text-white/70 truncate mt-0.5">
+                        {address.city}, {address.state}
+                      </div>
+                      <div className="text-sm text-white/70 mt-0.5">{address.postcode}</div>
+                    </div>
+                  </button>
+                ))
+              ) : (
+                <div className="px-6 py-4 text-white/70 text-center">
+                  No addresses found
+                </div>
+              )}
+            </div>
           )}
         </div>
 
         {selectedAddress && (
           <div className="bg-white/10 backdrop-blur-sm p-4 rounded-xl border border-white/20">
             <h3 className="text-white font-semibold mb-2">Selected Address:</h3>
-            <p className="text-white/80">{selectedAddress.fullAddress}</p>
-            <p className="text-white/80 mt-1">Postcode: {selectedAddress.postcode}</p>
+            <div className="flex items-start gap-2">
+              <MapPin size={18} className="text-green-500 mt-1 flex-shrink-0" />
+              <div>
+                <p className="text-white/90 font-medium">{selectedAddress.street}</p>
+                <p className="text-white/80">
+                  {selectedAddress.city}, {selectedAddress.state}
+                </p>
+                <p className="text-white/80">
+                  {selectedAddress.postcode}
+                </p>
+              </div>
+            </div>
             
             <div className="mt-6 flex gap-4">
               <button

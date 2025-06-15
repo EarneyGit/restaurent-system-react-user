@@ -29,6 +29,7 @@ import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
+import { OrderStatus, OrderStatusType, getStatusColor, getStatusIcon } from "@/types/order.types";
 
 interface Product {
   product: {
@@ -54,7 +55,7 @@ interface Order {
     address: string;
   };
   products: Product[];
-  status: "processing" | "delivered" | "cancelled";
+  status: OrderStatusType;
   totalAmount: number;
   deliveryAddress?: {
     street: string;
@@ -69,7 +70,7 @@ interface Order {
 }
 
 type TimeFilter = "all" | "today" | "week" | "month";
-type StatusFilter = "all" | "processing" | "delivered" | "cancelled";
+type StatusFilter = "all" | OrderStatusType;
 
 interface Branch {
   _id: string;
@@ -123,7 +124,7 @@ const OrdersPage = () => {
     const fetchBranches = async () => {
       try {
         setIsLoadingBranches(true);
-        const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+        const API_URL = import.meta.env.VITE_API_URL || "http://82.25.104.117:5001";
         const response = await axios.get(`${API_URL}/api/branches`);
         if (response.data?.success) {
           setAvailableBranches(response.data.data);
@@ -216,31 +217,14 @@ const OrdersPage = () => {
     setFilteredOrders(filtered);
   }, [timeFilter, statusFilter, orders]);
 
-  const getStatusIcon = (status: Order["status"]) => {
-    switch (status) {
-      case "delivered":
-        return <CheckCircle2 className="text-green-500" size={20} />;
-      case "processing":
-        return <Clock className="text-yellow-500" size={20} />;
-      case "cancelled":
-        return <AlertCircle className="text-red-500" size={20} />;
-      default:
-        return null;
-    }
-  };
-
-  const getStatusColor = (status: Order["status"]) => {
-    switch (status) {
-      case "delivered":
-        return "bg-green-100 text-green-800";
-      case "processing":
-        return "bg-yellow-100 text-yellow-800";
-      case "cancelled":
-        return "bg-red-100 text-red-800";
-      default:
-        return "bg-gray-100 text-gray-800";
-    }
-  };
+  // Update the status filter options
+  const statusFilterOptions = [
+    { value: "all", label: "All Status" },
+    { value: OrderStatus.PENDING, label: "Pending" },
+    { value: OrderStatus.PROCESSING, label: "Processing" },
+    { value: OrderStatus.COMPLETED, label: "Completed" },
+    { value: OrderStatus.CANCELLED, label: "Cancelled" },
+  ];
 
   return (
     <>
@@ -349,21 +333,14 @@ const OrdersPage = () => {
                     </span>
                   </div>
                   <div className="grid grid-cols-2 gap-2">
-                    {[
-                      { value: "all", label: "All Status" },
-                      { value: "processing", label: "Processing" },
-                      { value: "delivered", label: "Delivered" },
-                      { value: "cancelled", label: "Cancelled" },
-                    ].map((option) => (
+                    {statusFilterOptions.map((option) => (
                       <button
                         key={option.value}
-                        onClick={() =>
-                          setStatusFilter(option.value as StatusFilter)
-                        }
+                        onClick={() => setStatusFilter(option.value as StatusFilter)}
                         className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                           statusFilter === option.value
-                          ? "bg-green-600 text-white"
-                          : "bg-neutral-100 text-neutral-700 hover:bg-neutral-200"
+                            ? "bg-green-600 text-white"
+                            : "bg-neutral-100 text-neutral-700 hover:bg-neutral-200"
                         }`}
                       >
                         {option.label}
@@ -446,17 +423,19 @@ const OrdersPage = () => {
                         )}
                       </p>
                     </div>
-                    <span
-                      className={`px-3 py-1 text-xs font-medium rounded-full transition-all duration-200 ${
-                        order.status === "delivered"
-                          ? "bg-green-100 text-green-800 group-hover:bg-green-200"
-                          : order.status === "processing"
-                          ? "bg-yellow-100 text-yellow-800 group-hover:bg-yellow-200"
-                          : "bg-red-100 text-red-800 group-hover:bg-red-200"
-                      }`}
-                    >
-                      {order.status}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      {getStatusIcon(order.status) && (
+                        <div className="text-gray-500">
+                          {React.createElement(getStatusIcon(order.status), { size: 20 })}
+                        </div>
+                      )}
+                      <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(order.status)}`}>
+                        {order.status === OrderStatus.COMPLETED ? "Completed" :
+                         order.status === OrderStatus.PROCESSING ? "Processing" :
+                         order.status === OrderStatus.PENDING ? "Pending" :
+                         order.status === OrderStatus.CANCELLED ? "Cancelled" : order.status}
+                      </span>
+                    </div>
                   </div>
 
                   {/* Order Content */}

@@ -35,14 +35,15 @@ const LoginPage = () => {
   const { mergeGuestCart, sessionId } = useGuestCart();
 
   // Get the redirect path from state or localStorage
-  const redirectPath =
-    location.state?.from || localStorage.getItem("returnUrl") || "/";
+  const redirectPath = location.state?.from || localStorage.getItem("returnUrl") || "/";
   const isCheckoutRedirect = redirectPath.includes("/checkout");
 
   // Clear returnUrl from localStorage after reading it
   useEffect(() => {
-    localStorage.removeItem("returnUrl");
-  }, []);
+    if (redirectPath !== "/") {
+      localStorage.setItem("returnUrl", redirectPath);
+    }
+  }, [redirectPath]);
 
   const validationSchema = Yup.object({
     email: Yup.string()
@@ -75,9 +76,7 @@ const LoginPage = () => {
             toast.error("Failed to merge guest cart");
           }
         }
-
-        // After successful login, navigate to the redirect path
-        navigate(redirectPath, { replace: true });
+        // Navigation is now handled in AuthContext
       } catch (error) {
         console.error("Login error:", error);
         toast.error("Login failed. Please check your credentials.");
@@ -99,9 +98,17 @@ const LoginPage = () => {
     localStorage.setItem("guestSessionId", guestSessionId);
     localStorage.setItem("isGuest", "true");
 
-    // Force reload the page to ensure all contexts are properly initialized
-    navigate(redirectPath, { replace: true });
+    // Always redirect to /app for guest users
+    window.location.href = "/app";
   };
+
+  // Remove the guest redirect effect since we're always going to /app
+  useEffect(() => {
+    // Only handle returnUrl for logged-in users
+    if (redirectPath !== "/" && !localStorage.getItem("isGuest")) {
+      localStorage.setItem("returnUrl", redirectPath);
+    }
+  }, [redirectPath]);
 
   return (
     <div className="flex min-h-screen bg-white">

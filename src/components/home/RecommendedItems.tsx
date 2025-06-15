@@ -16,7 +16,7 @@ interface Product extends Omit<BaseProduct, 'category' | 'id'> {
   id: string;
 }
 
-const API_URL = (import.meta.env.VITE_API_URL || 'http://localhost:5000').replace(/\/?$/, '/');
+const API_URL = (import.meta.env.VITE_API_URL || 'http://82.25.104.117:5001').replace(/\/?$/, '/');
 
 const VariantPlaceholderSVG = ({ color }: { color: string }) => (
   <svg 

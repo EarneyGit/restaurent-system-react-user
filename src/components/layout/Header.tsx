@@ -76,6 +76,15 @@ const Header = () => {
     return 'U';
   };
 
+  const handleLoginClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    const branchId = localStorage.getItem('branchId');
+    // Store current path for redirect after login
+    localStorage.setItem('returnUrl', branchId ? '/app' : window.location.pathname);
+    // Use window.location.href to ensure a full page refresh
+    window.location.href = '/login';
+  };
+
   // Show loading state while checking authentication
   if (authLoading) {
     return (
@@ -107,9 +116,9 @@ const Header = () => {
         onSave={handleScheduleSave}
       />
 
-      <header className="sticky top-0 py-2 bg-white z-30 shadow-sm">
-        <div className="xl:px-14 md:px-10 px-4">
-          <div className="flex justify-between items-center h-16 md:px-4">
+      <header className="sticky top-0 z-50 bg-white border-b border-gray-200">
+        <div className="px-5 md:px-14">
+          <div className="flex justify-between items-center h-16 px-4">
             {/* Left section */}
             <div className="flex items-center gap-2">
               {/* <button
@@ -144,13 +153,13 @@ const Header = () => {
                 {user ? (
                   <UserAvatar />
                 ) : (
-                  <Link
-                    to="/login"
+                  <button
+                    onClick={handleLoginClick}
                     className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-foodyman-green hover:bg-foodyman-green/90 text-white font-medium transition-colors"
                   >
                     <UserCircle size={18} />
                     <span className="hidden md:inline">Sign in</span>
-                  </Link>
+                  </button>
                 )}
               </div>
             </div>

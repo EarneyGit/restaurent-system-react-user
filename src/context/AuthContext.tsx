@@ -177,6 +177,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(userData);
       setIsAuthenticated(true);
 
+      // Get the redirect path
+      const branchId = localStorage.getItem('branchId');
+      const returnUrl = localStorage.getItem('returnUrl');
+      const isGuest = localStorage.getItem('isGuest') === 'true';
+      
+      // Clear guest status if it exists
+      if (isGuest) {
+        localStorage.removeItem('isGuest');
+        localStorage.removeItem('guestSessionId');
+      }
+      
+      // Determine redirect path
+      let redirectPath = '/app';
+      if (!branchId && returnUrl && !isGuest) {
+        redirectPath = returnUrl;
+      }
+      
+      localStorage.removeItem('returnUrl'); // Clear the returnUrl after using it
+      
+      // Use window.location.href for consistent behavior
+      window.location.href = redirectPath;
+
       return response.data;
     } catch (error) {
       console.error('Login error:', error);
