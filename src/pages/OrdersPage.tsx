@@ -30,6 +30,14 @@ import { toast } from "sonner";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import { OrderStatus, OrderStatusType, getStatusColor, getStatusIcon } from "@/types/order.types";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogClose
+} from "@/components/ui/dialog";
+import { Address } from '../types/branch.types';
 
 interface Product {
   product: {
@@ -43,6 +51,7 @@ interface Product {
   selectedAttributes: Array<{
     name: string;
     value: string;
+    itemPrice?: number;
   }>;
 }
 
@@ -52,7 +61,7 @@ interface Order {
   branchId: {
     _id: string;
     name: string;
-    address: string;
+    address: Address;
   };
   products: Product[];
   status: OrderStatusType;
@@ -64,7 +73,7 @@ interface Order {
     postalCode: string;
   };
   paymentMethod: "card" | "cash";
-  orderType: "delivery" | "pickup";
+  deliveryMethod: "delivery" | "pickup";
   createdAt: string;
   updatedAt: string;
 }
@@ -105,6 +114,26 @@ const OrderSkeleton = () => (
   </div>
 );
 
+// Helper function to get delivery method safely
+const getDeliveryMethod = (order: Order | null) => {
+  const method = typeof order?.deliveryMethod === 'string' && order.deliveryMethod
+    ? order.deliveryMethod
+    : null;
+  return method ? method.charAt(0).toUpperCase() + method.slice(1).replace('_', ' ') : 'N/A';
+};
+
+// Helper to format address object
+const formatAddress = (address: Address | string | undefined) => {
+  if (!address || typeof address === 'string') return address || '';
+  return [
+    address.street,
+    address.city,
+    address.state,
+    address.postalCode,
+    address.country
+  ].filter(Boolean).join(', ');
+};
+
 const OrdersPage = () => {
   const navigate = useNavigate();
   const [orders, setOrders] = useState<Order[]>([]);
@@ -116,6 +145,9 @@ const OrdersPage = () => {
   const [selectedBranchFilter, setSelectedBranchFilter] = useState<string>("");
   const [availableBranches, setAvailableBranches] = useState<Branch[]>([]);
   const [isLoadingBranches, setIsLoadingBranches] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [modalOrder, setModalOrder] = useState<Order | null>(null);
+  const ORDERS_PER_PAGE = 8;
 
   const { isAuthenticated, token } = useAuth();
 
@@ -217,6 +249,13 @@ const OrdersPage = () => {
     setFilteredOrders(filtered);
   }, [timeFilter, statusFilter, orders]);
 
+  // Pagination logic
+  const totalPages = Math.ceil(filteredOrders.length / ORDERS_PER_PAGE);
+  const paginatedOrders = filteredOrders.slice(
+    (currentPage - 1) * ORDERS_PER_PAGE,
+    currentPage * ORDERS_PER_PAGE
+  );
+
   // Update the status filter options
   const statusFilterOptions = [
     { value: "all", label: "All Status" },
@@ -226,280 +265,195 @@ const OrdersPage = () => {
     { value: OrderStatus.CANCELLED, label: "Cancelled" },
   ];
 
+  // Reset page to 1 when filters change
+  useEffect(() => { setCurrentPage(1); }, [statusFilter, selectedBranchFilter]);
+
   return (
     <>
       <Header />
       <div className="min-h-screen bg-neutral-50">
-        {/* Orders Content */}
-        <div className="z-50">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="md:pt-14 pt-10 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <button
-                  onClick={() => navigate(-1)}
-                  className="p-2 hover:bg-neutral-100 rounded-full transition-all"
-                >
-                  <ArrowLeft size={24} className="text-neutral-600" />
-                </button>
-                <div className="flex items-center gap-2">
-                  <h1 className="text-xl font-bold text-neutral-800">
-                    My Orders
-                  </h1>
-                  <div className="relative group">
-                    <button className="p-1.5 mt-1 hover:bg-neutral-50 rounded-full transition-all">
-                      <Info size={18} className="text-neutral-400" />
-                    </button>
-                    <div className="absolute left-0 top-full mt-2 w-72 bg-white rounded-lg shadow-xl border border-neutral-200 p-4 hidden group-hover:block z-20">
-                      <h4 className="font-medium text-neutral-800 mb-2">
-                        About Orders Page
-                      </h4>
-                      <p className="text-sm text-neutral-600">
-                        View and track all your orders in one place. Use filters
-                        to find specific orders by time period, status, or
-                        branch location. Each order shows detailed information
-                        including items, pricing, and delivery details.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <button
-                onClick={() => setShowFilters(!showFilters)}
-                className={`px-4 py-2 rounded-lg transition-all border border-gray-300 flex items-center gap-2 ${
-                  showFilters
-                    ? "bg-neutral-900 text-white"
-                    : "bg-neutral-100 text-neutral-700 hover:bg-neutral-200"
-                }`}
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
+            <h1 className="text-2xl font-bold text-neutral-800">My Orders</h1>
+            <div className="flex flex-wrap gap-4 items-center">
+              {/* Status Filter */}
+              <select
+                value={statusFilter}
+                onChange={e => setStatusFilter(e.target.value as StatusFilter)}
+                className="px-4 py-2 rounded-lg border border-gray-300 bg-white text-sm font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-green-500"
               >
-                {showFilters ? (
-                  <>
-                    <X size={18} />
-                    <span className="text-sm font-medium">Hide Filters</span>
-                  </>
+                {statusFilterOptions.map(opt => (
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                ))}
+              </select>
+              {/* Branch Filter */}
+              <select
+                value={selectedBranchFilter}
+                onChange={e => setSelectedBranchFilter(e.target.value)}
+                className="px-4 py-2 rounded-lg border border-gray-300 bg-white text-sm font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-green-500"
+                disabled={isLoadingBranches}
+              >
+                <option value="">All Branches</option>
+                {availableBranches.map(branch => (
+                  <option key={branch._id} value={branch._id}>{branch.name}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+          <div className="overflow-x-auto bg-white rounded-xl shadow border border-gray-200">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Order #</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Delivery Method</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-100">
+                {isLoading ? (
+                  <tr><td colSpan={6} className="text-center py-8">Loading...</td></tr>
+                ) : paginatedOrders.length === 0 ? (
+                  <tr><td colSpan={6} className="text-center py-8 text-gray-500">No orders found.</td></tr>
                 ) : (
-                  <>
-                    <Filter size={18} />
-                    <span className="text-sm font-medium ">Show Filters</span>
-                  </>
+                  paginatedOrders.map((order) => (
+                    <tr key={order._id} className="hover:bg-green-50/30 transition">
+                      <td className="px-6 py-4 font-medium text-gray-900">{order.orderNumber}</td>
+                      <td className="px-6 py-4 text-gray-700">{format(new Date(order.createdAt), "MMM d, yyyy • h:mm a")}</td>
+                      <td className="px-6 py-4">
+                        <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(order.status)}`}>
+                          {order.status === OrderStatus.COMPLETED ? "Completed" :
+                          order.status === OrderStatus.PROCESSING ? "Processing" :
+                          order.status === OrderStatus.PENDING ? "Pending" :
+                          order.status === OrderStatus.CANCELLED ? "Cancelled" : order.status}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-gray-700 capitalize">{getDeliveryMethod(order)}</td>
+                      <td className="px-6 py-4 font-semibold text-black">£{order.totalAmount.toFixed(2)}</td>
+                      <td className="px-6 py-4">
+                        <button
+                          onClick={() => setModalOrder(order)}
+                          className="px-4 py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition"
+                        >
+                          Show Details
+                        </button>
+                      </td>
+                    </tr>
+                  ))
                 )}
+              </tbody>
+            </table>
+          </div>
+          {/* Pagination Controls */}
+          {totalPages > 1 && (
+            <div className="flex justify-center items-center gap-2 mt-6">
+              <button
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+                className="px-3 py-1 rounded bg-gray-100 text-gray-700 disabled:opacity-50"
+              >
+                Prev
+              </button>
+              {Array.from({ length: totalPages }, (_, i) => (
+                <button
+                  key={i}
+                  onClick={() => setCurrentPage(i + 1)}
+                  className={`px-3 py-1 rounded ${currentPage === i + 1 ? "bg-green-600 text-white" : "bg-gray-100 text-gray-700"}`}
+                >
+                  {i + 1}
+                </button>
+              ))}
+              <button
+                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages}
+                className="px-3 py-1 rounded bg-gray-100 text-gray-700 disabled:opacity-50"
+              >
+                Next
               </button>
             </div>
-          </div>
-        </div>
-
-        {/* Filters Section */}
-        {showFilters && (
-          <div className="bg-white border-b mt-10">
-            <div className="max-w-7xl mx-auto p-6">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {/* Time Period */}
-                <div className="space-y-3">
-                  <div className="flex items-center gap-2">
-                    <Calendar size={18} className="text-neutral-400" />
-                    <span className="text-sm font-medium text-neutral-800">
-                      Time Period
+          )}
+          {/* Order Details Modal */}
+          {modalOrder && (
+            <Dialog open={!!modalOrder} onOpenChange={(open) => !open && setModalOrder(null)}>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Order Details</DialogTitle>
+                </DialogHeader>
+                <div className="mb-4">
+                  <div className="flex justify-between mb-2">
+                    <span className="font-medium">Order #:</span>
+                    <span>{modalOrder.orderNumber}</span>
+                  </div>
+                  <div className="flex justify-between mb-2">
+                    <span className="font-medium">Date:</span>
+                    <span>{format(new Date(modalOrder.createdAt), "MMM d, yyyy • h:mm a")}</span>
+                  </div>
+                  <div className="flex justify-between mb-2">
+                    <span className="font-medium">Status:</span>
+                    <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(modalOrder.status)}`}>
+                      {modalOrder.status}
                     </span>
                   </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    {[
-                      { value: "all", label: "All Time" },
-                      { value: "today", label: "Today" },
-                      { value: "week", label: "Last 7 Days" },
-                      { value: "month", label: "Last 30 Days" },
-                    ].map((option) => (
-                      <button
-                        key={option.value}
-                        onClick={() =>
-                          setTimeFilter(option.value as TimeFilter)
-                        }
-                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                          timeFilter === option.value
-                            ? "bg-green-600 text-white"
-                            : "bg-neutral-100 text-neutral-700 hover:bg-neutral-200"
-                        }`}
-                      >
-                        {option.label}
-                      </button>
-                    ))}
+                  <div className="flex justify-between mb-2">
+                    <span className="font-medium">Delivery Method:</span>
+                    <span className="capitalize">{getDeliveryMethod(modalOrder)}</span>
+                  </div>
+                  <div className="flex justify-between mb-2">
+                    <span className="font-medium">Total:</span>
+                    <span className="font-semibold">£{modalOrder.totalAmount.toFixed(2)}</span>
                   </div>
                 </div>
-
-                {/* Order Status */}
-                <div className="space-y-3">
-                  <div className="flex items-center gap-2">
-                    <Clock size={18} className="text-neutral-400" />
-                    <span className="text-sm font-medium text-neutral-800">
-                      Order Status
-                    </span>
-                  </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    {statusFilterOptions.map((option) => (
-                      <button
-                        key={option.value}
-                        onClick={() => setStatusFilter(option.value as StatusFilter)}
-                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                          statusFilter === option.value
-                            ? "bg-green-600 text-white"
-                            : "bg-neutral-100 text-neutral-700 hover:bg-neutral-200"
-                        }`}
-                      >
-                        {option.label}
-                      </button>
-                    ))}
-                  </div>
+                <div className="mb-4">
+                  <h3 className="font-semibold mb-2">Branch</h3>
+                  <div className="text-sm text-gray-700 mb-1"><MapPin className="w-4 h-4 inline-block mb-0.5 text-green-700 mr-1" />{modalOrder.branchId.name}</div>
+                  <div className="text-xs text-gray-500">{String(formatAddress(modalOrder.branchId.address))}</div>
                 </div>
-
-                {/* Branch */}
-                <div className="space-y-3">
-                  <div className="flex items-center gap-2">
-                    <Building2 size={18} className="text-neutral-400" />
-                    <span className="text-sm font-medium text-neutral-800">
-                      Branch
-                    </span>
-                  </div>
-                  <select
-                    value={selectedBranchFilter}
-                    onChange={(e) => setSelectedBranchFilter(e.target.value)}
-                    className="w-full bg-neutral-100 rounded-lg px-4 py-2.5 text-sm font-medium 
-                    text-neutral-700 focus:outline-none focus:ring-2 focus:ring-neutral-900
-                    hover:bg-neutral-200 cursor-pointer appearance-none"
-                    disabled={isLoadingBranches}
-                  >
-                    <option value="">All Branches</option>
-                    {availableBranches.map((branch) => (
-                      <option key={branch._id} value={branch._id}>
-                        {branch.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Orders List */}
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {isLoading ? (
-              [...Array(6)].map((_, index) => <OrderSkeleton key={index} />)
-            ) : filteredOrders.length === 0 ? (
-              <div className="col-span-full flex flex-col items-center justify-center py-5">
-                <div className="w-full max-w-[280px] mx-auto text-center">
-                  <img
-                    src="/not-found.png"
-                    alt="No orders found"
-                    className="w-full h-auto mb-6"
-                  />
-                  <h3 className="text-xl font-semibold text-neutral-900 mb-2">
-                    No Orders Found
-                  </h3>
-                  <p className="text-sm text-neutral-500">
-                    {timeFilter !== "all" ||
-                    statusFilter !== "all" ||
-                    selectedBranchFilter
-                      ? "Try changing your filters or broadening your search criteria"
-                      : "You haven't placed any orders yet. Once you do, they'll appear here!"}
-                  </p>
-                </div>
-              </div>
-            ) : (
-              filteredOrders.map((order) => (
-                <div
-                  key={order._id}
-                  className="group bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-lg hover:shadow-green-100/50 
-                  hover:border-green-100 transition-all duration-200 relative flex flex-col"
-                >
-                  {/* Order Header */}
-                  <div className="p-4 flex justify-between items-start border-b border-gray-100 bg-gradient-to-r from-green-50/50 to-white">
-                    <div>
-                      <h3 className="font-medium text-gray-900 group-hover:text-green-600 transition-colors">
-                        {order.orderNumber}
-                      </h3>
-                      <p className="text-sm text-gray-500">
-                        {format(
-                          new Date(order.createdAt),
-                          "MMM d, yyyy • h:mm a"
-                        )}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {getStatusIcon(order.status) && (
-                        <div className="text-gray-500">
-                          {React.createElement(getStatusIcon(order.status), { size: 20 })}
+                <div className="mb-4">
+                  <h3 className="font-semibold mb-2">Products</h3>
+                  <ul className="divide-y divide-gray-100">
+                    {modalOrder.products.map((item, idx) => (
+                      <li key={idx} className="py-2">
+                        <div className="flex justify-between">
+                          <span>{item.quantity}x {item.product.name}</span>
+                          <span>£{(item.price * item.quantity).toFixed(2)}</span>
                         </div>
-                      )}
-                      <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(order.status)}`}>
-                        {order.status === OrderStatus.COMPLETED ? "Completed" :
-                         order.status === OrderStatus.PROCESSING ? "Processing" :
-                         order.status === OrderStatus.PENDING ? "Pending" :
-                         order.status === OrderStatus.CANCELLED ? "Cancelled" : order.status}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Order Content */}
-                  <div className="p-4 space-y-4 flex-1 bg-white">
-                    {/* Products */}
-                    <div className="space-y-3">
-                      {order.products.map((item, index) => (
-                        <div
-                          key={index}
-                          className="flex justify-between items-start group/item hover:bg-green-50/30 p-2 rounded-lg transition-colors"
-                        >
-                          <div className="flex-1">
-                            <p className="font-medium text-gray-900 group-hover/item:text-green-600 transition-colors">
-                              {item.quantity}x {item.product.name}
-                            </p>
+                        {item.selectedAttributes && item.selectedAttributes.length > 0 && (
+                          <ul className="ml-4 mt-1 text-xs text-gray-500">
                             {item.selectedAttributes.map((attr, i) => (
-                              <p key={i} className="text-sm text-gray-500">
-                                {attr.name}: {attr.value}
-                              </p>
+                              <li key={i} className="mb-1">
+                                <span className="font-medium text-gray-700">{attr.name}:</span> {attr.value}
+                                {attr.itemPrice !== undefined && (
+                                  <span className="ml-2 text-green-600">£{Number(attr.itemPrice).toFixed(2)}</span>
+                                )}
+                              </li>
                             ))}
-                          </div>
-                          <p className="font-medium text-gray-900">
-                            £{(item.price * item.quantity).toFixed(2)}
-                          </p>
-                        </div>
-                      ))}
-                    </div>
-
-                    {/* Delivery/Pickup Info */}
-                    <div className="pt-4 border-t border-gray-100">
-                      <div className="flex items-center gap-2 text-gray-700 bg-gray-50 rounded-lg p-3">
-                        {order.orderType === "delivery" ? (
-                          <>
-                            <Truck size={18} className="text-green-600" />
-                            <span className="text-sm">
-                              Delivery to: {order.deliveryAddress?.street},{" "}
-                              {order.deliveryAddress?.city}
-                            </span>
-                          </>
-                        ) : (
-                          <>
-                            <MapPin size={18} className="text-green-600" />
-                            <span className="text-sm">
-                              Pickup from: {order.branchId.name}
-                            </span>
-                          </>
+                          </ul>
                         )}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Total Section */}
-                  <div className="mt-auto p-4 bg-emerald-50/50 border-t border-gray-100">
-                    <div className="flex justify-between items-center">
-                      <span className="font-semibold text-gray-900">Total</span>
-                      <span className="font-semibold text-black text-lg">
-                        £{order.totalAmount.toFixed(2)}
-                      </span>
-                    </div>
-                  </div>
+                      </li>
+                    ))}
+                  </ul>
                 </div>
-              ))
-            )}
-          </div>
+                {modalOrder.deliveryMethod === "delivery" && modalOrder.deliveryAddress && (
+                  <div className="mb-4">
+                    <h3 className="font-semibold mb-2">Delivery Address</h3>
+                    <div className="text-sm text-gray-700">
+                      {modalOrder.deliveryAddress.street}, {modalOrder.deliveryAddress.city}, {modalOrder.deliveryAddress.state}, {modalOrder.deliveryAddress.postalCode}
+                    </div>
+                  </div>
+                )}
+                <div className="flex justify-end">
+                  <button
+                    onClick={() => setModalOrder(null)}
+                    className="px-4 py-2 bg-gray-200 rounded-lg font-medium hover:bg-gray-300 transition cursor-pointer"
+                  >
+                    Close
+                  </button>
+                </div>
+              </DialogContent>
+            </Dialog>
+          )}
         </div>
       </div>
       <Footer />
