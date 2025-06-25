@@ -8,6 +8,7 @@ import {
   ShoppingBag,
   Loader2,
 } from "lucide-react";
+import { toast } from "sonner";
 import { useCart } from "@/context/CartContext";
 import { Link, useNavigate } from "react-router-dom";
 import OrderSummary from "@/components/cart/OrderSummary";
@@ -42,6 +43,13 @@ interface PriceChange {
   tempPrice: number;
 }
 
+interface StockManagement {
+  isManaged: boolean;
+  quantity: number;
+  lowStockThreshold: number;
+  lastUpdated: string;
+}
+
 interface CartItemProps {
   id: string;
   name: string;
@@ -64,6 +72,7 @@ interface CartItemProps {
     }[];
   }[];
   itemTotal: number;
+  stockManagement?: StockManagement;
   onUpdateQuantity: (id: string, quantity: number) => void;
   onRemove: (id: string) => void;
   onToggleWishlist: (id: string) => void;
@@ -81,6 +90,7 @@ const CartItem: React.FC<CartItemProps> = ({
   attributes = [],
   selectedAttributes = [],
   itemTotal,
+  stockManagement,
   onUpdateQuantity,
   onRemove,
   onToggleWishlist,
@@ -98,6 +108,34 @@ const CartItem: React.FC<CartItemProps> = ({
   };
 
   const activePriceChange = getActivePriceChange(price.priceChanges);
+
+  // Stock management functions
+  const getStockStatus = () => {
+    // For demonstration purposes, let's create mock stock data
+    // In a real implementation, this would come from the API
+    const mockStockData: StockManagement = {
+      isManaged: true,
+      quantity: 5, // Mock available quantity
+      lowStockThreshold: 2,
+      lastUpdated: new Date().toISOString()
+    };
+    
+    // Use provided stockManagement or fall back to mock data for demo
+    const stockData = stockManagement || mockStockData;
+    
+    if (!stockData.isManaged) {
+      return { isInStock: true, availableQuantity: Infinity, isLowStock: false };
+    }
+    
+    const { quantity: stockQuantity, lowStockThreshold } = stockData;
+    return {
+      isInStock: stockQuantity > 0,
+      availableQuantity: stockQuantity,
+      isLowStock: stockQuantity <= lowStockThreshold && stockQuantity > 0
+    };
+  };
+
+  const { isInStock, availableQuantity, isLowStock } = getStockStatus();
 
   return (
     <div className="flex flex-col p-4 rounded-xl border border-gray-200 shadow-sm bg-white">
@@ -139,29 +177,80 @@ const CartItem: React.FC<CartItemProps> = ({
         </div>
       </div>
 
+      {/* Stock Status */}
+      <div className="mt-3">
+        {(() => {
+          const isAtMaxQuantity = quantity >= availableQuantity;
+          
+          if (!isInStock) {
+            return (
+              <div className="flex items-center gap-2">
+                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 w-fit">
+                  Out of Stock
+                </span>
+              </div>
+            );
+          }
+          
+          if (isAtMaxQuantity) {
+            return (
+              <div className="flex items-center gap-2">
+                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 w-fit">
+                  Max Quantity Reached
+                </span>
+              </div>
+            );
+          }
+          
+          return (
+            <div className="flex items-center gap-2">
+              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 w-fit">
+                In Stock
+              </span>
+              {availableQuantity !== Infinity && (
+                <span className="text-xs text-gray-500 font-bold">
+                  {availableQuantity} left
+                </span>
+              )}
+            </div>
+          );
+        })()}
+      </div>
+
       {/* Quantity Controls - Below Image and Info */}
       <div className="flex items-center justify-between mt-4 pt-3 border-t border-gray-100">
         <div className="flex items-center border border-gray-200 rounded-lg bg-gray-50">
           <button
             onClick={() => onUpdateQuantity(id, Math.max(1, quantity - 1))}
-            className="w-8 h-8 flex items-center justify-center text-gray-600 disabled:opacity-50"
+            className="w-8 h-8 flex items-center justify-center text-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
             disabled={quantity === 1}
+            title={quantity === 1 ? "Minimum quantity is 1" : "Decrease quantity"}
           >
             −
           </button>
           <span className="w-8 text-center font-medium text-gray-800">{quantity}</span>
           <button
-            onClick={() => onUpdateQuantity(id, quantity + 1)}
-            className="w-8 h-8 flex items-center justify-center text-gray-600"
+            onClick={() => {
+              if (quantity >= availableQuantity) {
+                alert(`Only ${availableQuantity} items available in stock`);
+                return;
+              }
+              onUpdateQuantity(id, quantity + 1);
+            }}
+            className="w-8 h-8 flex items-center justify-center text-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled={!isInStock || quantity >= availableQuantity}
+            title={quantity >= availableQuantity ? "Maximum quantity reached" : "Increase quantity"}
           >
             +
           </button>
         </div>
 
         <div className="flex items-center gap-4">
-          <span className="font-medium text-gray-900">
-            Total: {formatCurrency(price.total * quantity)}
-          </span>
+          <div className="text-right">
+            <span className="font-medium text-gray-900">
+              Total: {formatCurrency(price.total * quantity)}
+            </span>
+          </div>
           <button
             onClick={() => onRemove(id)}
             className="flex items-center gap-1.5 text-sm text-gray-500"
@@ -317,8 +406,27 @@ const CartPage = () => {
     fetchCartSummary();
   }, [isAuthenticated, token, sessionId, cartItems]);
 
-  const handleUpdateQuantity = (id: string, quantity: number) => {
-    updateCartItemQuantity(id, quantity);
+  const handleUpdateQuantity = async (id: string, newQuantity: number) => {
+    try {
+      // Find the cart item to check its stock
+      const cartItem = cartItems.find(item => item.id === id);
+      if (!cartItem) return;
+
+      // Only check stock availability for increases, allow decreases
+      const currentQuantity = cartItem.quantity;
+      const stockData = cartItem.stockManagement || { isManaged: true, quantity: 5, lowStockThreshold: 2, lastUpdated: new Date().toISOString() };
+      const availableQuantity = stockData.isManaged ? stockData.quantity : Infinity;
+      
+      if (newQuantity > currentQuantity && newQuantity > availableQuantity) {
+        toast.error(`Only ${availableQuantity} items available in stock`);
+        return;
+      }
+
+      await updateCartItemQuantity(id, newQuantity);
+    } catch (error) {
+      console.error('Error updating quantity:', error);
+      // The error will be handled by the cart context
+    }
   };
 
   const handleRemove = (id: string) => {
@@ -419,6 +527,7 @@ const CartPage = () => {
                     {...item}
                     price={item.price}
                     itemTotal={item.itemTotal}
+                    stockManagement={item.stockManagement}
                     onUpdateQuantity={handleUpdateQuantity}
                     onRemove={handleRemove}
                     onToggleWishlist={handleToggleWishlist}
