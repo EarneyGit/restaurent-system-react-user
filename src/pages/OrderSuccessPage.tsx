@@ -9,22 +9,55 @@ import {
   Loader2,
   LucideIcon,
   AlertCircle,
-  ShoppingBag
+  ShoppingBag,
+  Calculator,
+  Percent
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { initializeSocket, subscribeToOrderUpdates, joinBranchRoom, leaveBranchRoom, OrderUpdate } from "@/utils/socket";
 import axios from "@/config/axios.config";
 import { toast } from "sonner";
 import { OrderStatus, OrderStatusType, ORDER_STATUS_STEPS } from "@/types/order.types";
+import { formatCurrency } from "@/utils/currency";
+import { 
+  isPriceObject, 
+  calculateOrderTotals, 
+  validateOrderCalculations, 
+  safeFormatCurrency,
+  formatDiscountText,
+  type OrderItem,
+  type DiscountInfo 
+} from "@/utils/orderCalculations";
 
 interface OrderProduct {
   id: string;
   product: {
+    _id: string;
     name: string;
+    description?: string;
+    images?: string[];
+    price: number;
   };
   quantity: number;
-  price: number;
+  price: {
+    base: number;
+    currentEffectivePrice: number;
+    attributes: number;
+    total: number;
+  };
+  notes?: string;
   itemTotal: number;
+  selectedAttributes?: {
+    attributeId: string;
+    attributeName: string;
+    attributeType: string;
+    selectedItems: {
+      itemId: string;
+      itemName: string;
+      itemPrice: number;
+      quantity: number;
+    }[];
+  }[];
 }
 
 interface OrderDetails {
@@ -49,7 +82,23 @@ interface OrderDetails {
     }>;
   };
   discount?: {
+    discountId: string;
+    code: string;
+    name: string;
+    discountType: string;
+    discountValue: number;
     discountAmount: number;
+    originalTotal: number;
+  };
+  discountApplied?: {
+    discountId: string;
+    code: string;
+    name: string;
+    discountType: string;
+    discountValue: number;
+    discountAmount: number;
+    originalTotal: number;
+    appliedAt: string;
   };
   deliveryAddress: {
     street: string;
@@ -76,6 +125,7 @@ const OrderSuccessPage = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<{ message: string; requiresAuth?: boolean } | null>(null);
   const [currentStatus, setCurrentStatus] = useState<OrderStatusType>(OrderStatus.PENDING);
+  const [calculationErrors, setCalculationErrors] = useState<string[]>([]);
 
   // Add auto-update timer
   useEffect(() => {
@@ -166,6 +216,44 @@ const OrderSuccessPage = () => {
 
       if (response.data.success) {
         const order = response.data.data;
+        
+        // Validate order calculations
+        if (order.products && order.products.length > 0) {
+          const orderItems: OrderItem[] = order.products.map(p => ({
+            id: p.id,
+            quantity: p.quantity,
+            price: p.price,
+            itemTotal: p.itemTotal,
+            selectedAttributes: p.selectedAttributes,
+            notes: p.notes
+          }));
+          
+          const discount: DiscountInfo | undefined = (order.discount || order.discountApplied) ? {
+            discountId: (order.discountApplied?.discountId || order.discount?.discountId) || '',
+            code: (order.discountApplied?.code || order.discount?.code) || '',
+            name: (order.discountApplied?.name || order.discount?.name) || '',
+            discountType: (order.discountApplied?.discountType || order.discount?.discountType) as 'percentage' | 'fixed' || 'fixed',
+            discountValue: (order.discountApplied?.discountValue || order.discount?.discountValue) || 0,
+            discountAmount: (order.discountApplied?.discountAmount || order.discount?.discountAmount) || 0,
+            originalTotal: (order.discountApplied?.originalTotal || order.discount?.originalTotal) || 0
+          } : undefined;
+          
+          const calculatedTotals = calculateOrderTotals(
+            orderItems,
+            order.deliveryFee || 0,
+            order.serviceCharges?.totalAll || 0,
+            discount
+          );
+          
+          const validation = validateOrderCalculations(orderItems, calculatedTotals);
+          if (!validation.isValid) {
+            console.warn('Order calculation validation failed:', validation.errors);
+            setCalculationErrors(validation.errors);
+          } else {
+            setCalculationErrors([]);
+          }
+        }
+        
         setOrderDetails(order);
         setCurrentStatus(order.status);
         
@@ -393,74 +481,222 @@ const OrderSuccessPage = () => {
               ))}
             </div>
 
-            {/* Order Items Section */}
-            {/* <div className="mt-8 pt-8 border-t border-gray-100">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Order Items</h3>
+                        {/* Order Items Section - Clean Minimal Design */}
+            <div className="mt-8 pt-8 border-t border-gray-100">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-8 h-8 bg-green-600 rounded-lg flex items-center justify-center">
+                  <ShoppingBag size={18} className="text-white" />
+                </div>
+                <h3 className="text-xl font-semibold text-gray-900">Your Order</h3>
+                <div className="flex-1 h-px bg-gray-200"></div>
+                <span className="text-sm text-gray-500 bg-green-50 px-3 py-1 rounded-full border border-green-200">
+                  {orderDetails?.products.length} {orderDetails?.products.length === 1 ? 'item' : 'items'}
+                </span>
+              </div>
+
               <div className="space-y-4">
                 {orderDetails?.products.map((item, index) => (
-                  <div key={index} className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="bg-gray-100 rounded-lg p-2">
-                        <ShoppingBag size={16} className="text-gray-600" />
-                      </div>
-                      <div>
-                        <p className="font-medium text-gray-900">{item.product.name}</p>
-                        <div className="flex items-center gap-2 text-sm text-gray-500">
-                          <span>Quantity: {item.quantity}</span>
-                          <span>×</span>
-                          <span>£{((item.itemTotal || 0) / (item.quantity || 1)).toFixed(2)}</span>
+                  <div key={index} className="bg-white rounded-lg border border-gray-200 p-5">
+                    <div className="flex items-start gap-4">
+                      {/* Product Info */}
+                      <div className="flex-1">
+                        <div className="flex items-start justify-between mb-3">
+                          <div>
+                            <h4 className="font-medium text-gray-900 text-lg mb-1">{item.product.name}</h4>
+                            <div className="flex items-center gap-2 text-sm text-gray-600">
+                              <span className="bg-green-50 text-green-700 px-2 py-1 rounded font-medium border border-green-200">
+                                Qty: {Math.max(1, item.quantity)}
+                              </span>
+                              <span className="text-gray-400">×</span>
+                              <span className="font-medium">
+                                {safeFormatCurrency(isPriceObject(item.price) ? item.price.base : (typeof item.price === 'number' ? item.price : 0))}
+                              </span>
+                            </div>
+                          </div>
+                          
+                          {/* Item Total */}
+                          <div className="text-right">
+                            <span className="text-xl font-semibold text-green-600">
+                              {safeFormatCurrency(item.itemTotal)}
+                            </span>
+                          </div>
                         </div>
+
+                        {/* Notes */}
+                        {item.notes && (
+                          <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg">
+                            <div className="flex items-center gap-2 mb-1">
+                              <div className="w-4 h-4 bg-green-500 rounded-full flex items-center justify-center">
+                                <span className="text-xs text-white font-bold">!</span>
+                              </div>
+                              <span className="text-sm font-medium text-green-800">Note:</span>
+                            </div>
+                            <p className="text-sm text-green-700 ml-6">{item.notes}</p>
+                          </div>
+                        )}
+
+                        {/* Selected Attributes */}
+                        {item.selectedAttributes && item.selectedAttributes.length > 0 && (
+                          <div className="space-y-3">
+                            <div className="flex items-center gap-2">
+                              <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                              <span className="text-sm font-medium text-gray-700">Add-ons</span>
+                            </div>
+                            
+                            <div className="space-y-3 ml-4">
+                              {item.selectedAttributes.map((attr, attrIndex) => (
+                                <div key={attrIndex} className="bg-gray-50 rounded-lg p-3 border border-gray-200">
+                                  <div className="mb-2">
+                                    <span className="font-medium text-gray-800 text-sm">{attr.attributeName}:</span>
+                                  </div>
+                                  
+                                  <div className="space-y-1">
+                                    {attr.selectedItems.map((selectedItem, itemIndex) => (
+                                      <div key={itemIndex} className="flex items-center justify-between">
+                                        <span className="text-sm text-gray-700">
+                                          • {selectedItem.itemName}
+                                          {selectedItem.quantity > 1 && (
+                                            <span className="ml-1 text-xs text-gray-500">
+                                              (×{selectedItem.quantity})
+                                            </span>
+                                          )}
+                                        </span>
+                                        {selectedItem.itemPrice > 0 && (
+                                          <span className="text-sm font-medium text-neutral-600">
+                                            +{safeFormatCurrency(selectedItem.itemPrice * Math.max(1, selectedItem.quantity))}
+                                          </span>
+                                        )}
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Price Breakdown */}
+                        {isPriceObject(item.price) && item.price.attributes > 0 && (
+                          <div className="mt-4 p-3 bg-gray-50 rounded-lg border border-gray-200">
+                            <div className="space-y-2 text-sm">
+                              <div className="flex justify-between items-center">
+                                <span className="text-gray-600">Base Price ({Math.max(1, item.quantity)}×)</span>
+                                <span className="font-medium text-gray-800">
+                                  {safeFormatCurrency(item.price.base * Math.max(1, item.quantity))}
+                                </span>
+                              </div>
+                              <div className="flex justify-between items-center">
+                                <span className="text-gray-600">Add-ons</span>
+                                <span className="font-medium text-neutral-600">
+                                  +{safeFormatCurrency(item.price.attributes * Math.max(1, item.quantity))}
+                                </span>
+                              </div>
+                              <div className="h-px bg-gray-200 my-2"></div>
+                              <div className="flex justify-between items-center font-medium">
+                                <span className="text-gray-800">Item Total</span>
+                                <span className="text-neutral-600">
+                                  {safeFormatCurrency(item.itemTotal)}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </div>
-                    <span className="font-medium">£{(item.itemTotal || 0).toFixed(2)}</span>
                   </div>
                 ))}
               </div>
-            </div> */}
+            </div>
 
-                    {/* <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">Subtotal</span>
-                  <span>£{(orderDetails.subtotal || 0).toFixed(2)}</span>
-                </div> */}
-                
-                {/* <div className="flex justify-between text-sm items-center">
-                  <span className="text-gray-600">Delivery Fee</span>
-                  {!orderDetails.deliveryFee || orderDetails.deliveryFee <= 0 ? (
-                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                      Free
-                    </span>
-                  ) : (
-                    <span>£{orderDetails.deliveryFee.toFixed(2)}</span>
+            {/* Show calculation errors if any */}
+            {calculationErrors.length > 0 && (
+              <div className="mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                <h4 className="text-sm font-medium text-yellow-800 mb-2">Calculation Warnings:</h4>
+                <ul className="text-xs text-yellow-700 space-y-1">
+                  {calculationErrors.map((error, index) => (
+                    <li key={index}>• {error}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+                        {/* Order Summary - Clean Minimal Design */}
+            <div className="mt-8 pt-6">
+              <div className="bg-gray-50 rounded-lg p-6 border border-gray-200">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="w-8 h-8 bg-green-600 rounded-lg flex items-center justify-center">
+                    <Calculator size={18} className="text-white" />
+                  </div>
+                  <h3 className="text-xl font-semibold text-gray-900">Order Summary</h3>
+                </div>
+
+                <div className="space-y-3">
+                  {/* Subtotal */}
+                  <div className="flex justify-between items-center py-2">
+                    <span className="text-gray-700">Subtotal</span>
+                    <span className="font-medium text-gray-900">{safeFormatCurrency(orderDetails.subtotal)}</span>
+                  </div>
+                  
+                  {/* Delivery Fee */}
+                  <div className="flex justify-between items-center py-2">
+                    <span className="text-gray-700">Delivery Fee</span>
+                    {!orderDetails.deliveryFee || orderDetails.deliveryFee <= 0 ? (
+                      <div className="bg-green-600 text-white px-3 py-1 rounded-full text-xs font-medium">
+                        FREE
+                      </div>
+                    ) : (
+                      <span className="font-medium text-gray-900">{safeFormatCurrency(orderDetails.deliveryFee)}</span>
+                    )}
+                  </div>
+
+                  {/* Service Charges */}
+                  {orderDetails.serviceCharges && orderDetails.serviceCharges.totalAll > 0 && (
+                    <div className="flex justify-between items-center py-2">
+                      <span className="text-gray-700">Service Charge</span>
+                      <span className="font-medium text-gray-900">{safeFormatCurrency(orderDetails.serviceCharges.totalAll)}</span>
+                    </div>
                   )}
-                </div> */}
 
-            {/* Order Summary */}
-            {/* <div className="mt-6 pt-6 border-t border-gray-100">
-              <div className="space-y-2">
-        
+                  {/* Discount */}
+                  {((orderDetails.discount && orderDetails.discount.discountAmount > 0) || 
+                    (orderDetails.discountApplied && orderDetails.discountApplied.discountAmount > 0)) && (
+                    <div className="flex justify-between items-center ">
+                      <div className="flex items-center gap-2">
+                        <div className="w-5 h-5 bg-green-600 rounded-full flex items-center justify-center">
+                          <Percent size={10} className="text-white" />
+                        </div>
+                        <span className="text-gray-700">
+                          Discount ({orderDetails.discountApplied?.code || orderDetails.discount?.code})
+                        </span>
+                      </div>
+                      <span className="font-medium text-green-600">
+                        -{safeFormatCurrency(orderDetails.discountApplied?.discountAmount || orderDetails.discount?.discountAmount)}
+                      </span>
+                      
+                    </div>
+                  )}
+                                    {/* Savings */}
+                                    {((orderDetails.discount && orderDetails.discount.discountAmount > 0) || 
+                    (orderDetails.discountApplied && orderDetails.discountApplied.discountAmount > 0)) && (
+                    <div className="text-right text-sm text-green-600 font-medium">
+                      You saved {safeFormatCurrency(orderDetails.discountApplied?.discountAmount || orderDetails.discount?.discountAmount)}!
+                    </div>
+                  )}
 
-                {orderDetails.serviceCharges && orderDetails.serviceCharges.totalAll > 0 && (
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Service Charge</span>
-                    <span>£{orderDetails.serviceCharges.totalAll.toFixed(2)}</span>
+                  <div className="h-px bg-gray-200 my-4"></div>
+
+                  {/* Total */}
+                  <div className="flex justify-between items-center py-2 bg-green-50 px-4 rounded-lg border border-green-200">
+                    <span className="text-gray-900 font-semibold text-lg">Total Paid</span>
+                    <span className="text-xl font-bold text-neutral-600">
+                      {safeFormatCurrency(orderDetails?.finalTotal || orderDetails?.totalAmount)}
+                    </span>
                   </div>
-                )}
 
-                {orderDetails.discount && orderDetails.discount.discountAmount > 0 && (
-                  <div className="flex justify-between text-sm text-green-600">
-                    <span>Discount</span>
-                    <span>-£{orderDetails.discount.discountAmount.toFixed(2)}</span>
-                  </div>
-                )}
 
-                <div className="pt-2 border-t mt-2">
-                  <div className="flex justify-between font-medium">
-                    <span>Total</span>
-                    <span className="text-green-600">£{(orderDetails?.totalAmount || 0).toFixed(2)}</span>
-                  </div>
                 </div>
               </div>
-            </div> */}
+            </div>
           </div>
         </div>
       </div>

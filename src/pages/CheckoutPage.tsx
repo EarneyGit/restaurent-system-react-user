@@ -256,19 +256,8 @@ interface OrderConfirmationModalProps {
   orderDetails: {
     items: CartItemType[];
     total: number;
-    address: string;
-    deliveryTime: string;
-  };
-}
-
-interface OrderConfirmationModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onConfirm: () => void;
-  isLoading: boolean;
-  orderDetails: {
-    items: CartItemType[];
-    total: number;
+    originalTotal?: number;
+    discountAmount?: number;
     address: string;
     deliveryTime: string;
   };
@@ -323,10 +312,22 @@ const OrderConfirmationModal: React.FC<OrderConfirmationModalProps> = ({
           </div>
 
           {/* Total */}
-          <div className="border-t pt-2">
+          <div className="border-t pt-2 space-y-2">
+            {orderDetails.originalTotal && orderDetails.discountAmount && (
+              <>
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-600">Subtotal:</span>
+                  <span>{formatCurrency(orderDetails.originalTotal)}</span>
+                </div>
+                <div className="flex justify-between text-sm text-green-600">
+                  <span>Discount:</span>
+                  <span>-{formatCurrency(orderDetails.discountAmount)}</span>
+                </div>
+              </>
+            )}
             <div className="flex justify-between font-medium">
               <span>Total Amount:</span>
-              <span>{formatCurrency(orderDetails.total)}</span>
+              <span className="text-green-600">{formatCurrency(orderDetails.total)}</span>
             </div>
           </div>
         </div>
@@ -694,12 +695,13 @@ const CheckoutPage = () => {
         });
         toast.success(response.data.message || "Promo code applied successfully!");
       } else {
-        throw new Error(response.data?.message || "Invalid promo code");
+        setAppliedPromo(null);
+        throw new Error("Invalid promo code");
       }
     } catch (error: unknown) {
       console.error("Promo code validation error:", error);
       const err = error as { response?: { data?: { message?: string } }; message?: string };
-      const errorMessage = err.response?.data?.message || err.message || "Invalid promo code";
+      const errorMessage = "Invalid promo code";
       toast.error(errorMessage);
       setAppliedPromo(null);
     } finally {
@@ -785,13 +787,24 @@ const CheckoutPage = () => {
         };
       });
 
-      // Calculate totals
-      const subtotal = cartSummary.subtotal;
-      const deliveryFeeAmount = cartSummary.deliveryFee;
-      const taxAmount = 0;
-      const discountAmount = appliedPromo ? appliedPromo.discountAmount : 0;
-      const finalTotal =
-        subtotal + deliveryFeeAmount + taxAmount - discountAmount;
+      // Use the originalTotal and newTotal from discount validation if available
+      let subtotal, deliveryFeeAmount, taxAmount, discountAmount, finalTotal;
+      
+      if (appliedPromo && appliedPromo.originalTotal && appliedPromo.newTotal) {
+        // Use values from discount validation API
+        subtotal = appliedPromo.originalTotal - cartSummary.deliveryFee; // Subtract delivery fee to get items subtotal
+        deliveryFeeAmount = cartSummary.deliveryFee;
+        taxAmount = 0; // Tax is typically included in the originalTotal
+        discountAmount = appliedPromo.discountAmount;
+        finalTotal = appliedPromo.newTotal;
+      } else {
+        // Fallback to manual calculation
+        subtotal = cartSummary.subtotal;
+        deliveryFeeAmount = cartSummary.deliveryFee;
+        taxAmount = 0;
+        discountAmount = appliedPromo ? appliedPromo.discountAmount : 0;
+        finalTotal = subtotal + deliveryFeeAmount + taxAmount - discountAmount;
+      }
 
       // Get deliveryMethod from localStorage and determine orderType
       const deliveryMethod = localStorage.getItem("deliveryMethod");
@@ -832,7 +845,8 @@ const CheckoutPage = () => {
         deliveryFee: deliveryFeeAmount,
         tax: taxAmount,
         discount: discountAmount,
-        totalAmount: finalTotal,
+        totalAmount: appliedPromo?.originalTotal || (subtotal + deliveryFeeAmount + taxAmount), // Use originalTotal from API
+        finalTotal: finalTotal,
         status: "pending", // Set initial status
       };
 
@@ -1511,31 +1525,33 @@ const CheckoutPage = () => {
                     {/* Final Total */}
                     <div className="border-t pt-3">
                       <div className="flex justify-between">
-                        <span className="font-semibold">Total</span>
+                        <span className="font-semibold uppercase">Total</span>
                         <div className="text-right">
-                          <span className="text-green-600 text-lg font-bold">
-                            {formatCurrency(
-                              cartItems.reduce(
-                                (total, item) =>
-                                  total +
-                                  (isPriceObject(item.price)
-                                    ? item.price.total * item.quantity
-                                    : 0),
-                                0
-                              ) +
-                                cartSummary.deliveryFee +
-                                (cartSummary.serviceCharges?.totalAll || 0) +
-                                (cartSummary.subtotal * cartSummary.taxRate) /
-                                  100 -
-                                (appliedPromo ? appliedPromo.discountAmount : 0)
-                            )}
+                          <span className="text-neutral-800 text-lg font-bold">
+                            {appliedPromo && appliedPromo.newTotal
+                              ? formatCurrency(appliedPromo.newTotal)
+                              : formatCurrency(
+                                  cartItems.reduce(
+                                    (total, item) =>
+                                      total +
+                                      (isPriceObject(item.price)
+                                        ? item.price.total * item.quantity
+                                        : 0),
+                                    0
+                                  ) +
+                                    cartSummary.deliveryFee +
+                                    (cartSummary.serviceCharges?.totalAll || 0) +
+                                    (cartSummary.subtotal * cartSummary.taxRate) /
+                                      100 -
+                                    (appliedPromo ? appliedPromo.discountAmount : 0)
+                                )}
                           </span>
-                          {cartItems.some(
+                          {(cartItems.some(
                             (item) =>
                               isPriceObject(item.price) &&
                               item.price.base > item.price.currentEffectivePrice
-                          ) && (
-                            <div className="text-xs text-green-600 font-medium">
+                          ) || (appliedPromo && appliedPromo.savings > 0)) && (
+                            <div className="text-xs text-neutral-600 font-medium">
                               You saved{" "}
                               {formatCurrency(
                                 cartItems.reduce(
@@ -1547,7 +1563,7 @@ const CheckoutPage = () => {
                                         item.quantity
                                       : 0),
                                   0
-                                )
+                                ) + (appliedPromo ? appliedPromo.savings : 0)
                               )}
                               !
                             </div>
@@ -1609,9 +1625,11 @@ const CheckoutPage = () => {
         isLoading={isProcessing}
         orderDetails={{
           items: cartItems,
-          total:
-            cartSummary.total -
-            (appliedPromo ? appliedPromo.discountAmount : 0),
+          total: appliedPromo && appliedPromo.newTotal 
+            ? appliedPromo.newTotal 
+            : cartSummary.total - (appliedPromo ? appliedPromo.discountAmount : 0),
+          originalTotal: appliedPromo?.originalTotal,
+          discountAmount: appliedPromo?.discountAmount,
           address: `${deliveryAddress.street}, ${deliveryAddress.city}, ${deliveryAddress.postcode}`,
           deliveryTime: selectedTimeSlot,
         }}
