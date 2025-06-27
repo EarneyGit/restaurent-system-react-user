@@ -69,7 +69,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, isOutletAvailable = 
   const [selectedVariant, setSelectedVariant] = useState(0);
   const [quantity, setQuantity] = useState(1);
   const [isOptionsModalOpen, setIsOptionsModalOpen] = useState(false);
-  const { addToCart, updateCartItemQuantity, cartItems, removeFromCart, getItemQuantity } = useCart();
+  const { addToCart, updateCartItemQuantity, cartItems, removeFromCart } = useCart();
   const [imageError, setImageError] = useState(false);
   const [isAddingToCart, setIsAddingToCart] = useState(false);
   const { isAuthenticated, token } = useAuth();
@@ -80,6 +80,33 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, isOutletAvailable = 
 
   const activePriceChange = getActivePriceChange(product.priceChanges);
   const daysLeft = activePriceChange ? getDaysLeft(activePriceChange.endDate) : 0;
+
+  // Stock management functions
+  const getStockStatus = () => {
+    // Use the stockManagement from product data, or create mock data for demo
+    const mockStockData = {
+      isManaged: true,
+      quantity: 10, // Mock available quantity
+      lowStockThreshold: 3,
+      lastUpdated: new Date().toISOString()
+    };
+    
+    // Use provided product.stockManagement or fall back to mock data for demo
+    const stockData = product.stockManagement || mockStockData;
+    
+    if (!stockData.isManaged) {
+      return { isInStock: true, availableQuantity: Infinity, isLowStock: false };
+    }
+    
+    const { quantity: stockQuantity, lowStockThreshold } = stockData;
+    return {
+      isInStock: stockQuantity > 0,
+      availableQuantity: stockQuantity,
+      isLowStock: stockQuantity <= lowStockThreshold && stockQuantity > 0
+    };
+  };
+
+  const { isInStock, availableQuantity, isLowStock } = getStockStatus();
 
   useEffect(() => {
     const checkBranchAvailability = async () => {
@@ -134,6 +161,13 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, isOutletAvailable = 
       return;
     }
 
+    // Only check stock availability for increases, allow decreases
+    const currentCartQuantity = cartItem?.quantity || 0;
+    if (newQuantity > currentCartQuantity && newQuantity > availableQuantity) {
+      toast.error(`Only ${availableQuantity} items available in stock`);
+      return;
+    }
+
     if (isInCart && cartItem) {
       try {
         setIsAddingToCart(true);
@@ -161,6 +195,17 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, isOutletAvailable = 
       return;
     }
 
+    // Check stock availability
+    if (!isInStock) {
+      toast.error("This item is out of stock");
+      return;
+    }
+
+    if (quantity > availableQuantity) {
+      toast.error(`Only ${availableQuantity} items available in stock`);
+      return;
+    }
+
     // Check if user is authenticated or has a valid guest session
     const isGuest = localStorage.getItem('isGuest') === 'true';
     if (!isAuthenticated && !isGuest) {
@@ -185,14 +230,25 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, isOutletAvailable = 
 
     try {
       setIsAddingToCart(true);
+      
+      // Create proper price structure
+      const effectivePrice = activePriceChange ? activePriceChange.tempPrice : product.price;
+      const priceStructure = {
+        base: product.price,
+        currentEffectivePrice: effectivePrice,
+        attributes: 0,
+        total: effectivePrice
+      };
+
       await addToCart({
         ...product,
         productId: product.id,
         quantity,
         selectedOptions: {},
         specialRequirements: "",
-        itemTotal: product.price * quantity,
+        itemTotal: effectivePrice * quantity,
         branchId: selectedBranch.id,
+        price: priceStructure,
       });
       toast.success("Added to cart successfully");
     } catch (error) {
@@ -216,6 +272,17 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, isOutletAvailable = 
       return;
     }
 
+    // Check stock availability
+    if (!isInStock) {
+      toast.error("This item is out of stock");
+      return;
+    }
+
+    if (quantity > availableQuantity) {
+      toast.error(`Only ${availableQuantity} items available in stock`);
+      return;
+    }
+
     // Check if user is authenticated or has a valid guest session
     const isGuest = localStorage.getItem('isGuest') === 'true';
     if (!isAuthenticated && !isGuest) {
@@ -228,14 +295,39 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, isOutletAvailable = 
 
     try {
       setIsAddingToCart(true);
+      
+      // Calculate attributes price from selected options
+      let attributesTotal = 0;
+      if (product.attributes) {
+        product.attributes.forEach((attr) => {
+          const selectedChoiceId = selectedOptions[attr.id];
+          if (selectedChoiceId) {
+            const choice = attr.choices.find((c) => c.id === selectedChoiceId);
+            if (choice) {
+              attributesTotal += choice.price;
+            }
+          }
+        });
+      }
+
+      // Create proper price structure
+      const effectivePrice = activePriceChange ? activePriceChange.tempPrice : product.price;
+      const priceStructure = {
+        base: product.price,
+        currentEffectivePrice: effectivePrice,
+        attributes: attributesTotal,
+        total: effectivePrice + attributesTotal
+      };
+
       await addToCart({
         ...product,
         productId: product.id,
         quantity,
         selectedOptions,
         specialRequirements,
-        itemTotal: product.price * quantity,
+        itemTotal: (effectivePrice + attributesTotal) * quantity,
         branchId: selectedBranch.id,
+        price: priceStructure,
       });
       setIsOptionsModalOpen(false);
     } catch (error) {
@@ -340,6 +432,45 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, isOutletAvailable = 
           <p className="text-left text-sm text-neutral-500 mt-1 break-words">
             {product?.description}
           </p>
+          
+          {/* Stock Status */}
+          <div className="mt-2 mb-1">
+            {(() => {
+              const currentCartQuantity = cartItem?.quantity || 0;
+              const remainingStock = availableQuantity - currentCartQuantity;
+              const isAtMaxQuantity = isInCart && currentCartQuantity >= availableQuantity;
+              
+              if (!isInStock) {
+                return (
+                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 w-fit">
+                    Out of Stock
+                  </span>
+                );
+              }
+              
+              if (isAtMaxQuantity) {
+                return (
+                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 w-fit">
+                    Max Quantity Reached
+                  </span>
+                );
+              }
+              
+              return (
+                <div className="flex items-center gap-2">
+                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 w-fit">
+                    In Stock
+                  </span>
+                  {/* {availableQuantity !== Infinity && (
+                    <span className="text-xs text-gray-500 font-bold">
+                      {isInCart ? `${remainingStock} more` : `${availableQuantity} left`}
+                    </span>
+                  )} */}
+                </div>
+              );
+            })()}
+          </div>
+
           <div className="flex items-baseline gap-2 mt-1">
             {activePriceChange ? (
               <>
@@ -364,46 +495,65 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, isOutletAvailable = 
         {/* Sticky Cart Controls */}
         <div className="sticky bottom-0 left-0 right-0 p-4 bg-white border-t border-gray-100">
           {isBranchAvailable ? (
-            isInCart ? (
-              <div className="w-full bg-gray-100 rounded-xl flex items-center">
-                <button
-                  onClick={() => handleQuantityChange(Math.max(1, (cartItem?.quantity || 1) - 1))}
-                  className="p-3 hover:text-gray-700 text-gray-500 flex-shrink-0"
-                  disabled={(cartItem?.quantity || 1) === 1}
-                >
-                  <Minus size={20} />
-                </button>
-                <span className="flex-1 text-center font-medium">
-                  {isAddingToCart ? (
-                    <Loader2 size={16} className="animate-spin mx-auto" />
-                  ) : (
-                    cartItem?.quantity || 1
-                  )}
-                </span>
+            (() => {
+              const currentCartQuantity = cartItem?.quantity || 0;
+              const isAtMaxQuantity = isInCart && currentCartQuantity >= availableQuantity;
+              
+              if (!isInStock) {
+                return (
+                  <div className="text-center text-sm text-red-600 bg-red-50 py-2.5 rounded-xl">
+                    Out of Stock
+                  </div>
+                );
+              }
+              
+              if (isInCart) {
+                return (
+                  <div className="w-full bg-gray-100 rounded-xl flex items-center">
+                    <button
+                      onClick={() => handleQuantityChange(Math.max(1, currentCartQuantity - 1))}
+                      className="p-3 hover:text-gray-700 text-gray-500 flex-shrink-0 disabled:cursor-not-allowed"
+                      disabled={currentCartQuantity === 1}
+                      title={currentCartQuantity === 1 ? "Minimum quantity is 1" : "Decrease quantity"}
+                    >
+                      <Minus size={20} />
+                    </button>
+                    <span className="flex-1 text-center font-medium">
+                      {isAddingToCart ? (
+                        <Loader2 size={16} className="animate-spin mx-auto" />
+                      ) : (
+                        currentCartQuantity
+                      )}
+                    </span>
+                    <button
+                      onClick={handleAddToCart}
+                      className="p-3 hover:text-gray-700 text-gray-500 flex-shrink-0 disabled:cursor-not-allowed"
+                      disabled={isAddingToCart || currentCartQuantity >= availableQuantity}
+                      title={currentCartQuantity >= availableQuantity ? "Maximum quantity reached" : "Increase quantity"}
+                    >
+                      <Plus size={20} />
+                    </button>
+                  </div>
+                );
+              }
+              
+              return (
                 <button
                   onClick={handleAddToCart}
-                  className="p-3 hover:text-gray-700 text-gray-500 flex-shrink-0"
-                  disabled={isAddingToCart}
+                  disabled={isAddingToCart || !isInStock}
+                  className="w-full bg-neutral-800 text-white py-2.5 rounded-xl font-medium hover:bg-gray-800 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  <Plus size={20} />
+                  {isAddingToCart ? (
+                    <>
+                      <Loader2 size={20} className="animate-spin" />
+                      Adding...
+                    </>
+                  ) : (
+                    "Add to Cart"
+                  )}
                 </button>
-              </div>
-            ) : (
-              <button
-                onClick={handleAddToCart}
-                disabled={isAddingToCart}
-                className="w-full bg-neutral-800 text-white py-2.5 rounded-xl font-medium hover:bg-gray-800 transition-colors flex items-center justify-center gap-2"
-              >
-                {isAddingToCart ? (
-                  <>
-                    <Loader2 size={20} className="animate-spin" />
-                    Adding...
-                  </>
-                ) : (
-                  "Add to Cart"
-                )}
-              </button>
-            )
+              );
+            })()
           ) : (
             <div className="text-center text-sm text-gray-500">
               Currently unavailable for ordering

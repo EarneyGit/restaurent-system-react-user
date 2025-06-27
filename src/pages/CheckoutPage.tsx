@@ -130,7 +130,7 @@ function getItemTotal(item: CartItemType): number {
 const calculateOrderTotals = (
   cartData: CartData,
   items: CartItemType[],
-  promoDiscount?: number
+  promoDiscountAmount?: number
 ): OrderTotals => {
   // Calculate base subtotal from items
   const subtotal = items.reduce(
@@ -171,8 +171,8 @@ const calculateOrderTotals = (
     0
   );
 
-  // Calculate discount if promo is applied
-  const discountAmount = promoDiscount ? (subtotal * promoDiscount) / 100 : 0;
+  // Use actual discount amount from API response
+  const discountAmount = promoDiscountAmount || 0;
 
   // Calculate final total
   const total =
@@ -256,19 +256,8 @@ interface OrderConfirmationModalProps {
   orderDetails: {
     items: CartItemType[];
     total: number;
-    address: string;
-    deliveryTime: string;
-  };
-}
-
-interface OrderConfirmationModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onConfirm: () => void;
-  isLoading: boolean;
-  orderDetails: {
-    items: CartItemType[];
-    total: number;
+    originalTotal?: number;
+    discountAmount?: number;
     address: string;
     deliveryTime: string;
   };
@@ -323,10 +312,22 @@ const OrderConfirmationModal: React.FC<OrderConfirmationModalProps> = ({
           </div>
 
           {/* Total */}
-          <div className="border-t pt-2">
+          <div className="border-t pt-2 space-y-2">
+            {orderDetails.originalTotal && orderDetails.discountAmount && (
+              <>
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-600">Subtotal:</span>
+                  <span>{formatCurrency(orderDetails.originalTotal)}</span>
+                </div>
+                <div className="flex justify-between text-sm text-green-600">
+                  <span>Discount:</span>
+                  <span>-{formatCurrency(orderDetails.discountAmount)}</span>
+                </div>
+              </>
+            )}
             <div className="flex justify-between font-medium">
               <span>Total Amount:</span>
-              <span>{formatCurrency(orderDetails.total)}</span>
+              <span className="text-green-600">{formatCurrency(orderDetails.total)}</span>
             </div>
           </div>
         </div>
@@ -377,8 +378,15 @@ const CheckoutPage = () => {
   const [promoCode, setPromoCode] = useState("");
   const [isApplyingPromo, setIsApplyingPromo] = useState(false);
   const [appliedPromo, setAppliedPromo] = useState<{
+    discountId: string;
     code: string;
-    discount: number;
+    name: string;
+    discountType: string;
+    discountValue: number;
+    discountAmount: number;
+    originalTotal: number;
+    newTotal: number;
+    savings: number;
   } | null>(null);
   const [cartSummary, setCartSummary] = useState({
     subtotal: 0,
@@ -456,7 +464,7 @@ const CheckoutPage = () => {
         const totals = calculateOrderTotals(
           cartData,
           cartItems,
-          appliedPromo?.discount
+          appliedPromo?.discountAmount
         );
 
         setCartSummary({
@@ -482,7 +490,7 @@ const CheckoutPage = () => {
     sessionId,
     cartItems,
     selectedBranch?.id,
-    appliedPromo?.discount,
+    appliedPromo?.discountAmount,
   ]);
 
   // Check authentication
@@ -631,14 +639,71 @@ const CheckoutPage = () => {
   const handleApplyPromo = async () => {
     if (!promoCode.trim()) return;
 
+    if (!selectedBranch?.id) {
+      toast.error("Please select a branch first");
+      return;
+    }
+
     setIsApplyingPromo(true);
     try {
-      // Mock API call - replace with actual API
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      setAppliedPromo({ code: promoCode, discount: 10 }); // Mock 10% discount
-      toast.success("Promo code applied successfully!");
-    } catch (error) {
-      toast.error("Invalid promo code");
+      // Calculate current order total for validation
+      const currentOrderTotal = cartItems.reduce(
+        (total, item) =>
+          total +
+          (isPriceObject(item.price)
+            ? item.price.total * item.quantity
+            : 0),
+        0
+      ) + cartSummary.deliveryFee + (cartSummary.serviceCharges?.totalAll || 0);
+
+      // Get delivery method from localStorage
+      const deliveryMethod = localStorage.getItem("deliveryMethod") || "delivery";
+
+      // Prepare validation request
+      const validationData = {
+        code: promoCode.trim(),
+        branchId: selectedBranch.id,
+        orderTotal: currentOrderTotal,
+        deliveryMethod: deliveryMethod,
+        orderType: deliveryMethod === "deliver" ? "delivery" : deliveryMethod === "collect" ? "pickup" : "dine_in",
+        userId: user?._id || null
+      };
+
+      // Make API call to validate discount
+      const response = await axios.post(
+        "/api/discounts/validate", 
+        validationData,
+        {
+          headers: {
+            "Content-Type": "application/json",
+          }
+        }
+      );
+
+      if (response.data?.success && response.data?.data) {
+        const discountData = response.data.data;
+        setAppliedPromo({
+          discountId: discountData.discountId,
+          code: discountData.code,
+          name: discountData.name,
+          discountType: discountData.discountType,
+          discountValue: discountData.discountValue,
+          discountAmount: discountData.discountAmount,
+          originalTotal: discountData.originalTotal,
+          newTotal: discountData.newTotal,
+          savings: discountData.savings
+        });
+        toast.success(response.data.message || "Promo code applied successfully!");
+      } else {
+        setAppliedPromo(null);
+        throw new Error("Invalid promo code");
+      }
+    } catch (error: unknown) {
+      console.error("Promo code validation error:", error);
+      const err = error as { response?: { data?: { message?: string } }; message?: string };
+      const errorMessage = "Invalid promo code";
+      toast.error(errorMessage);
+      setAppliedPromo(null);
     } finally {
       setIsApplyingPromo(false);
     }
@@ -722,15 +787,24 @@ const CheckoutPage = () => {
         };
       });
 
-      // Calculate totals
-      const subtotal = cartSummary.subtotal;
-      const deliveryFeeAmount = cartSummary.deliveryFee;
-      const taxAmount = 0;
-      const discountAmount = appliedPromo
-        ? (subtotal * appliedPromo.discount) / 100
-        : 0;
-      const finalTotal =
-        subtotal + deliveryFeeAmount + taxAmount - discountAmount;
+      // Use the originalTotal and newTotal from discount validation if available
+      let subtotal, deliveryFeeAmount, taxAmount, discountAmount, finalTotal;
+      
+      if (appliedPromo && appliedPromo.originalTotal && appliedPromo.newTotal) {
+        // Use values from discount validation API
+        subtotal = appliedPromo.originalTotal - cartSummary.deliveryFee; // Subtract delivery fee to get items subtotal
+        deliveryFeeAmount = cartSummary.deliveryFee;
+        taxAmount = 0; // Tax is typically included in the originalTotal
+        discountAmount = appliedPromo.discountAmount;
+        finalTotal = appliedPromo.newTotal;
+      } else {
+        // Fallback to manual calculation
+        subtotal = cartSummary.subtotal;
+        deliveryFeeAmount = cartSummary.deliveryFee;
+        taxAmount = 0;
+        discountAmount = appliedPromo ? appliedPromo.discountAmount : 0;
+        finalTotal = subtotal + deliveryFeeAmount + taxAmount - discountAmount;
+      }
 
       // Get deliveryMethod from localStorage and determine orderType
       const deliveryMethod = localStorage.getItem("deliveryMethod");
@@ -766,12 +840,13 @@ const CheckoutPage = () => {
           phone: personalDetails.phone,
           email: personalDetails.email,
         },
-        promoCode: appliedPromo?.code,
+        couponCode: appliedPromo?.code,
         subtotal,
         deliveryFee: deliveryFeeAmount,
         tax: taxAmount,
         discount: discountAmount,
-        totalAmount: finalTotal,
+        totalAmount: appliedPromo?.originalTotal || (subtotal + deliveryFeeAmount + taxAmount), // Use originalTotal from API
+        finalTotal: finalTotal,
         status: "pending", // Set initial status
       };
 
@@ -1302,7 +1377,7 @@ const CheckoutPage = () => {
                   {appliedPromo && (
                     <div className="mt-2 p-2 bg-green-50 text-green-700 rounded-lg text-xs">
                       Promo code "{appliedPromo.code}" applied -{" "}
-                      {appliedPromo.discount}% off
+                      {appliedPromo.discountType === 'percentage' ? `${appliedPromo.discountValue}% off` : `${formatCurrency(appliedPromo.discountAmount)} off`}
                     </div>
                   )}
                 </div>
@@ -1440,12 +1515,9 @@ const CheckoutPage = () => {
                     {/* Promo Discount */}
                     {appliedPromo && (
                       <div className="flex justify-between text-sm text-green-600">
-                        <span>Promo Discount ({appliedPromo.discount}%)</span>
+                        <span>Promo Discount ({appliedPromo.discountType === 'percentage' ? `${appliedPromo.discountValue}%` : appliedPromo.name})</span>
                         <span>
-                          -
-                          {formatCurrency(
-                            (cartSummary.subtotal * appliedPromo.discount) / 100
-                          )}
+                          -{formatCurrency(appliedPromo.discountAmount)}
                         </span>
                       </div>
                     )}
@@ -1453,35 +1525,33 @@ const CheckoutPage = () => {
                     {/* Final Total */}
                     <div className="border-t pt-3">
                       <div className="flex justify-between">
-                        <span className="font-semibold">Total</span>
+                        <span className="font-semibold uppercase">Total</span>
                         <div className="text-right">
-                          <span className="text-green-600 text-lg font-bold">
-                            {formatCurrency(
-                              cartItems.reduce(
-                                (total, item) =>
-                                  total +
-                                  (isPriceObject(item.price)
-                                    ? item.price.total * item.quantity
-                                    : 0),
-                                0
-                              ) +
-                                cartSummary.deliveryFee +
-                                (cartSummary.serviceCharges?.totalAll || 0) +
-                                (cartSummary.subtotal * cartSummary.taxRate) /
-                                  100 -
-                                (appliedPromo
-                                  ? (cartSummary.subtotal *
-                                      appliedPromo.discount) /
-                                    100
-                                  : 0)
-                            )}
+                          <span className="text-neutral-800 text-lg font-bold">
+                            {appliedPromo && appliedPromo.newTotal
+                              ? formatCurrency(appliedPromo.newTotal)
+                              : formatCurrency(
+                                  cartItems.reduce(
+                                    (total, item) =>
+                                      total +
+                                      (isPriceObject(item.price)
+                                        ? item.price.total * item.quantity
+                                        : 0),
+                                    0
+                                  ) +
+                                    cartSummary.deliveryFee +
+                                    (cartSummary.serviceCharges?.totalAll || 0) +
+                                    (cartSummary.subtotal * cartSummary.taxRate) /
+                                      100 -
+                                    (appliedPromo ? appliedPromo.discountAmount : 0)
+                                )}
                           </span>
-                          {cartItems.some(
+                          {(cartItems.some(
                             (item) =>
                               isPriceObject(item.price) &&
                               item.price.base > item.price.currentEffectivePrice
-                          ) && (
-                            <div className="text-xs text-green-600 font-medium">
+                          ) || (appliedPromo && appliedPromo.savings > 0)) && (
+                            <div className="text-xs text-neutral-600 font-medium">
                               You saved{" "}
                               {formatCurrency(
                                 cartItems.reduce(
@@ -1493,7 +1563,7 @@ const CheckoutPage = () => {
                                         item.quantity
                                       : 0),
                                   0
-                                )
+                                ) + (appliedPromo ? appliedPromo.savings : 0)
                               )}
                               !
                             </div>
@@ -1555,11 +1625,11 @@ const CheckoutPage = () => {
         isLoading={isProcessing}
         orderDetails={{
           items: cartItems,
-          total:
-            cartSummary.total -
-            (appliedPromo
-              ? (cartSummary.subtotal * appliedPromo.discount) / 100
-              : 0),
+          total: appliedPromo && appliedPromo.newTotal 
+            ? appliedPromo.newTotal 
+            : cartSummary.total - (appliedPromo ? appliedPromo.discountAmount : 0),
+          originalTotal: appliedPromo?.originalTotal,
+          discountAmount: appliedPromo?.discountAmount,
           address: `${deliveryAddress.street}, ${deliveryAddress.city}, ${deliveryAddress.postcode}`,
           deliveryTime: selectedTimeSlot,
         }}

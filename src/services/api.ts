@@ -64,6 +64,13 @@ export interface PriceChange {
   updatedAt: string;
 }
 
+export interface StockManagement {
+  isManaged: boolean;
+  quantity: number;
+  lowStockThreshold: number;
+  lastUpdated: string;
+}
+
 export interface Product {
   id: string;
   name: string;
@@ -83,6 +90,7 @@ export interface Product {
   collection?: boolean;
   dineIn?: boolean;
   priceChanges?: PriceChange[];
+  stockManagement?: StockManagement;
 }
 
 interface ApiResponse<T> {
