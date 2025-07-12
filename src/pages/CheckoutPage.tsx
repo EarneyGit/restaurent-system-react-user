@@ -1,15 +1,14 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import {
-  MapPin,
   Clock,
   CreditCard,
   Wallet,
   Check,
   ShoppingBag,
-  Loader2,
   ArrowLeft,
   Image as ImageIcon,
+  Plus,
 } from "lucide-react";
 import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
@@ -21,6 +20,241 @@ import { CartItem as CartItemType } from "@/context/CartContext";
 import { CART_ENDPOINTS, ORDER_ENDPOINTS, BASE_URL } from "@/config/api.config";
 import { useGuestCart } from "@/context/GuestCartContext";
 import { Address, searchAddresses } from "@/data/addresses";
+import { Search, MapPin, Loader2, AlertCircle, X } from 'lucide-react';
+import { loadStripe } from '@stripe/stripe-js';
+import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js';
+
+const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || 'pk_test_51OqX8X2eZvKYlo2C1gQJ8X8X');
+
+// Check if Stripe is properly configured
+if (!import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY) {
+  console.warn('Stripe publishable key is missing. Using test key.');
+}
+
+// Validate that we're using a publishable key (starts with pk_)
+const stripeKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || 'pk_test_51OqX8X2eZvKYlo2C1gQJ8X8X';
+if (stripeKey && !stripeKey.startsWith('pk_')) {
+  console.error('Invalid Stripe key format. Expected publishable key (pk_*), got:', stripeKey);
+}
+
+// Stripe Form Component
+const StripeForm: React.FC<{ clientSecret: string; orderId: string; onSuccess: () => void; onCancel: () => void }> = ({ 
+  clientSecret, 
+  orderId, 
+  onSuccess, 
+  onCancel 
+}) => {
+  const stripe = useStripe();
+  const elements = useElements();
+  const navigate = useNavigate();
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!stripe || !elements) {
+      setError('Payment system not ready. Please refresh and try again.');
+      return;
+    }
+    
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      const { error: stripeError, paymentIntent } = await stripe.confirmPayment({
+        elements,
+        confirmParams: {
+          return_url: window.location.origin + `/order-status/${orderId}`,
+        },
+        redirect: 'if_required',
+      });
+      
+      if (stripeError) {
+        setError(stripeError.message || 'Payment failed');
+      } else if (paymentIntent && paymentIntent.status === 'succeeded') {
+        // Payment succeeded, check payment status with our API
+        await checkPaymentStatus(orderId, onSuccess);
+      } else {
+        setError('Payment failed. Please try again.');
+      }
+    } catch (err) {
+      setError('Payment failed. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleCancel = async () => {
+    // Just close the modal without calling cancel order API
+    onCancel();
+  };
+
+  // Function to check payment status
+  const checkPaymentStatus = async (orderId: string, onSuccess: () => void) => {
+    try {
+      const response = await axios.post('/api/orders/check-payment-status', { orderId });
+      
+      if (response.data?.success) {
+        const { orderStatus, message } = response.data.data;
+        
+        if (orderStatus === 'processing' || orderStatus === 'completed') {
+          toast.success('Payment successful!');
+          onSuccess();
+        } else if (orderStatus === 'cancelled') {
+          toast.error('Payment failed. Order cancelled.');
+          navigate(`/order-failure/${orderId}`);
+        } else {
+          toast.error(message || 'Payment status unclear. Please contact support.');
+          navigate(`/order-failure/${orderId}`);
+        }
+      } else {
+        toast.error('Failed to verify payment status.');
+        navigate(`/order-failure/${orderId}`);
+      }
+    } catch (err) {
+      console.error('Error checking payment status:', err);
+      toast.error('Failed to verify payment status.');
+      navigate(`/order-failure/${orderId}`);
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-6">
+      <div>
+        <h3 className="text-lg font-semibold mb-4">Complete Payment</h3>
+        <PaymentElement />
+      </div>
+      {error && <div className="text-red-600 text-sm text-center">{error}</div>}
+      <div className="flex gap-4">
+        <button
+          type="button"
+          onClick={handleCancel}
+          className="flex-1 px-4 py-3 border border-gray-200 rounded-xl text-gray-700 font-semibold hover:bg-gray-50 transition-colors"
+          disabled={isLoading}
+        >
+          Cancel
+        </button>
+      </div>
+    </form>
+  );
+};
+
+// Stripe Modal Component
+const StripeModal: React.FC<{ 
+  isOpen: boolean; 
+  onClose: () => void; 
+  orderId: string | null;
+  clientSecret: string | null;
+  onPaymentSuccess: (orderId: string) => void;
+  onPaymentCancel: (orderId: string) => void;
+}> = ({ isOpen, onClose, orderId, clientSecret, onPaymentSuccess, onPaymentCancel }) => {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Reset state when modal opens/closes
+  useEffect(() => {
+    if (!isOpen) {
+      setError(null);
+      setLoading(false);
+    }
+  }, [isOpen]);
+
+  const handleCancel = async () => {
+    // Just close the modal without calling cancel order API
+    onPaymentCancel(orderId || '');
+  };
+
+  const handlePaymentSuccess = () => {
+    if (orderId) {
+      onPaymentSuccess(orderId);
+    }
+  };
+
+  const handlePaymentCancel = () => {
+    if (orderId) {
+      onPaymentCancel(orderId);
+    }
+  };
+
+  if (!isOpen) {
+    return null;
+  }
+
+
+
+  return (
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      <div className="bg-white rounded-2xl p-6 max-w-md w-full max-h-[90vh] overflow-y-auto">
+        {loading ? (
+          <div className="text-center">
+            <Loader2 size={32} className="animate-spin text-green-600 mx-auto mb-4" />
+            <p>Processing...</p>
+          </div>
+        ) : clientSecret ? (
+          <Elements stripe={stripePromise} options={{ clientSecret }}>
+            <StripeForm 
+              clientSecret={clientSecret} 
+              orderId={orderId!} 
+              onSuccess={handlePaymentSuccess}
+              onCancel={handlePaymentCancel}
+            />
+          </Elements>
+        ) : (
+          <div className="text-center">
+            <div className="text-red-600 text-sm mb-4 p-3 bg-red-50 rounded-lg">
+              Invalid payment configuration. Please try again.
+            </div>
+            <div className="flex gap-4">
+              <button
+                type="button"
+                onClick={onClose}
+                className="flex-1 px-4 py-3 border border-gray-200 rounded-xl text-gray-700 font-semibold hover:bg-gray-50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => window.location.reload()}
+                className="flex-1 px-4 py-3 bg-green-600 text-white font-semibold rounded-xl hover:bg-green-700 transition-colors"
+              >
+                Refresh Page
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+interface AddressResult {
+  postcode: string;
+  post_town: string;
+  thoroughfare: string;
+  building_number: string;
+  building_name: string;
+  line_1: string;
+  line_2: string;
+  line_3: string;
+  premise: string;
+  longitude: number;
+  latitude: number;
+  country: string;
+  county: string;
+  district: string;
+  ward: string;
+  id: string;
+  dataset: string;
+}
+
+type Addresses = {
+  street: string;
+  city: string;
+  state: string;
+  postcode: string;
+  country: string;
+  fullAddress: string;
+};
 
 // Update the NoImage component to be more cart-friendly
 const NoImage = () => (
@@ -295,7 +529,7 @@ const OrderConfirmationModal: React.FC<OrderConfirmationModalProps> = ({
                 <span>
                   {item.quantity}x {item.name}
                 </span>
-                <span>{formatCurrency(item.price.total * item.quantity)}</span>
+                <span>{formatCurrency(item.price.total)}</span>
               </div>
             ))}
           </div>
@@ -374,6 +608,11 @@ const CheckoutPage = () => {
   const [showAddressSearch, setShowAddressSearch] = useState(false);
   const [addressSearchQuery, setAddressSearchQuery] = useState("");
   const [filteredAddresses, setFilteredAddresses] = useState<Address[]>([]);
+  const [addressSearchResults, setAddressSearchResults] = useState<AddressResult[]>([]);
+  const [isAddressLoading, setIsAddressLoading] = useState(false);
+  const [addressError, setAddressError] = useState<string>('');
+  const [searchTimeout, setSearchTimeout] = useState<NodeJS.Timeout | null>(null);
+  const [selectedAddressType, setSelectedAddressType] = useState<'user' | 'delivery' | 'search'>('user');
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [promoCode, setPromoCode] = useState("");
   const [isApplyingPromo, setIsApplyingPromo] = useState(false);
@@ -403,8 +642,16 @@ const CheckoutPage = () => {
   });
   const [isLoading, setIsLoading] = useState(true);
   const addressDropdownRef = useRef<HTMLDivElement>(null);
+  const [showSearchInput, setShowSearchInput] = useState(false);
+  const [selectedSearchedAddress, setSelectedSearchedAddress] = useState<AddressResult | null>(null);
 
-  // Restore credit card details state and handler
+  // Stripe modal state
+  const [showStripeModal, setShowStripeModal] = useState(false);
+  const [createdOrderId, setCreatedOrderId] = useState<string | null>(null);
+  const [stripeClientSecret, setStripeClientSecret] = useState<string | null>(null);
+
+
+
   const [creditCardDetails, setCreditCardDetails] = useState<CreditCardDetails>(
     {
       number: "",
@@ -423,6 +670,12 @@ const CheckoutPage = () => {
       [field]: value,
     }));
   };
+
+  useEffect(() => {
+    if (selectedAddressType === 'user' && user?.address) {
+       setAddressError('')
+    }
+  }, [selectedAddressType]);
 
   // Fetch cart summary
   useEffect(() => {
@@ -523,64 +776,90 @@ const CheckoutPage = () => {
     }
   }, [user]);
 
-  // Update the delivery address state initialization
-  const [deliveryAddress, setDeliveryAddress] = useState<Address>(() => {
-    // Try to get the stored address from localStorage
-    const storedAddress = localStorage.getItem("deliveryAddress");
-    if (storedAddress) {
-      try {
-        return JSON.parse(storedAddress);
-      } catch (e) {
-        console.error("Error parsing stored address:", e);
-      }
-    }
+  // Helper function to parse full address into components
+  // ✅ Helper: Parse full string address like "Street, City, Postcode, [State?]"
+const parseFullAddress = (fullAddress: string) => {
+  const parts = fullAddress.split(',').map(part => part.trim());
 
-    // Fallback to user's address or empty address
-    if (user?.address) {
-      return {
-        street: user.address.street || "",
-        city: user.address.city || "",
-        state: user.address.state || "",
-        postcode: user.address.zipCode || "", // Map zipCode to postcode
-        country: user.address.country || "GB",
-        fullAddress: `${user.address.street}, ${user.address.city}, ${user.address.zipCode}`,
-      };
-    }
+  return {
+    street: parts[0] || '',
+    city: parts[1] || '',
+    postcode: parts[2] || '',
+    state: parts[3] || '',
+    country: 'GB',
+    fullAddress
+  };
+};
 
-    return {
-      street: "",
-      city: "",
-      state: "",
-      postcode: "",
-      country: "GB",
-      fullAddress: "",
-    };
-  });
+// ✅ Helper: Format full address from parts
+const formatFullAddress = (street: string, city: string, postcode: string) => {
+  return [street, city, postcode].filter(Boolean).join(', ');
+};
+
+// ✅ useState based on user.address string
+const [deliveryAddress, setDeliveryAddress] = useState<Addresses>(() => {
+  // 1. If user has address (as string), parse it
+  if (user?.address && typeof user.address === 'string') {
+    setSelectedAddressType('user');
+    const parsed = parseFullAddress(user.address);
+    return parsed;
+  }
+
+  // 2. Try from localStorage
+  const storedAddress = localStorage.getItem('deliveryAddress');
+  if (storedAddress) {
+    try {
+      const parsedAddress = JSON.parse(storedAddress);
+      setSelectedAddressType('delivery');
+      return parsedAddress;
+    } catch (e) {
+      console.error('Error parsing stored address:', e);
+    }
+  }
+
+  // 3. Fallback default
+  return {
+    street: '',
+    city: '',
+    state: '',
+    postcode: '',
+    country: 'GB',
+    fullAddress: '',
+  };
+});
 
   // Update delivery address when user data changes
   useEffect(() => {
-    const storedAddress = localStorage.getItem("deliveryAddress");
-    if (storedAddress) {
-      try {
-        const parsedAddress = JSON.parse(storedAddress);
-        setDeliveryAddress(parsedAddress);
-      } catch (e) {
-        console.error("Error parsing stored address:", e);
+    // Only update if we don't already have a valid address
+    if (!deliveryAddress.street && !deliveryAddress.city && !deliveryAddress.postcode) {
+      const storedAddress = localStorage.getItem("deliveryAddress");
+      if (storedAddress) {
+        try {
+          const parsedAddress = JSON.parse(storedAddress);
+          // Ensure the address has proper formatting
+          if (parsedAddress.fullAddress) {
+            const parsedComponents = parseFullAddress(parsedAddress.fullAddress);
+            const updatedAddress = {
+              ...parsedAddress,
+              ...parsedComponents
+            };
+            setDeliveryAddress(updatedAddress);
+          } else {
+            setDeliveryAddress(parsedAddress);
+          }
+        } catch (e) {
+          console.error("Error parsing stored address:", e);
+        }
+      } else if (user?.address && typeof user.address === 'string') {
+        // Only parse user address if it's a string and we don't have an address yet
+        const parsed = parseFullAddress(user.address);
+        setDeliveryAddress(parsed);
+        setSelectedAddressType('user');
       }
-    } else if (user?.address) {
-      // Map user address to our Address type
-      setDeliveryAddress({
-        street: user.address.street || "",
-        city: user.address.city || "",
-        state: user.address.state || "",
-        postcode: user.address.zipCode || "", // Map zipCode to postcode
-        country: user.address.country || "GB",
-        fullAddress: `${user.address.street}, ${user.address.city}, ${user.address.zipCode}`,
-      });
     }
-  }, [user]);
+  }, [user, deliveryAddress.street, deliveryAddress.city, deliveryAddress.postcode]);
 
-  // Add click outside handler
+  // Add click outside handler and cleanup timeout
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
@@ -596,23 +875,136 @@ const CheckoutPage = () => {
     }
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
+      if (searchTimeout) {
+        clearTimeout(searchTimeout);
+      }
     };
-  }, [showAddressSearch]);
+  }, [showAddressSearch, searchTimeout]);
 
-  // Handle address search
+  // Address search function with API integration
   const handleAddressSearch = (query: string) => {
     setAddressSearchQuery(query);
-    const results = searchAddresses(query);
-    setFilteredAddresses(results);
+    
+    // Clear previous timeout
+    if (searchTimeout) {
+      clearTimeout(searchTimeout);
+    }
+
+    // Set new timeout for debounced search
+    const timeout = setTimeout(async () => {
+      if (query.trim().length >= 3) {
+        await searchAddressesAPI(query);
+      } else {
+        setAddressSearchResults([]);
+        setShowAddressSearch(false);
+      }
+    }, 500);
+
+    setSearchTimeout(timeout);
   };
 
-  // Handle address selection
-  const handleAddressSelect = (address: Address) => {
-    setDeliveryAddress(address);
-    setAddressSearchQuery(address.fullAddress);
+  const searchAddressesAPI = async (query: string) => {
+    try {
+      setIsAddressLoading(true);
+      setAddressError('');
+      
+      // Try to search by postcode first
+      const cleanQuery = query.trim().toUpperCase().replace(/\s+/g, '');
+      const response = await axios.get(`/api/addresses/postcode/${cleanQuery}`);
+      
+      if (response.data.success && response.data.data) {
+        setAddressSearchResults(response.data.data);
+        setShowAddressSearch(true);
+      } else {
+        setAddressSearchResults([]);
+        setShowAddressSearch(false);
+      }
+    } catch (error: unknown) {
+      console.error('Error searching addresses:', error);
+      setAddressSearchResults([]);
+      setShowAddressSearch(false);
+      const errorMessage = (error as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Failed to search addresses';
+      setAddressError(errorMessage);
+    } finally {
+      setIsAddressLoading(false);
+    }
+  };
+
+  // Handle address selection from API results
+  const handleAddressSelect = (address: AddressResult) => {
+    const street = address.line_1 || `${address.building_number} ${address.thoroughfare}`.trim();
+    const city = address.post_town || '';
+    const postcode = address.postcode || '';
+    
+    const fullAddress = formatFullAddress(street, city, postcode);
+    
+    const formattedAddress: Address = {
+      street,
+      city,
+      state: address.county || '',
+      postcode,
+      country: address.country || 'GB',
+      fullAddress,
+    };
+    
+    setDeliveryAddress(formattedAddress);
+    setAddressSearchQuery(formattedAddress.fullAddress);
     setShowAddressSearch(false);
+    setShowSearchInput(false);
+    setSelectedAddressType('search');
+    setSelectedSearchedAddress(address);
     // Update localStorage with the new address
-    localStorage.setItem("deliveryAddress", JSON.stringify(address));
+    localStorage.setItem("deliveryAddress", JSON.stringify(formattedAddress));
+  };
+
+  const handleClearSearchedAddress = () => {
+    setSelectedSearchedAddress(null);
+    setDeliveryAddress({ street: '', city: '', state: '', postcode: '', country: '', fullAddress: '' });
+    setAddressSearchQuery('');
+    setSelectedAddressType('user');
+  };
+
+  // Handle user address selection
+  const handleUserAddressSelect = () => {
+    if (user?.address && typeof user.address === 'string') {
+      const parsed = parseFullAddress(user.address);
+      setDeliveryAddress(parsed);
+      setSelectedAddressType('user');
+      localStorage.setItem("deliveryAddress", JSON.stringify(parsed));
+    }
+  };
+
+  // Handle delivery address selection
+  const handleDeliveryAddressSelect = () => {
+    const storedAddress = localStorage.getItem("deliveryAddress");
+    if (storedAddress) {
+      try {
+        const parsedAddress = JSON.parse(storedAddress);
+        // Ensure the address has proper formatting
+        if (parsedAddress.fullAddress) {
+          const parsedComponents = parseFullAddress(parsedAddress.fullAddress);
+          const updatedAddress = {
+            ...parsedAddress,
+            ...parsedComponents
+          };
+          setDeliveryAddress(updatedAddress);
+        } else {
+          setDeliveryAddress(parsedAddress);
+        }
+        setSelectedAddressType('delivery');
+      } catch (e) {
+        console.error("Error parsing stored address:", e);
+      }
+    }
+  };
+
+  // Handle search for new address
+  const handleSearchAddressSelect = () => {
+    setSelectedAddressType('search');
+    setShowSearchInput(true);
+    setSelectedSearchedAddress(null);
+    setDeliveryAddress({ street: '', city: '', state: '', postcode: '', country: '', fullAddress: '' });
+    setAddressSearchQuery('');
   };
 
   // Calculate order totals using CartContext methods
@@ -664,7 +1056,7 @@ const CheckoutPage = () => {
         code: promoCode.trim(),
         branchId: selectedBranch.id,
         orderTotal: currentOrderTotal,
-        deliveryMethod: deliveryMethod,
+        deliveryMethod: deliveryMethod === "deliver" ? "delivery" : deliveryMethod === "collect" ? "pickup" : "dine_in",
         orderType: deliveryMethod === "deliver" ? "delivery" : deliveryMethod === "collect" ? "pickup" : "dine_in",
         userId: user?._id || null
       };
@@ -712,12 +1104,13 @@ const CheckoutPage = () => {
   const handlePlaceOrder = async () => {
     if (
       !selectedTimeSlot ||
-      !deliveryAddress.street ||
+      !deliveryAddress ||
       !personalDetails.firstName
     ) {
       toast.error("Please fill in all required fields");
       return;
     }
+    console.log("deliveryAddress",deliveryAddress)
 
     if (!acceptedTerms) {
       toast.error("Please accept the terms and conditions");
@@ -752,7 +1145,6 @@ const CheckoutPage = () => {
         setIsProcessing(false);
         return;
       }
-
       // Format products data according to backend requirements
       const formattedProducts = cartItems.map((item) => {
         const productId = item.productId || item.id;
@@ -831,7 +1223,7 @@ const CheckoutPage = () => {
               }
             : undefined,
         contactNumber: personalDetails.phone,
-        paymentMethod: paymentMethod,
+        paymentMethod: paymentMethod === "cash" ? "cash_on_delivery" : paymentMethod,
         specialInstructions: orderNotes,
         selectedTimeSlot,
         personalDetails: {
@@ -868,34 +1260,63 @@ const CheckoutPage = () => {
         { headers }
       );
 
-      if (response.data?.success && response.data?.data) {
-        // Clear cart
-        await clearCart();
+              if (response.data?.success && response.data?.data) {
+          const createdOrder = response.data.data;
 
-        // Store necessary data for order tracking
-        localStorage.setItem("selectedBranchId", selectedBranch.id);
+          // If payment method is card, show Stripe modal
+          if (paymentMethod === "card") {
+            // Extract clientSecret from the order creation response
+            const clientSecret = response.data.payment?.clientSecret;
+            
+            if (!clientSecret) {
+              toast.error("Failed to create payment intent. Please try again.");
+              setIsProcessing(false);
+              return;
+            }
 
-        const createdOrder = response.data.data;
+            // Validate client secret format
+            if (!clientSecret.includes('_secret_')) {
+              toast.error("Invalid payment configuration. Please try again.");
+              setIsProcessing(false);
+              return;
+            }
+            
 
-        // Navigate to order status with complete order details
-        navigate(`/order-status/${createdOrder._id}`, {
-          state: {
-            orderDetails: {
-              ...createdOrder,
-              branchId: {
-                _id: selectedBranch.id,
-                name: selectedBranch.name,
+            
+            setCreatedOrderId(createdOrder._id);
+            setStripeClientSecret(clientSecret);
+            setShowStripeModal(true);
+            setShowConfirmation(false);
+            setIsProcessing(false);
+            return;
+          } else {
+            // For cash payments, proceed normally
+            // Clear cart
+            await clearCart();
+
+            // Store necessary data for order tracking
+            localStorage.setItem("selectedBranchId", selectedBranch.id);
+
+            // Navigate to order status with complete order details
+            navigate(`/order-status/${createdOrder._id}`, {
+              state: {
+                orderDetails: {
+                  ...createdOrder,
+                  branchId: {
+                    _id: selectedBranch.id,
+                    name: selectedBranch.name,
+                  },
+                },
               },
-            },
-          },
-          replace: true, // Prevent back navigation to checkout
-        });
+              replace: true, // Prevent back navigation to checkout
+            });
 
-        setShowConfirmation(false);
-        toast.success("Order placed successfully!");
-      } else {
-        throw new Error(response.data?.message || "Failed to create order");
-      }
+            setShowConfirmation(false);
+            toast.success("Order placed successfully!");
+          }
+        } else {
+          throw new Error(response.data?.message || "Failed to create order");
+        }
     } catch (error: unknown) {
       const err = error as {
         response?: { data?: { message?: string }; status?: number };
@@ -912,6 +1333,9 @@ const CheckoutPage = () => {
         toast.error(
           err.response.data?.message || "Please check your order details"
         );
+      } else if (err.response?.status === 500) {
+        // Handle server errors
+        toast.error("Server error. Please try again later.");
       } else {
         toast.error(
           err.response?.data?.message ||
@@ -950,6 +1374,72 @@ const CheckoutPage = () => {
     );
   }
 
+  // Filter valid addresses for search results
+  const validAddressSearchResults = addressSearchResults.filter(addr => (
+    addr.line_1 || addr.thoroughfare || addr.post_town || addr.postcode
+  ));
+
+  // Helper to format address as string
+  function formatAddress(addr: Address | string | { street?: string; city?: string; state?: string; zipCode?: string; postcode?: string; country?: string }): string {
+    if (!addr) return '';
+    if (typeof addr === 'string') return addr;
+    if (typeof addr === 'object') {
+      // Try to join known fields
+      const addressObj = addr as { street?: string; city?: string; state?: string; zipCode?: string; postcode?: string; country?: string };
+      const fields = [
+        addressObj.street, 
+        addressObj.city, 
+        addressObj.state, 
+        addressObj.zipCode || addressObj.postcode, 
+        addressObj.country
+      ];
+      return fields.filter(Boolean).join(', ');
+    }
+    return '';
+  }
+
+  // Payment success handler
+  const handlePaymentSuccess = (orderId: string) => {
+    setShowStripeModal(false);
+    setStripeClientSecret(null);
+    setCreatedOrderId(null);
+    // Clear cart
+    clearCart();
+    // Navigate to order status
+    navigate(`/order-status/${orderId}`, {
+      state: {
+        orderDetails: {
+          _id: orderId,
+          status: "processing", // Order moves to processing after successful payment
+          branchId: {
+            _id: selectedBranch?.id || "",
+            name: selectedBranch?.name || "",
+          },
+        },
+      },
+    });
+  };
+
+  // Payment cancel handler
+  const handlePaymentCancel = (orderId: string) => {
+    setShowStripeModal(false);
+    setStripeClientSecret(null);
+    setCreatedOrderId(null);
+    // Navigate to order failure page
+    navigate(`/order-failure/${orderId}`, {
+      state: {
+        orderDetails: {
+          _id: orderId,
+          status: "cancelled",
+          branchId: {
+            _id: selectedBranch?.id || "",
+            name: selectedBranch?.name || "",
+          },
+        },
+      },
+    });
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 py-12">
       <div className="max-w-7xl mx-auto px-4">
@@ -962,7 +1452,7 @@ const CheckoutPage = () => {
             </p>
           </div>
           <button
-            onClick={() => navigate(-1)}
+            onClick={() => navigate("/cart")}
             className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 border border-gray-200 rounded-lg hover:border-gray-300 transition-colors"
           >
             <ArrowLeft size={18} />
@@ -1089,87 +1579,111 @@ const CheckoutPage = () => {
 
                   {/* Delivery Address */}
                   <div className="relative z-30">
-                    {" "}
-                    {/* Key: ensure stacking context */}
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Delivery Address
-                    </label>
-                    <div ref={addressDropdownRef} className="relative">
+                    <div className="flex justify-between items-center mb-2">
+                      <label className="block text-sm font-medium text-gray-700">
+                        Delivery Address
+                      </label>
                       <button
-                        onClick={() => setShowAddressSearch(true)}
-                        className="w-full px-4 py-3 border border-gray-200 rounded-xl text-left text-gray-600 hover:border-green-500 focus:outline-none focus:ring-0 focus:ring-green-500"
+                        type="button"
+                        onClick={handleSearchAddressSelect}
+                        className="flex items-center gap-2 text-xs font-bold bg-green-600 text-white px-2.5 py-2 rounded-lg  hover:bg-green-700 transition"
                       >
-                        {deliveryAddress.fullAddress ||
-                          "Search for your address"}
+                        <Plus size={16} /> Search new address
                       </button>
+                    </div>
+                    {/* Saved Address Card */}
+                    {user?.address && (
+                      <div className={`border rounded-xl p-4 mb-4 shadow-sm transition-all ${selectedAddressType === 'user' ? 'border-gray-300 bg-gray-100' : 'border-gray-200 bg-white'}`}>
+                        <label className="flex items-center gap-3 cursor-pointer">
+                          <input
+                            type="radio"
+                            name="addressType"
+                            checked={selectedAddressType === 'user'}
+                            onChange={handleUserAddressSelect}
+                            className="accent-gray-700 h-4 w-4"
+                          />
+                          <div>
 
-                      {showAddressSearch && (
-                        <div className="absolute top-full left-0 z-50 w-full mt-2 border rounded-xl overflow-hidden bg-white shadow-lg">
+                            <div className="font-semibold text-gray-900">Use my saved address</div>
+                            <div className="text-gray-700">
+                              {user?.address ? deliveryAddress.fullAddress : ""}
+                            </div>
+                          </div>
+                        </label>
+                      </div>
+                    )}
+                    {/* Address Search - Only show when search is selected */}
+                    {showSearchInput && (
+                      <div ref={addressDropdownRef} className="relative mb-4">
+                        <div className="relative">
                           <input
                             type="text"
                             value={addressSearchQuery}
-                            onChange={(e) =>
-                              handleAddressSearch(e.target.value)
-                            }
+                            onChange={(e) => handleAddressSearch(e.target.value)}
                             placeholder="Search by postcode or address..."
-                            className="w-full px-4 py-3 border-b focus:outline-none"
-                            autoFocus
+                            className="w-full px-4 py-3 pl-10 border border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent"
                           />
-                          <div className="max-h-[40vh] overflow-y-auto">
-                            {filteredAddresses.length > 0 ? (
-                              filteredAddresses.map((address, index) => (
-                                <button
-                                  key={index}
-                                  onClick={() => handleAddressSelect(address)}
-                                  className="w-full px-4 py-3 text-left hover:bg-gray-50 focus:outline-none focus:bg-gray-50 border-b last:border-b-0"
-                                >
-                                  <div className="flex items-start gap-2">
-                                    <MapPin
-                                      size={18}
-                                      className="text-green-500 mt-1 flex-shrink-0"
-                                    />
-                                    <div className="flex-1">
-                                      <div className="font-medium text-gray-900">
-                                        {address.street}
-                                      </div>
-                                      <div className="text-sm text-gray-500">
-                                        {address.city}, {address.state}
-                                      </div>
-                                      <div className="text-sm text-gray-500">
-                                        {address.postcode}
-                                      </div>
-                                    </div>
-                                  </div>
-                                </button>
-                              ))
+                          <div className="absolute left-3 top-1/2 transform -translate-y-1/2">
+                            {isAddressLoading ? (
+                              <Loader2 size={20} className="text-gray-400 animate-spin" />
                             ) : (
-                              <div className="px-4 py-3 text-gray-500 text-center">
-                                No addresses found
-                              </div>
+                              <Search size={20} className="text-gray-400" />
                             )}
                           </div>
                         </div>
-                      )}
-                    </div>
-                    {deliveryAddress.fullAddress && (
-                      <div className="mt-4 p-4 bg-gray-50 rounded-xl">
-                        <div className="flex items-start gap-2">
-                          <MapPin
-                            size={18}
-                            className="text-green-500 mt-1 flex-shrink-0"
-                          />
-                          <div>
-                            <p className="text-sm font-medium text-gray-900">
-                              {deliveryAddress.street}
-                            </p>
-                            <p className="text-sm text-gray-600">
-                              {deliveryAddress.city}, {deliveryAddress.state}
-                            </p>
-                            <p className="text-sm text-gray-600">
-                              {deliveryAddress.postcode}
-                            </p>
+                        {/* Error Message */}
+                        {addressError && (
+                          <div className="mt-2 flex items-center gap-2 text-red-600 text-sm">
+                            <AlertCircle size={16} className="flex-shrink-0" />
+                            <span>{addressError}</span>
                           </div>
+                        )}
+                        {/* Only show dropdown if there are valid results and no error */}
+                        {showAddressSearch && validAddressSearchResults.length > 0 && !addressError && (
+                          <div className="absolute z-50 w-full max-h-60 overflow-y-auto mt-1 bg-white border border-gray-200 rounded-xl shadow-lg">
+                            {validAddressSearchResults.map((result, index) => (
+                              <button
+                                key={index}
+                                onClick={() => handleAddressSelect(result)}
+                                className="w-full px-4 py-3 hover:bg-gray-50 cursor-pointer text-left border-b border-gray-100 last:border-b-0"
+                              >
+                                <div className="flex items-start gap-3">
+                                  <MapPin size={16} className="text-green-500 mt-1 flex-shrink-0" />
+                                  <div className="flex-1 min-w-0">
+                                    <div className="font-medium text-gray-900 truncate">
+                                      {formatFullAddress(
+                                        result.line_1 || `${result.building_number} ${result.thoroughfare}`.trim(),
+                                        result.post_town || '',
+                                        result.postcode || ''
+                                      )}
+                                    </div>
+                                  </div>
+                                </div>
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    {/* Only show the selected searched address card if a valid address is selected from search */}
+                    {selectedSearchedAddress && selectedAddressType === 'search' && (
+                      <div className="mt-4 p-4 bg-gray-50 rounded-xl flex items-start gap-2 relative">
+                        <MapPin size={18} className="text-green-500 mt-1 flex-shrink-0" />
+                        <div className="flex-1">
+                          <p className="text-sm font-medium text-gray-900">
+                            {formatFullAddress(
+                              selectedSearchedAddress.line_1 || `${selectedSearchedAddress.building_number} ${selectedSearchedAddress.thoroughfare}`.trim(),
+                              selectedSearchedAddress.post_town || '',
+                              selectedSearchedAddress.postcode || ''
+                            )}
+                          </p>
                         </div>
+                        <button
+                          onClick={handleClearSearchedAddress}
+                          className="absolute top-2 right-2 text-gray-400 hover:text-gray-600 transition-colors"
+                        >
+                          <X size={16} />
+                        </button>
                       </div>
                     )}
                   </div>
@@ -1248,7 +1762,7 @@ const CheckoutPage = () => {
                       </div>
                       <div className="text-right">
                         <p className="font-medium text-gray-900">
-                          {formatCurrency(item.price.total * item.quantity)}
+                          {formatCurrency(item.price.total)}
                         </p>
                       </div>
                     </div>
@@ -1269,11 +1783,11 @@ const CheckoutPage = () => {
                   </h2>
                 </div>
                 <div className="p-4">
-                  <div className="grid grid-cols-3 gap-3">
+                  <div className="grid grid-cols-2 gap-3">
                     {[
                       { id: "card", label: "Card", icon: CreditCard },
                       { id: "cash", label: "Cash", icon: Wallet },
-                      { id: "online", label: "Online", icon: Check },
+                      // { id: "online", label: "Online", icon: Check },
                     ].map(({ id, label, icon: Icon }) => (
                       <button
                         key={id}
@@ -1290,7 +1804,7 @@ const CheckoutPage = () => {
                     ))}
                   </div>
 
-                  {paymentMethod === "card" && (
+                  {/* {paymentMethod === "card" && (
                     <div className="mt-4 space-y-3">
                       <input
                         type="text"
@@ -1344,7 +1858,7 @@ const CheckoutPage = () => {
                         </div>
                       </div>
                     </div>
-                  )}
+                  )} */}
                 </div>
               </div>
 
@@ -1535,7 +2049,7 @@ const CheckoutPage = () => {
                                     (total, item) =>
                                       total +
                                       (isPriceObject(item.price)
-                                        ? item.price.total * item.quantity
+                                        ? item.price.total
                                         : 0),
                                     0
                                   ) +
@@ -1634,6 +2148,24 @@ const CheckoutPage = () => {
           deliveryTime: selectedTimeSlot,
         }}
       />
+
+      {/* Stripe Modal */}
+      <StripeModal
+        isOpen={showStripeModal}
+        onClose={() => {
+          setShowStripeModal(false);
+          setStripeClientSecret(null);
+          setCreatedOrderId(null);
+        }}
+        orderId={createdOrderId}
+        clientSecret={stripeClientSecret}
+        onPaymentSuccess={handlePaymentSuccess}
+        onPaymentCancel={handlePaymentCancel}
+      />
+
+
+
+
     </div>
   );
 };

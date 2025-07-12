@@ -1,38 +1,53 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useAuth } from '@/context/AuthContext';
-import { toast } from 'sonner';
-import { ArrowLeft, Save, UserX, Loader2, User, Mail, Phone, MapPin, Lock, Bell } from 'lucide-react';
-import Header from '@/components/layout/Header';
-import Footer from '@/components/layout/Footer';
-import axios from 'axios';
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/context/AuthContext";
+import { toast } from "sonner";
+import {
+  ArrowLeft,
+  Save,
+  UserX,
+  Loader2,
+  User,
+  Mail,
+  Phone,
+  MapPin,
+  Lock,
+  Bell,
+} from "lucide-react";
+import Header from "@/components/layout/Header";
+import Footer from "@/components/layout/Footer";
+import AddressInput from "@/components/AddressInput";
+import axios from "axios";
 
 const AccountDetailsPage = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, setUser } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
-    firstName: user?.firstName || '',
-    lastName: user?.lastName || '',
-    email: user?.email || '',
-    phone: user?.phone || '',
-    addressLine1: user?.address || "",
-    addressLine2: '',
-    city: 'Dunfermline',
-    postcode: 'KY12 7QF',
+    firstName: user?.firstName || "",
+    lastName: user?.lastName || "",
+    email: user?.email || "",
+    phone: user?.phone || "",
+    addressLine1: typeof user?.address === 'string' ? user.address : "",
+    addressLine2: "",
+    city: "Dunfermline",
+    postcode: "KY12 7QF",
     emailNotifications: true,
     smsNotifications: true,
     preferEmail: true,
     preferSMS: false,
   });
 
-  console.log("user",user)
+  console.log("user", user);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
     const { name, value, type } = e.target as HTMLInputElement;
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [name]: type === 'checkbox' ? (e.target as HTMLInputElement).checked : value
+      [name]:
+        type === "checkbox" ? (e.target as HTMLInputElement).checked : value,
     }));
   };
 
@@ -40,28 +55,47 @@ const AccountDetailsPage = () => {
     e.preventDefault();
     try {
       setIsLoading(true);
-      
-      const response = await axios.put('/api/profile/update', {
+
+      // Create complete address string
+      const completeAddress = [
+        formData.addressLine1,
+        formData.addressLine2,
+        formData.city,
+        formData.postcode
+      ].filter(Boolean).join(', ');
+
+      const response = await axios.put("/api/profile/update", {
         firstName: formData.firstName,
         lastName: formData.lastName,
         mobileNumber: formData.phone,
-        addressLine1: formData.addressLine1,
+        address: completeAddress, // Pass complete address as single string
+        addressLine1: completeAddress,
         addressLine2: formData.addressLine2,
         city: formData.city,
         postalCode: formData.postcode,
         emailNotifications: formData.emailNotifications,
         smsNotifications: formData.smsNotifications,
         preferredCommunicationEmail: formData.preferEmail,
-        preferredCommunicationSMS: formData.preferSMS
+        preferredCommunicationSMS: formData.preferSMS,
       });
 
       if (response.data.success) {
-        toast.success('Account details updated successfully');
+        toast.success("Account details updated successfully");
+        // Update user data with response data
+        if (response.data.data) {
+          setUser(response.data.data);
+          console.log("user", user);
+        }
+
       } else {
-        throw new Error(response.data.message || 'Failed to update profile');
+        throw new Error(response.data.message || "Failed to update profile");
       }
-    } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Failed to update account details');
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : "Failed to update account details";
+      toast.error(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -80,7 +114,9 @@ const AccountDetailsPage = () => {
             >
               <ArrowLeft size={24} className="text-neutral-600" />
             </button>
-            <h1 className="text-2xl font-bold text-neutral-900">Account Details</h1>
+            <h1 className="text-2xl font-bold text-neutral-900">
+              Account Details
+            </h1>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -90,18 +126,25 @@ const AccountDetailsPage = () => {
                 <div className="p-6 bg-gradient-to-br from-green-600 to-green-700 text-white">
                   <div className="w-20 h-20 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center mb-4">
                     <span className="text-3xl font-bold">
-                      {formData.firstName?.[0]?.toUpperCase() || formData.email?.[0]?.toUpperCase() || 'U'}
+                      {formData.firstName?.[0]?.toUpperCase() ||
+                        formData.email?.[0]?.toUpperCase() ||
+                        "U"}
                     </span>
                   </div>
                   <h2 className="text-2xl font-bold">
-                    {formData.firstName ? formData.firstName.charAt(0).toUpperCase() + formData.firstName.slice(1) : 'User'}
+                    {formData.firstName
+                      ? formData.firstName.charAt(0).toUpperCase() +
+                        formData.firstName.slice(1)
+                      : "User"}
                   </h2>
                   <p className="text-green-100">{formData.email}</p>
                 </div>
 
                 <div className="p-6">
                   <div className="space-y-4">
-                    <h3 className="font-medium text-neutral-900">Account Status</h3>
+                    <h3 className="font-medium text-neutral-900">
+                      Account Status
+                    </h3>
                     <div className="flex items-center gap-2 text-neutral-600">
                       <div className="w-2 h-2 rounded-full bg-green-500"></div>
                       <span>Active Member</span>
@@ -119,12 +162,16 @@ const AccountDetailsPage = () => {
                   <div className="p-6">
                     <div className="flex items-center gap-2 mb-6">
                       <User size={20} className="text-neutral-400" />
-                      <h2 className="text-lg font-semibold text-neutral-900">Personal Information</h2>
+                      <h2 className="text-lg font-semibold text-neutral-900">
+                        Personal Information
+                      </h2>
                     </div>
-                    
+
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div>
-                        <label className="block text-sm font-medium text-neutral-700 mb-1">First Name</label>
+                        <label className="block text-sm font-medium text-neutral-700 mb-1">
+                          First Name
+                        </label>
                         <input
                           type="text"
                           name="firstName"
@@ -134,7 +181,9 @@ const AccountDetailsPage = () => {
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-neutral-700 mb-1">Last Name</label>
+                        <label className="block text-sm font-medium text-neutral-700 mb-1">
+                          Last Name
+                        </label>
                         <input
                           type="text"
                           name="lastName"
@@ -152,12 +201,16 @@ const AccountDetailsPage = () => {
                   <div className="p-6">
                     <div className="flex items-center gap-2 mb-6">
                       <Mail size={20} className="text-neutral-400" />
-                      <h2 className="text-lg font-semibold text-neutral-900">Contact Information</h2>
+                      <h2 className="text-lg font-semibold text-neutral-900">
+                        Contact Information
+                      </h2>
                     </div>
-                    
+
                     <div className="space-y-6">
                       <div>
-                        <label className="block text-sm font-medium text-neutral-700 mb-1">Email Address</label>
+                        <label className="block text-sm font-medium text-neutral-700 mb-1">
+                          Email Address
+                        </label>
                         <input
                           type="email"
                           name="email"
@@ -167,7 +220,9 @@ const AccountDetailsPage = () => {
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-neutral-700 mb-1">Mobile Number</label>
+                        <label className="block text-sm font-medium text-neutral-700 mb-1">
+                          Mobile Number
+                        </label>
                         <input
                           type="tel"
                           name="phone"
@@ -185,32 +240,70 @@ const AccountDetailsPage = () => {
                   <div className="p-6">
                     <div className="flex items-center gap-2 mb-6">
                       <MapPin size={20} className="text-neutral-400" />
-                      <h2 className="text-lg font-semibold text-neutral-900">Delivery Address</h2>
+                      <h2 className="text-lg font-semibold text-neutral-900">
+                        Delivery Address
+                      </h2>
                     </div>
-                    
+
                     <div className="space-y-6">
                       <div>
-                        <label className="block text-sm font-medium text-neutral-700 mb-1">Address Line 1</label>
-                        <input
-                          type="text"
-                          name="addressLine1"
-                          value={formData.addressLine1}
-                          onChange={handleChange}
-                          placeholder="80E James Street"
-                          className="w-full px-4 py-2.5 bg-neutral-50 border border-neutral-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                        <label className="block text-sm font-medium text-neutral-700 mb-1">
+                          Search Address <span className="text-gray-500"> (for address line 1)</span>
+                        </label>
+                        <AddressInput
+                          address={formData.addressLine1}
+                          city={formData.city}
+                          postcode={formData.postcode}
+                          onAddressChange={(value) =>
+                            setFormData((prev) => ({
+                              ...prev,
+                              addressLine1: value,
+                            }))
+                          }
+                          onCityChange={(value) =>
+                            setFormData((prev) => ({ ...prev, city: value }))
+                          }
+                          onPostcodeChange={(value) =>
+                            setFormData((prev) => ({
+                              ...prev,
+                              postcode: value,
+                            }))
+                          }
+                          placeholder="Search by postcode or address..."
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-neutral-700 mb-1">Address Line 2</label>
+                        <label className="block text-sm font-medium text-neutral-700 mb-1">
+                          Address Line 2 (Optional)
+                        </label>
                         <input
                           type="text"
                           name="addressLine2"
                           value={formData.addressLine2}
                           onChange={handleChange}
+                          placeholder="Apartment, suite, etc."
                           className="w-full px-4 py-2.5 bg-neutral-50 border border-neutral-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent"
                         />
                       </div>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+                      {user?.address && (
+                        <div className="mt-3 p-3 bg-gray-50 border border-gray-300 rounded-md flex items-start gap-3">
+                          <MapPin
+                            size={18}
+                            className="text-green-600 mt-1 flex-shrink-0"
+                          />
+                          <div className="flex-1">
+                            <p className="text-sm font-semibold text-neutral-900">
+                              Saved Address :
+                            </p>
+                            <p className="text-sm pt-2 text-neutral-700">
+                              {typeof user?.address === 'string' ? user.address : 'Address saved'}
+                            </p>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
                           <label className="block text-sm font-medium text-neutral-700 mb-1">City</label>
                           <input
@@ -231,7 +324,7 @@ const AccountDetailsPage = () => {
                             className="w-full px-4 py-2.5 bg-neutral-50 border border-neutral-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent"
                           />
                         </div>
-                      </div>
+                      </div> */}
                     </div>
                   </div>
                 </div>
@@ -241,12 +334,18 @@ const AccountDetailsPage = () => {
                   <div className="p-6">
                     <div className="flex items-center gap-2 mb-6">
                       <Lock size={20} className="text-neutral-400" />
-                      <h2 className="text-lg font-semibold text-neutral-900">Password</h2>
+                      <h2 className="text-lg font-semibold text-neutral-900">
+                        Password
+                      </h2>
                     </div>
-                    
+
                     <div className="flex justify-center">
                       <button
-                        onClick={() => navigate('/forgot-password', { state: { mode: 'changePassword' } })}
+                        onClick={() =>
+                          navigate("/forgot-password", {
+                            state: { mode: "changePassword" },
+                          })
+                        }
                         className="px-6 py-2.5 bg-neutral-50 text-neutral-900 font-medium rounded-xl hover:bg-neutral-100 transition-colors flex items-center gap-2"
                       >
                         <Lock size={18} />
@@ -261,9 +360,11 @@ const AccountDetailsPage = () => {
                   <div className="p-6">
                     <div className="flex items-center gap-2 mb-6">
                       <Bell size={20} className="text-neutral-400" />
-                      <h2 className="text-lg font-semibold text-neutral-900">Notification Preferences</h2>
+                      <h2 className="text-lg font-semibold text-neutral-900">
+                        Notification Preferences
+                      </h2>
                     </div>
-                    
+
                     <div className="space-y-4">
                       <div className="flex items-center">
                         <input
@@ -296,7 +397,13 @@ const AccountDetailsPage = () => {
                           type="radio"
                           name="preferredContact"
                           checked={formData.preferEmail}
-                          onChange={() => setFormData(prev => ({ ...prev, preferEmail: true, preferSMS: false }))}
+                          onChange={() =>
+                            setFormData((prev) => ({
+                              ...prev,
+                              preferEmail: true,
+                              preferSMS: false,
+                            }))
+                          }
                           className="h-4 w-4 text-green-600 focus:ring-green-500 border-neutral-300"
                         />
                         <label className="ml-2 text-sm text-neutral-700">
@@ -309,7 +416,13 @@ const AccountDetailsPage = () => {
                           type="radio"
                           name="preferredContact"
                           checked={formData.preferSMS}
-                          onChange={() => setFormData(prev => ({ ...prev, preferEmail: false, preferSMS: true }))}
+                          onChange={() =>
+                            setFormData((prev) => ({
+                              ...prev,
+                              preferEmail: false,
+                              preferSMS: true,
+                            }))
+                          }
                           className="h-4 w-4 text-green-600 focus:ring-green-500 border-neutral-300"
                         />
                         <label className="ml-2 text-sm text-neutral-700">
@@ -357,4 +470,4 @@ const AccountDetailsPage = () => {
   );
 };
 
-export default AccountDetailsPage; 
+export default AccountDetailsPage;
