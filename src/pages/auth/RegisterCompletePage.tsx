@@ -71,7 +71,6 @@ const RegisterCompletePage = () => {
 
   // Address search function
   const handleAddressSearch = (query: string) => {
-    console.log(query)
     setAddressSearchValue(query);
     formik.setFieldValue('address', query);
     
@@ -102,7 +101,6 @@ const RegisterCompletePage = () => {
       const cleanQuery = query.trim().toUpperCase().replace(/\s+/g, '');
       const response = await axios.get(`/api/addresses/postcode/${cleanQuery}`);
       
-      console.log("response",response)
       if (response.data.success && response.data.data) {
         setAddressResults(response.data.data);
         setShowAddressSuggestions(true);
@@ -122,7 +120,6 @@ const RegisterCompletePage = () => {
   };
 
   const handleSelectAddress = (selectedAddress: AddressResult) => {
-    console.log("selectedAddress",selectedAddress)
     const formattedAddress = selectedAddress.line_1 || 
       `${selectedAddress.building_number} ${selectedAddress.thoroughfare}`.trim();
     

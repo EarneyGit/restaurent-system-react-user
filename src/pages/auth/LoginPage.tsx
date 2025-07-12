@@ -92,7 +92,10 @@ const LoginPage = () => {
     // Clear any existing auth data to ensure clean guest state
     localStorage.removeItem("token");
     localStorage.removeItem("user");
+    localStorage.removeItem('deliveryAddress');
+    localStorage.removeItem('orderDetails');
 
+    console.log("Guest cart cleared");
     // Generate a new session ID for guest user if not exists
     const guestSessionId = uuidv4();
     localStorage.setItem("guestSessionId", guestSessionId);

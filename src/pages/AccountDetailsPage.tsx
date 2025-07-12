@@ -38,7 +38,6 @@ const AccountDetailsPage = () => {
     preferSMS: false,
   });
 
-  console.log("user", user);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -84,7 +83,6 @@ const AccountDetailsPage = () => {
         // Update user data with response data
         if (response.data.data) {
           setUser(response.data.data);
-          console.log("user", user);
         }
 
       } else {

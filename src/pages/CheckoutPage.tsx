@@ -50,8 +50,7 @@ const StripeForm: React.FC<{ clientSecret: string; orderId: string; onSuccess: (
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handlePayNow = async () => {
     if (!stripe || !elements) {
       setError('Payment system not ready. Please refresh and try again.');
       return;
@@ -74,6 +73,9 @@ const StripeForm: React.FC<{ clientSecret: string; orderId: string; onSuccess: (
       } else if (paymentIntent && paymentIntent.status === 'succeeded') {
         // Payment succeeded, check payment status with our API
         await checkPaymentStatus(orderId, onSuccess);
+      } else if (paymentIntent && paymentIntent.status === 'requires_payment_method') {
+        // Payment requires additional action or was not confirmed
+        setError('Payment was not completed. Please try again.');
       } else {
         setError('Payment failed. Please try again.');
       }
@@ -119,7 +121,7 @@ const StripeForm: React.FC<{ clientSecret: string; orderId: string; onSuccess: (
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <div className="space-y-6">
       <div>
         <h3 className="text-lg font-semibold mb-4">Complete Payment</h3>
         <PaymentElement />
@@ -134,8 +136,23 @@ const StripeForm: React.FC<{ clientSecret: string; orderId: string; onSuccess: (
         >
           Cancel
         </button>
+        <button
+          type="button"
+          onClick={handlePayNow}
+          disabled={isLoading}
+          className="flex-1 px-4 py-3 bg-green-600 text-white font-semibold rounded-xl hover:bg-green-700 transition-colors flex items-center justify-center gap-2"
+        >
+          {isLoading ? (
+            <>
+              <Loader2 size={20} className="animate-spin" />
+              Processing...
+            </>
+          ) : (
+            "Pay Now"
+          )}
+        </button>
       </div>
-    </form>
+    </div>
   );
 };
 
@@ -161,7 +178,7 @@ const StripeModal: React.FC<{
 
   const handleCancel = async () => {
     // Just close the modal without calling cancel order API
-    onPaymentCancel(orderId || '');
+    onClose();
   };
 
   const handlePaymentSuccess = () => {
@@ -196,7 +213,7 @@ const StripeModal: React.FC<{
               clientSecret={clientSecret} 
               orderId={orderId!} 
               onSuccess={handlePaymentSuccess}
-              onCancel={handlePaymentCancel}
+              onCancel={onClose}
             />
           </Elements>
         ) : (
@@ -1104,13 +1121,12 @@ const [deliveryAddress, setDeliveryAddress] = useState<Addresses>(() => {
   const handlePlaceOrder = async () => {
     if (
       !selectedTimeSlot ||
-      !deliveryAddress ||
+      !deliveryAddress.fullAddress ||
       !personalDetails.firstName
     ) {
       toast.error("Please fill in all required fields");
       return;
     }
-    console.log("deliveryAddress",deliveryAddress)
 
     if (!acceptedTerms) {
       toast.error("Please accept the terms and conditions");
@@ -1139,7 +1155,7 @@ const [deliveryAddress, setDeliveryAddress] = useState<Addresses>(() => {
       if (
         !personalDetails.firstName ||
         !personalDetails.phone ||
-        !deliveryAddress.street
+        !deliveryAddress.fullAddress
       ) {
         toast.error("Please fill in all required fields");
         setIsProcessing(false);
@@ -1425,19 +1441,8 @@ const [deliveryAddress, setDeliveryAddress] = useState<Addresses>(() => {
     setShowStripeModal(false);
     setStripeClientSecret(null);
     setCreatedOrderId(null);
-    // Navigate to order failure page
-    navigate(`/order-failure/${orderId}`, {
-      state: {
-        orderDetails: {
-          _id: orderId,
-          status: "cancelled",
-          branchId: {
-            _id: selectedBranch?.id || "",
-            name: selectedBranch?.name || "",
-          },
-        },
-      },
-    });
+    // Just close the modal, don't redirect to failure page
+    toast.info("Payment cancelled. You can try again later.");
   };
 
   return (
@@ -1527,7 +1532,7 @@ const [deliveryAddress, setDeliveryAddress] = useState<Addresses>(() => {
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
-                        First Name
+                        First Name <span className="text-red-500">*</span>
                       </label>
                       <input
                         type="text"
@@ -1544,7 +1549,7 @@ const [deliveryAddress, setDeliveryAddress] = useState<Addresses>(() => {
 
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Last Name
+                        Last Name <span className="text-red-500">*</span>
                       </label>
                       <input
                         type="text"
@@ -1562,7 +1567,7 @@ const [deliveryAddress, setDeliveryAddress] = useState<Addresses>(() => {
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Phone Number
+                      Phone Number <span className="text-red-500">*</span>
                     </label>
                     <input
                       type="tel"
@@ -1581,7 +1586,7 @@ const [deliveryAddress, setDeliveryAddress] = useState<Addresses>(() => {
                   <div className="relative z-30">
                     <div className="flex justify-between items-center mb-2">
                       <label className="block text-sm font-medium text-gray-700">
-                        Delivery Address
+                        Delivery Address <span className="text-red-500">*</span>
                       </label>
                       <button
                         type="button"
@@ -2089,6 +2094,7 @@ const [deliveryAddress, setDeliveryAddress] = useState<Addresses>(() => {
 
                   <button
                     onClick={handlePlaceOrder}
+                    title={!acceptedTerms ? "Please accept the terms and conditions" : !deliveryAddress.fullAddress ? "Please select a delivery address" : ""}
                     disabled={isProcessing || !acceptedTerms}
                     className="w-full bg-green-600 text-white py-3 rounded-xl font-semibold hover:bg-green-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                   >
@@ -2160,7 +2166,12 @@ const [deliveryAddress, setDeliveryAddress] = useState<Addresses>(() => {
         orderId={createdOrderId}
         clientSecret={stripeClientSecret}
         onPaymentSuccess={handlePaymentSuccess}
-        onPaymentCancel={handlePaymentCancel}
+        onPaymentCancel={() => {
+          setShowStripeModal(false);
+          setStripeClientSecret(null);
+          setCreatedOrderId(null);
+          toast.info("Payment cancelled. You can try again later.");
+        }}
       />
 
 
