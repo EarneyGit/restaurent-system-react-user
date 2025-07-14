@@ -98,7 +98,7 @@ const OutletSelectionPage = () => {
       <div className="relative z-10 max-w-4xl mx-auto px-4">
         {/* Close Button */}
         <button 
-          onClick={() => navigate(-1)}
+          onClick={() => navigate("/")}
           className="absolute right-4 top-4 p-2 rounded-full bg-white/10 hover:bg-white/20 transition-colors"
         >
           <X size={24} className="text-white" />

@@ -117,7 +117,7 @@ const Header = () => {
       />
 
       <header className="sticky top-0 z-50 bg-white border-b border-gray-200">
-        <div className="px-5 md:px-14">
+        <div className="md:px-10">
           <div className="flex justify-between items-center h-16 px-4">
             {/* Left section */}
             <div className="flex items-center gap-2">

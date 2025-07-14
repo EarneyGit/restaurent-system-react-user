@@ -339,7 +339,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (!selectedBranch) return 0;
     return cartItems.reduce((total, item) => {
       // Use the total from price object and multiply by quantity
-      return total + (item.price.total * item.quantity);
+      return total + (item.price.total);
     }, 0);
   };
 

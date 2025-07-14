@@ -64,6 +64,8 @@ const LoginPage = () => {
     // Clear any existing auth data to ensure clean guest state
     localStorage.removeItem('token');
     localStorage.removeItem('user');
+    localStorage.removeItem('deliveryAddress');
+    localStorage.removeItem('orderDetails');
     // Set guest status
     localStorage.setItem('isGuest', 'true');
     

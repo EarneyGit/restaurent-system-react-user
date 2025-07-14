@@ -1,11 +1,31 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Search, MapPin, Loader2, AlertCircle, X } from 'lucide-react';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
 import { toast } from 'sonner';
 import axios from 'axios';
 import { AUTH_ENDPOINTS } from '../../config/api.config';
+
+interface AddressResult {
+  postcode: string;
+  post_town: string;
+  thoroughfare: string;
+  building_number: string;
+  building_name: string;
+  line_1: string;
+  line_2: string;
+  line_3: string;
+  premise: string;
+  longitude: number;
+  latitude: number;
+  country: string;
+  county: string;
+  district: string;
+  ward: string;
+  id: string;
+  dataset: string;
+}
 
 const RegisterCompletePage = () => {
   const navigate = useNavigate();
@@ -40,6 +60,102 @@ const RegisterCompletePage = () => {
       .required('Address is required'),
   });
 
+  // Address search state
+  const [addressSearchValue, setAddressSearchValue] = useState('');
+  const [showAddressSuggestions, setShowAddressSuggestions] = useState(false);
+  const [addressResults, setAddressResults] = useState<AddressResult[]>([]);
+  const [isAddressLoading, setIsAddressLoading] = useState(false);
+  const [addressError, setAddressError] = useState<string>('');
+  const [searchTimeout, setSearchTimeout] = useState<NodeJS.Timeout | null>(null);
+  const [selectedAddress, setSelectedAddress] = useState<AddressResult | null>(null);
+
+  // Address search function
+  const handleAddressSearch = (query: string) => {
+    setAddressSearchValue(query);
+    formik.setFieldValue('address', query);
+    
+    // Clear previous timeout
+    if (searchTimeout) {
+      clearTimeout(searchTimeout);
+    }
+
+    // Set new timeout for debounced search
+    const timeout = setTimeout(async () => {
+      if (query.trim().length >= 3) {
+        await searchAddresses(query);
+      } else {
+        setAddressResults([]);
+        setShowAddressSuggestions(false);
+      }
+    }, 500);
+
+    setSearchTimeout(timeout);
+  };
+
+  const searchAddresses = async (query: string) => {
+    try {
+      setIsAddressLoading(true);
+      setAddressError('');
+      
+      // Try to search by postcode first
+      const cleanQuery = query.trim().toUpperCase().replace(/\s+/g, '');
+      const response = await axios.get(`/api/addresses/postcode/${cleanQuery}`);
+      
+      if (response.data.success && response.data.data) {
+        setAddressResults(response.data.data);
+        setShowAddressSuggestions(true);
+      } else {
+        setAddressResults([]);
+        setShowAddressSuggestions(false);
+      }
+    } catch (error: unknown) {
+      console.error('Error searching addresses:', error);
+      setAddressResults([]);
+      setShowAddressSuggestions(false);
+      const errorMessage = (error as { response?: { data?: { message?: string } } })?.response?.data?.message;
+      setAddressError(errorMessage);
+    } finally {
+      setIsAddressLoading(false);
+    }
+  };
+
+  const handleSelectAddress = (selectedAddress: AddressResult) => {
+    const formattedAddress = selectedAddress.line_1 || 
+      `${selectedAddress.building_number} ${selectedAddress.thoroughfare}`.trim();
+    
+      const addressPayload = `${result.line_1 || `${result.building_number} ${result.thoroughfare}`.trim()}, ${result.post_town}, ${result.postcode}`;
+
+    formik.setFieldValue('address', formattedAddress);
+    setAddressSearchValue(formattedAddress);
+    setSelectedAddress(selectedAddress);
+    setShowAddressSuggestions(false);
+    setAddressResults([]);
+  };
+
+  const handleClearAddress = () => {
+    setSelectedAddress(null);
+    setAddressSearchValue('');
+    formik.setFieldValue('address', '');
+  };
+
+  // Add click outside handler
+  // useEffect(() => {
+  //   const handleClickOutside = (event: MouseEvent) => {
+  //     const target = event.target as Node;
+  //     if (!target || !(target as Element).closest('.address-search-container')) {
+  //       setShowAddressSuggestions(false);
+  //     }
+  //   };
+
+  //   document.addEventListener('mousedown', handleClickOutside);
+  //   return () => {
+  //     document.removeEventListener('mousedown', handleClickOutside);
+  //     if (searchTimeout) {
+  //       clearTimeout(searchTimeout);
+  //     }
+  //   };
+  // }, [searchTimeout]);
+
   const formik = useFormik({
     initialValues: {
       password: '',
@@ -66,9 +182,9 @@ const RegisterCompletePage = () => {
           toast.success(response.data.message || 'Registration successful');
           navigate('/');
         }
-      } catch (error: any) {
-        const errorMessage = error.response?.data?.message || 'Registration failed';
-        toast.error(Array.isArray(errorMessage) ? errorMessage[0] : errorMessage);
+      } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : 'Registration failed';
+        toast.error(errorMessage);
       } finally {
         setSubmitting(false);
       }
@@ -193,17 +309,92 @@ const RegisterCompletePage = () => {
               >
                 Delivery Address
               </label>
-              <textarea
-                id="address"
-                {...formik.getFieldProps('address')}
-                rows={3}
-                className={`mt-1 block w-full border ${
-                  formik.touched.address && formik.errors.address
-                    ? 'border-red-500'
-                    : 'border-gray-300'
-                } rounded-md shadow-sm py-3 px-3 focus:outline-none focus:ring-foodyman-lime focus:border-foodyman-lime sm:text-sm`}
-                placeholder="Enter your delivery address"
-              />
+              <div className="relative address-search-container">
+                <input
+                  id="address"
+                  type="text"
+                  value={addressSearchValue}
+                  onChange={(e) => handleAddressSearch(e.target.value)}
+                  onFocus={() => {
+                    if (addressResults.length > 0) {
+                      setShowAddressSuggestions(true);
+                    }
+                  }}
+                  className={`mt-1 block w-full border ${
+                    formik.touched.address && formik.errors.address
+                      ? 'border-red-500'
+                      : 'border-gray-300'
+                  } rounded-md shadow-sm py-3 px-3 pl-10 focus:outline-none focus:ring-foodyman-lime focus:border-foodyman-lime sm:text-sm`}
+                  placeholder="Search by postcode or address..."
+                />
+                <div className="absolute left-3 top-1/2 transform -translate-y-1/2">
+                  {isAddressLoading ? (
+                    <Loader2 size={16} className="text-gray-400 animate-spin" />
+                  ) : (
+                    <Search size={16} className="text-gray-400" />
+                  )}
+                </div>
+                {selectedAddress && (
+                  <button
+                    onClick={handleClearAddress}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  >
+                    <X size={16} />
+                  </button>
+                )}
+              </div>
+              
+              {/* Error Message */}
+              {addressError && (
+                <div className="mt-2 flex items-center gap-2 text-red-600 text-sm">
+                  <AlertCircle size={16} className="flex-shrink-0" />
+                  <span>{addressError}</span>
+                </div>
+              )}
+
+              {/* Selected Address Display */}
+              {selectedAddress && (
+                <div className="mt-3 p-3 bg-gray-50 border border-gray-300 rounded-md flex items-start gap-3">
+                  <MapPin size={18} className="text-green-600 mt-1 flex-shrink-0" />
+                  <div className="flex-1">
+                    <p className="text-sm font-bold text-neutral-900">
+                      {selectedAddress.line_1 || `${selectedAddress.building_number} ${selectedAddress.thoroughfare}`.trim()}
+                    </p>
+                    <p className="text-sm text-neutral-700">
+                      {selectedAddress.post_town}, {selectedAddress.county}
+                    </p>
+                    <p className="text-sm text-neutral-700">
+                      {selectedAddress.postcode}
+                    </p>
+                  </div>
+                </div>
+              )}
+              
+              {showAddressSuggestions && addressResults.length > 0 && (
+                <div className="absolute z-50 w-full max-h-60 overflow-y-auto mt-1 bg-white border border-gray-300 rounded-md shadow-lg">
+                  {addressResults?.map((result, index) => (
+                    <button
+                      key={index}
+                      type='button'
+                      onClick={() => handleSelectAddress(result)}
+                      className="w-full px-4 py-3 hover:bg-gray-50 cursor-pointer text-left border-b border-gray-100 last:border-b-0"
+                    >
+                      <div className="flex items-start gap-3">
+                        <MapPin size={16} className="text-green-500 mt-1 flex-shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <div className="font-medium text-gray-900 truncate">
+                            {result.line_1 || `${result.building_number} ${result.thoroughfare}`.trim()}
+                          </div>
+                          <div className="text-sm text-gray-600 truncate mt-0.5">
+                            {result.post_town}, {result.postcode}
+                          </div>
+                        </div>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+              
               {formik.touched.address && formik.errors.address && (
                 <div className="text-red-500 text-xs mt-1">
                   {formik.errors.address}

@@ -34,6 +34,7 @@ import { Toaster } from "sonner";
 import CartPage from "./pages/CartPage";
 import { BranchProvider } from "./context/BranchContext";
 import OrderSuccessPage from "./pages/OrderSuccessPage";
+import OrderFailurePage from "./pages/OrderFailurePage";
 import TermsAndConditionsPage from "./pages/TermsAndConditionsPage";
 import AccountDetailsPage from "./pages/AccountDetailsPage";
 import OrdersPage from "./pages/OrdersPage";
@@ -132,6 +133,9 @@ const App = () => {
 
                 {/* Order Success Route */}
                 <Route path="/order-success" element={<OrderSuccessPage />} />
+
+                {/* Order Failure Route */}
+                <Route path="/order-failure/:orderId" element={<OrderFailurePage />} />
 
                 {/* Protected Liked Products Route */}
                 <Route path="/liked" element={<ProtectedRouteWrapper><Layout><LikedProductsPage /></Layout></ProtectedRouteWrapper>} />

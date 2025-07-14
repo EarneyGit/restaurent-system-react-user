@@ -132,7 +132,6 @@ export const getCategories = async (branchId?: string): Promise<Category[]> => {
       throw new Error(response.data.message || 'Failed to fetch categories');
     }
     
-    console.log('Raw categories:', response.data.data);
     
     // Add color to each category and fix image URLs
     const categoriesWithColors = response.data.data.map(category => {
@@ -142,7 +141,6 @@ export const getCategories = async (branchId?: string): Promise<Category[]> => {
         color: getCategoryColor(typeof category.name === 'object' ? category.name.name || '' : String(category.name)),
         imageUrl: category.imageUrl ? `${BASE_URL}${category.imageUrl}` : '/placeholder.svg'
       };
-      console.log('Cleaned category:', cleanCategory);
       return cleanCategory;
     });
     
@@ -158,10 +156,8 @@ export const getCategories = async (branchId?: string): Promise<Category[]> => {
 export const getProducts = async (): Promise<Product[]> => {
   try {
     const url = new URL(`${BASE_URL}/api/products`);
-    console.log('Fetching all products from URL:', url.toString());
 
     const response = await axios.get<ApiResponse<Product[]>>(url.toString());
-    console.log('API Response:', response.data);
 
     if (!response.data.success) {
       throw new Error(response.data.message || 'Failed to fetch products');

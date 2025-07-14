@@ -2,7 +2,6 @@ import axios from 'axios';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://82.25.104.117:5001';
 
-console.log("API_URL", API_URL);
 interface CartItem {
   productId: string;
   quantity: number;

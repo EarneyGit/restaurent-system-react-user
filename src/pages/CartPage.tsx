@@ -248,7 +248,7 @@ const CartItem: React.FC<CartItemProps> = ({
         <div className="flex items-center gap-4">
           <div className="text-right">
             <span className="font-medium text-gray-900">
-              Total: {formatCurrency(price.total * quantity)}
+              Total: {formatCurrency(price.total)}
             </span>
           </div>
           <button
@@ -503,7 +503,7 @@ const CartPage = () => {
             </div>
             <button
               onClick={() => navigate("/app")}
-              className="flex text-sm items-center border border-gray-200 rounded-md px-4 py-2 hover:border-green-600 hover:bg-green-50 text-gray-600 hover:text-gray-900 transition-colors"
+              className="flex text-sm items-center border border-gray-200 rounded-md px-4 py-2 hover:text-gray-900 font-medium text-gray-600 transition-colors"
             >
               <ArrowLeft size={18} className="mr-2" />
               <span>Continue Shopping</span>
@@ -551,7 +551,7 @@ const CartPage = () => {
                             {item.name} × {item.quantity}
                           </span>
                           <span className="font-medium">
-                            {formatCurrency(item.price.total * item.quantity)}
+                            {formatCurrency(item.price.total)}
                           </span>
                         </div>
                       ))}
@@ -562,9 +562,7 @@ const CartPage = () => {
                       <div className="flex justify-between text-sm">
                         <span className="text-gray-600">Items Subtotal</span>
                         <span className="font-medium">
-                          {formatCurrency(cartItems.reduce((total, item) => 
-                            total + (item.price.currentEffectivePrice * item.quantity), 0
-                          ))}
+                          {formatCurrency(cartItems.reduce((total, item) => total + item.price.total, 0))}
                         </span>
                       </div>
 
@@ -613,9 +611,7 @@ const CartPage = () => {
                         <span className="font-semibold">Total</span>
                         <div className="text-right">
                           <span className="font-bold text-neutral-900 text-xl">
-                            {formatCurrency(cartItems.reduce((total, item) => 
-                              total + (item.price.total * item.quantity), 0
-                            ) + cartSummary.deliveryFee)}
+                            {formatCurrency(cartItems.reduce((total, item) => total + item.price.total, 0) + cartSummary.deliveryFee)}
                           </span>
                           {cartItems.some(item => item.price.base > item.price.currentEffectivePrice) && (
                             <div className="text-xs text-green-600 font-medium">
