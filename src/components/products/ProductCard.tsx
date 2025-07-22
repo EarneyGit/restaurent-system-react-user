@@ -15,6 +15,7 @@ import { formatPrice } from "@/lib/utils";
 interface ProductCardProps {
   product: Product;
   isOutletAvailable?: boolean;
+  isBranchAvailable?: boolean;
 }
 
 interface PriceChange {
@@ -65,7 +66,7 @@ const VariantPlaceholderSVG = ({ color }: { color: string }) => (
   </svg>
 );
 
-const ProductCard: React.FC<ProductCardProps> = ({ product, isOutletAvailable = true }) => {
+const ProductCard: React.FC<ProductCardProps> = ({ product, isOutletAvailable = true, isBranchAvailable = true }) => {
   const [selectedVariant, setSelectedVariant] = useState(0);
   const [quantity, setQuantity] = useState(1);
   const [isOptionsModalOpen, setIsOptionsModalOpen] = useState(false);
@@ -76,7 +77,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, isOutletAvailable = 
   const { sessionId } = useGuestCart();
   const { selectedBranch } = useBranch();
   const navigate = useNavigate();
-  const [isBranchAvailable, setIsBranchAvailable] = useState<boolean>(true);
+  // const [isBranchAvailable, setIsBranchAvailable] = useState<boolean>(true);
 
   const activePriceChange = getActivePriceChange(product.priceChanges);
   const daysLeft = activePriceChange ? getDaysLeft(activePriceChange.endDate) : 0;
@@ -108,32 +109,31 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, isOutletAvailable = 
 
   const { isInStock, availableQuantity, isLowStock } = getStockStatus();
 
-  useEffect(() => {
-    const checkBranchAvailability = async () => {
-      if (selectedBranch?.id) {
-        try {
-          const currentDate = new Date();
-          const formattedDate = currentDate.toISOString().split('T')[0];
-          const formattedTime = currentDate.toTimeString().slice(0, 5);
+  // useEffect(() => {
+  //   const checkBranchAvailability = async () => {
+  //     if (selectedBranch?.id) {
+  //       try {
+  //         const currentDate = new Date();
+  //         const formattedDate = currentDate.toISOString().split('T')[0];
+  //         const formattedTime = currentDate.toTimeString().slice(0, 5);
 
-          const response = await axios.post(`/api/ordering-times/${selectedBranch.id}/check-availability`, {
-            orderType: "delivery",
-            date: formattedDate,
-            time: formattedTime
-          });
+  //         const response = await axios.post(`/api/ordering-times/${selectedBranch.id}/check-availability`, {
+  //           orderType: "delivery",
+  //           date: formattedDate,
+  //           time: formattedTime
+  //         });
 
-          setIsBranchAvailable(response.data.available);
-        } catch (error) {
-          console.error('Error checking branch availability:', error);
-          setIsBranchAvailable(false);
-        }
-      }
-    };
+  //         setIsBranchAvailable(response.data.available);
+  //       } catch (error) {
+  //         console.error('Error checking branch availability:', error);
+  //         setIsBranchAvailable(false);
+  //       }
+  //     }
+  //   };
 
-    checkBranchAvailability();
-  }, [selectedBranch?.id]);
+  //   checkBranchAvailability();
+  // }, []);
 
-  console.log("cartItems", cartItems);
   // Check if product is in cart - update to check by productId instead of id
   const cartItem = cartItems.find((item) => item.productId === product.id);
   const isInCart = Boolean(cartItem);

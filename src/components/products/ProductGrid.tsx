@@ -34,6 +34,8 @@ const ProductGrid: React.FC<ProductGridProps> = React.memo(({
     isAvailable: boolean;
     reason?: string;
   }>({ isAvailable: false });
+  const [isBranchAvailable, setIsBranchAvailable] = useState<boolean>(true);
+
   const { selectedBranch } = useBranch();
 
   // Helper function to check if a product matches the selected category
@@ -102,6 +104,7 @@ const ProductGrid: React.FC<ProductGridProps> = React.memo(({
           reason: availabilityResponse.data.reason
         });
 
+        setIsBranchAvailable(availabilityResponse?.data.available);
         // Fetch products regardless of availability
         const response = await axios.get('/api/products', {
           params: { branchId }
@@ -233,6 +236,7 @@ const ProductGrid: React.FC<ProductGridProps> = React.memo(({
         <ProductCard 
           key={product.id} 
           product={product} 
+          isBranchAvailable={isBranchAvailable}
           isOutletAvailable={branchAvailability.isAvailable}
         />
       ))}
