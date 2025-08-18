@@ -165,6 +165,10 @@ const AddressSelector = () => {
     setSelectedAddress(null);
     setSearchValue('');
     setSelectedAddressType('user');
+    
+    // Clear the localStorage saved address
+    localStorage.removeItem('deliveryAddress');
+    localStorage.removeItem('orderDetails');
   };
 
   const handleClearUserAddress = () => {
@@ -172,8 +176,53 @@ const AddressSelector = () => {
     setSelectedAddressType('search');
   };
 
-  // Initialize with user address if available
+  // Initialize with user address or localStorage address if available
   useEffect(() => {
+    // First check if there's a saved address in localStorage
+    const savedDeliveryAddress = localStorage.getItem('deliveryAddress');
+    const savedOrderDetails = localStorage.getItem('orderDetails');
+    
+    if (savedDeliveryAddress && savedOrderDetails) {
+      try {
+        const parsedAddress = JSON.parse(savedDeliveryAddress);
+        const parsedOrderDetails = JSON.parse(savedOrderDetails);
+        
+        // Only use localStorage data if it's a delivery order and has valid address
+        if (parsedOrderDetails.deliveryMethod === 'deliver' && parsedAddress) {
+          // Create an AddressResult object from the saved address
+          const localStorageAddress: AddressResult = {
+            postcode: parsedAddress.postcode || '',
+            post_town: parsedAddress.city || '',
+            thoroughfare: parsedAddress.street || '',
+            building_number: '',
+            building_name: '',
+            line_1: parsedAddress.fullAddress || '',
+            line_2: '',
+            line_3: '',
+            premise: '',
+            longitude: parsedAddress.longitude || 0,
+            latitude: parsedAddress.latitude || 0,
+            country: parsedAddress.country || 'GB',
+            county: parsedAddress.state || '',
+            district: '',
+            ward: '',
+            id: '',
+            dataset: ''
+          };
+          
+          // Only set from localStorage if user address is not available
+          if (!user?.address) {
+            setSelectedAddress(localStorageAddress);
+            setSelectedSearchedAddress(localStorageAddress);
+            setSelectedAddressType('search');
+          }
+        }
+      } catch (error) {
+        console.error('Error parsing saved address from localStorage:', error);
+      }
+    }
+    
+    // Then check for user address if no address is selected yet
     if (user?.address && !selectedAddress) {
       if (typeof user.address === 'string') {
         setSelectedAddressType('user');
@@ -344,6 +393,35 @@ const AddressSelector = () => {
               </button>
             )}
           </div>
+        ) : selectedAddress && selectedAddressType === 'search' ? (
+          <div className={`border rounded-xl p-4 mb-4 shadow-sm transition-all border-green-600 bg-green-900/10`}>
+            <div className="flex items-start gap-3">
+              <MapPin size={18} className="text-green-500 mt-1 flex-shrink-0" />
+              <div className="flex-1">
+                <div className="font-semibold text-white">Previously used address</div>
+                <div className="text-white/80">
+                  {selectedAddress.line_1 || `${selectedAddress.building_number} ${selectedAddress.thoroughfare}`.trim()}
+                </div>
+                <div className="text-white/80">
+                  {selectedAddress.post_town}, {selectedAddress.county}, {selectedAddress.postcode}
+                </div>
+              </div>
+            </div>
+            <div className="flex justify-between mt-4">
+              <button
+                onClick={handleGoToMenu}
+                className="flex items-center gap-2 text-xs font-bold bg-green-600 text-white px-2.5 py-2 rounded-lg hover:bg-green-700 transition"
+              >
+                Use this address
+              </button>
+              <button
+                onClick={handleClearSearchedAddress}
+                className="flex items-center gap-2 text-xs font-bold bg-white/10 text-white px-2.5 py-2 rounded-lg hover:bg-white/20 transition"
+              >
+                <X size={16} /> Clear
+              </button>
+            </div>
+          </div>
         ) : (
           <div className="border border-white/20 bg-white/5 rounded-xl p-4 mb-4">
             <div className="flex items-center gap-3">
@@ -423,7 +501,7 @@ const AddressSelector = () => {
           </div>
         )}
         {/* Only show the selected searched address card if a valid address is selected from search */}
-        {selectedSearchedAddress && selectedAddressType === 'search' && (
+        {selectedSearchedAddress && selectedAddressType === 'search' && showSearchInput && (
           <div className="mt-4 p-4 bg-white/10 rounded-xl flex items-start gap-2 border border-white/20 relative">
             <MapPin size={18} className="text-green-500 mt-1 flex-shrink-0" />
             <div className="flex-1">
@@ -448,7 +526,7 @@ const AddressSelector = () => {
           </div>
         )} */}
         
-        {selectedAddress && selectedAddressType === 'search' && (
+        {selectedAddress && selectedAddressType === 'search' && !showSearchInput && (
           <div className="mt-4 p-4 bg-white/10 rounded-xl flex items-start gap-2 border border-white/20 relative">
             <MapPin size={18} className="text-green-500 mt-1 flex-shrink-0" />
             <div className="flex-1">
@@ -457,10 +535,10 @@ const AddressSelector = () => {
               <p className="text-white/80">{selectedAddress.postcode}</p>
             </div>
             <button
-              onClick={handleClearSearchedAddress}
-              className="absolute top-2 right-2 text-white/50 hover:text-white transition-colors"
+              onClick={handleGoToMenu}
+              className="mt-2 flex items-center gap-2 text-xs font-bold bg-green-600 text-white px-2.5 py-2 rounded-lg hover:bg-green-700 transition"
             >
-              <X size={16} />
+              Use this address
             </button>
           </div>
         )}
@@ -504,4 +582,4 @@ const AddressSelector = () => {
   );
 };
 
-export default AddressSelector; 
+export default AddressSelector;

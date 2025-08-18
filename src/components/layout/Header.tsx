@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Menu, BellRing, UserCircle, ShoppingCart } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { AxiosError } from "axios";
+import axios, { AxiosError } from "axios";
 import Sidebar from "./Sidebar";
 import NotificationModal from "../notifications/NotificationModal";
 import { CartSummary } from "../cart/CartSummary";
@@ -9,6 +9,9 @@ import ScheduleModal from "./ScheduleModal";
 import { useAuth } from "../../context/AuthContext";
 import UserAvatar from "../auth/UserAvatar";
 import BranchSelector from "../BranchSelector";
+import { BRANCH_ENDPOINTS } from "@/config/api.config";
+import { Branch, BranchResponse } from "@/types/branch.types";
+import { toast } from "sonner";
 
 const Header = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -23,6 +26,70 @@ const Header = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const isCheckoutPage = location.pathname === "/checkout";
+
+  const [branchAvailability, setBranchAvailability] = useState<{
+    isAvailable: boolean;
+    reason?: string;
+  }>({ isAvailable: false });
+  const [isBranchAvailable, setIsBranchAvailable] = useState<boolean>(true);
+
+  const [isCollectionAllowed, setIsCollectionAllowed] = useState(false);
+  const [isDeliveryAllowed, setIsDeliveryAllowed] = useState(false);
+
+  const daysOfWeek = [
+    "sunday",
+    "monday",
+    "tuesday",
+    "wednesday",
+    "thursday",
+    "friday",
+    "saturday",
+  ];
+  const today = daysOfWeek[new Date().getDay()];
+
+  useEffect(() => {
+    const fetchBranch = async () => {
+      try {
+        const selectedBranchId = localStorage.getItem("selectedBranchId");
+        if (!selectedBranchId) return;
+
+        const response = await axios.get<BranchResponse>(
+          BRANCH_ENDPOINTS.GET_ALL_BRANCHES
+        );
+
+        if (response.data.success && response.data.data) {
+          const branch = response.data.data.find(
+            (b: Branch) => b.id === selectedBranchId
+          );
+
+          if (branch) {
+            const todaySchedule =
+              branch?.orderingTimes?.weeklySchedule?.[today] || {};
+            setIsCollectionAllowed(todaySchedule.isCollectionAllowed ?? false);
+            setIsDeliveryAllowed(todaySchedule.isDeliveryAllowed ?? false);
+
+            const todayTIme = new Date();
+            todayTIme.setUTCHours(0, 0, 0, 0);
+
+            const todayDate = todayTIme.toISOString();
+            const isClosedToday = branch?.orderingTimes?.closedDates?.some(
+              (closed: { date: string }) => closed.date === todayDate
+            );
+
+            if (isClosedToday) {
+              setIsCollectionAllowed(false);
+              setIsDeliveryAllowed(false);
+            }
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching branch in header:", error);
+        toast.error("Failed to load branch info.");
+      }
+    };
+
+    fetchBranch();
+  }, []);
 
   // Refresh user data when component mounts
   useEffect(() => {
@@ -73,16 +140,19 @@ const Header = () => {
     if (email && email.length > 0) {
       return email[0].toUpperCase();
     }
-    return 'U';
+    return "U";
   };
 
   const handleLoginClick = (e: React.MouseEvent) => {
     e.preventDefault();
-    const branchId = localStorage.getItem('branchId');
+    const branchId = localStorage.getItem("branchId");
     // Store current path for redirect after login
-    localStorage.setItem('returnUrl', branchId ? '/app' : window.location.pathname);
+    localStorage.setItem(
+      "returnUrl",
+      branchId ? "/app" : window.location.pathname
+    );
     // Use window.location.href to ensure a full page refresh
-    window.location.href = '/login';
+    window.location.href = "/login";
   };
 
   // Show loading state while checking authentication
@@ -140,7 +210,9 @@ const Header = () => {
 
             {/* Right section */}
             <div className="flex items-center gap-3">
-              <CartSummary className="p-2 hover:bg-gray-100 rounded-full transition-colors" />
+              {(isCollectionAllowed || isDeliveryAllowed) && (
+                <CartSummary className="p-2 hover:bg-gray-100 rounded-full transition-colors" />
+              )}
               <BranchSelector />
               {/* <button
                 onClick={openNotifications}

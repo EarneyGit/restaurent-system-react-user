@@ -20,30 +20,43 @@ import { CartItem as CartItemType } from "@/context/CartContext";
 import { CART_ENDPOINTS, ORDER_ENDPOINTS, BASE_URL } from "@/config/api.config";
 import { useGuestCart } from "@/context/GuestCartContext";
 import { Address, searchAddresses } from "@/data/addresses";
-import { Search, MapPin, Loader2, AlertCircle, X } from 'lucide-react';
-import { loadStripe } from '@stripe/stripe-js';
-import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js';
+import { Search, MapPin, Loader2, AlertCircle, X } from "lucide-react";
+import { loadStripe } from "@stripe/stripe-js";
+import {
+  Elements,
+  PaymentElement,
+  useStripe,
+  useElements,
+} from "@stripe/react-stripe-js";
 
-const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || 'pk_test_51OqX8X2eZvKYlo2C1gQJ8X8X');
+const stripePromise = loadStripe(
+  import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY ||
+    "pk_test_51OqX8X2eZvKYlo2C1gQJ8X8X"
+);
 
 // Check if Stripe is properly configured
 if (!import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY) {
-  console.warn('Stripe publishable key is missing. Using test key.');
+  console.warn("Stripe publishable key is missing. Using test key.");
 }
 
 // Validate that we're using a publishable key (starts with pk_)
-const stripeKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || 'pk_test_51OqX8X2eZvKYlo2C1gQJ8X8X';
-if (stripeKey && !stripeKey.startsWith('pk_')) {
-  console.error('Invalid Stripe key format. Expected publishable key (pk_*), got:', stripeKey);
+const stripeKey =
+  import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY ||
+  "pk_test_51OqX8X2eZvKYlo2C1gQJ8X8X";
+if (stripeKey && !stripeKey.startsWith("pk_")) {
+  console.error(
+    "Invalid Stripe key format. Expected publishable key (pk_*), got:",
+    stripeKey
+  );
 }
 
 // Stripe Form Component
-const StripeForm: React.FC<{ clientSecret: string; orderId: string; onSuccess: () => void; onCancel: () => void }> = ({ 
-  clientSecret, 
-  orderId, 
-  onSuccess, 
-  onCancel 
-}) => {
+const StripeForm: React.FC<{
+  clientSecret: string;
+  orderId: string;
+  onSuccess: () => void;
+  onCancel: () => void;
+}> = ({ clientSecret, orderId, onSuccess, onCancel }) => {
   const stripe = useStripe();
   const elements = useElements();
   const navigate = useNavigate();
@@ -52,35 +65,40 @@ const StripeForm: React.FC<{ clientSecret: string; orderId: string; onSuccess: (
 
   const handlePayNow = async () => {
     if (!stripe || !elements) {
-      setError('Payment system not ready. Please refresh and try again.');
+      setError("Payment system not ready. Please refresh and try again.");
       return;
     }
-    
+
     setIsLoading(true);
     setError(null);
-    
+
     try {
-      const { error: stripeError, paymentIntent } = await stripe.confirmPayment({
-        elements,
-        confirmParams: {
-          return_url: window.location.origin + `/order-status/${orderId}`,
-        },
-        redirect: 'if_required',
-      });
-      
+      const { error: stripeError, paymentIntent } = await stripe.confirmPayment(
+        {
+          elements,
+          confirmParams: {
+            return_url: window.location.origin + `/order-status/${orderId}`,
+          },
+          redirect: "if_required",
+        }
+      );
+
       if (stripeError) {
-        setError(stripeError.message || 'Payment failed');
-      } else if (paymentIntent && paymentIntent.status === 'succeeded') {
+        setError(stripeError.message || "Payment failed");
+      } else if (paymentIntent && paymentIntent.status === "succeeded") {
         // Payment succeeded, check payment status with our API
         await checkPaymentStatus(orderId, onSuccess);
-      } else if (paymentIntent && paymentIntent.status === 'requires_payment_method') {
+      } else if (
+        paymentIntent &&
+        paymentIntent.status === "requires_payment_method"
+      ) {
         // Payment requires additional action or was not confirmed
-        setError('Payment was not completed. Please try again.');
+        setError("Payment was not completed. Please try again.");
       } else {
-        setError('Payment failed. Please try again.');
+        setError("Payment failed. Please try again.");
       }
     } catch (err) {
-      setError('Payment failed. Please try again.');
+      setError("Payment failed. Please try again.");
     } finally {
       setIsLoading(false);
     }
@@ -94,28 +112,32 @@ const StripeForm: React.FC<{ clientSecret: string; orderId: string; onSuccess: (
   // Function to check payment status
   const checkPaymentStatus = async (orderId: string, onSuccess: () => void) => {
     try {
-      const response = await axios.post('/api/orders/check-payment-status', { orderId });
-      
+      const response = await axios.post("/api/orders/check-payment-status", {
+        orderId,
+      });
+
       if (response.data?.success) {
         const { orderStatus, message } = response.data.data;
-        
-        if (orderStatus === 'processing' || orderStatus === 'completed') {
-          toast.success('Payment successful!');
+
+        if (orderStatus === "processing" || orderStatus === "completed") {
+          toast.success("Payment successful!");
           onSuccess();
-        } else if (orderStatus === 'cancelled') {
-          toast.error('Payment failed. Order cancelled.');
+        } else if (orderStatus === "cancelled") {
+          toast.error("Payment failed. Order cancelled.");
           navigate(`/order-failure/${orderId}`);
         } else {
-          toast.error(message || 'Payment status unclear. Please contact support.');
+          toast.error(
+            message || "Payment status unclear. Please contact support."
+          );
           navigate(`/order-failure/${orderId}`);
         }
       } else {
-        toast.error('Failed to verify payment status.');
+        toast.error("Failed to verify payment status.");
         navigate(`/order-failure/${orderId}`);
       }
     } catch (err) {
-      console.error('Error checking payment status:', err);
-      toast.error('Failed to verify payment status.');
+      console.error("Error checking payment status:", err);
+      toast.error("Failed to verify payment status.");
       navigate(`/order-failure/${orderId}`);
     }
   };
@@ -157,14 +179,21 @@ const StripeForm: React.FC<{ clientSecret: string; orderId: string; onSuccess: (
 };
 
 // Stripe Modal Component
-const StripeModal: React.FC<{ 
-  isOpen: boolean; 
-  onClose: () => void; 
+const StripeModal: React.FC<{
+  isOpen: boolean;
+  onClose: () => void;
   orderId: string | null;
   clientSecret: string | null;
   onPaymentSuccess: (orderId: string) => void;
   onPaymentCancel: (orderId: string) => void;
-}> = ({ isOpen, onClose, orderId, clientSecret, onPaymentSuccess, onPaymentCancel }) => {
+}> = ({
+  isOpen,
+  onClose,
+  orderId,
+  clientSecret,
+  onPaymentSuccess,
+  onPaymentCancel,
+}) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -197,21 +226,22 @@ const StripeModal: React.FC<{
     return null;
   }
 
-
-
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl p-6 max-w-md w-full max-h-[90vh] overflow-y-auto">
         {loading ? (
           <div className="text-center">
-            <Loader2 size={32} className="animate-spin text-green-600 mx-auto mb-4" />
+            <Loader2
+              size={32}
+              className="animate-spin text-green-600 mx-auto mb-4"
+            />
             <p>Processing...</p>
           </div>
         ) : clientSecret ? (
           <Elements stripe={stripePromise} options={{ clientSecret }}>
-            <StripeForm 
-              clientSecret={clientSecret} 
-              orderId={orderId!} 
+            <StripeForm
+              clientSecret={clientSecret}
+              orderId={orderId!}
               onSuccess={handlePaymentSuccess}
               onCancel={onClose}
             />
@@ -552,9 +582,12 @@ const OrderConfirmationModal: React.FC<OrderConfirmationModalProps> = ({
           </div>
 
           {/* Delivery Details */}
+
           <div>
             <h4 className="font-medium text-gray-900">Delivery Address:</h4>
-            <p className="text-sm text-gray-600">{orderDetails.address}</p>
+            <p className="text-sm text-gray-600">
+              {orderDetails.address ? orderDetails.address : "-"}
+            </p>
           </div>
 
           <div>
@@ -578,7 +611,9 @@ const OrderConfirmationModal: React.FC<OrderConfirmationModalProps> = ({
             )}
             <div className="flex justify-between font-medium">
               <span>Total Amount:</span>
-              <span className="text-green-600">{formatCurrency(orderDetails.total)}</span>
+              <span className="text-green-600">
+                {formatCurrency(orderDetails.total)}
+              </span>
             </div>
           </div>
         </div>
@@ -625,11 +660,17 @@ const CheckoutPage = () => {
   const [showAddressSearch, setShowAddressSearch] = useState(false);
   const [addressSearchQuery, setAddressSearchQuery] = useState("");
   const [filteredAddresses, setFilteredAddresses] = useState<Address[]>([]);
-  const [addressSearchResults, setAddressSearchResults] = useState<AddressResult[]>([]);
+  const [addressSearchResults, setAddressSearchResults] = useState<
+    AddressResult[]
+  >([]);
   const [isAddressLoading, setIsAddressLoading] = useState(false);
-  const [addressError, setAddressError] = useState<string>('');
-  const [searchTimeout, setSearchTimeout] = useState<NodeJS.Timeout | null>(null);
-  const [selectedAddressType, setSelectedAddressType] = useState<'user' | 'delivery' | 'search'>('user');
+  const [addressError, setAddressError] = useState<string>("");
+  const [searchTimeout, setSearchTimeout] = useState<NodeJS.Timeout | null>(
+    null
+  );
+  const [selectedAddressType, setSelectedAddressType] = useState<
+    "user" | "delivery" | "search"
+  >("user");
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [promoCode, setPromoCode] = useState("");
   const [isApplyingPromo, setIsApplyingPromo] = useState(false);
@@ -660,14 +701,15 @@ const CheckoutPage = () => {
   const [isLoading, setIsLoading] = useState(true);
   const addressDropdownRef = useRef<HTMLDivElement>(null);
   const [showSearchInput, setShowSearchInput] = useState(false);
-  const [selectedSearchedAddress, setSelectedSearchedAddress] = useState<AddressResult | null>(null);
+  const [selectedSearchedAddress, setSelectedSearchedAddress] =
+    useState<AddressResult | null>(null);
 
   // Stripe modal state
   const [showStripeModal, setShowStripeModal] = useState(false);
   const [createdOrderId, setCreatedOrderId] = useState<string | null>(null);
-  const [stripeClientSecret, setStripeClientSecret] = useState<string | null>(null);
-
-
+  const [stripeClientSecret, setStripeClientSecret] = useState<string | null>(
+    null
+  );
 
   const [creditCardDetails, setCreditCardDetails] = useState<CreditCardDetails>(
     {
@@ -689,8 +731,8 @@ const CheckoutPage = () => {
   };
 
   useEffect(() => {
-    if (selectedAddressType === 'user' && user?.address) {
-       setAddressError('')
+    if (selectedAddressType === "user" && user?.address) {
+      setAddressError("");
     }
   }, [selectedAddressType]);
 
@@ -795,70 +837,80 @@ const CheckoutPage = () => {
 
   // Helper function to parse full address into components
   // ✅ Helper: Parse full string address like "Street, City, Postcode, [State?]"
-const parseFullAddress = (fullAddress: string) => {
-  const parts = fullAddress.split(',').map(part => part.trim());
+  const parseFullAddress = (fullAddress: string) => {
+    const parts = fullAddress.split(",").map((part) => part.trim());
 
-  return {
-    street: parts[0] || '',
-    city: parts[1] || '',
-    postcode: parts[2] || '',
-    state: parts[3] || '',
-    country: 'GB',
-    fullAddress
+    return {
+      street: parts[0] || "",
+      city: parts[1] || "",
+      postcode: parts[2] || "",
+      state: parts[3] || "",
+      country: "GB",
+      fullAddress,
+    };
   };
-};
 
-// ✅ Helper: Format full address from parts
-const formatFullAddress = (street: string, city: string, postcode: string) => {
-  return [street, city, postcode].filter(Boolean).join(', ');
-};
+  // ✅ Helper: Format full address from parts
+  const formatFullAddress = (
+    street: string,
+    city: string,
+    postcode: string
+  ) => {
+    return [street, city, postcode].filter(Boolean).join(", ");
+  };
 
-// ✅ useState based on user.address string
-const [deliveryAddress, setDeliveryAddress] = useState<Addresses>(() => {
-  // 1. If user has address (as string), parse it
-  if (user?.address && typeof user.address === 'string') {
-    setSelectedAddressType('user');
-    const parsed = parseFullAddress(user.address);
-    return parsed;
-  }
-
-  // 2. Try from localStorage
-  const storedAddress = localStorage.getItem('deliveryAddress');
-  if (storedAddress) {
-    try {
-      const parsedAddress = JSON.parse(storedAddress);
-      setSelectedAddressType('delivery');
-      return parsedAddress;
-    } catch (e) {
-      console.error('Error parsing stored address:', e);
+  // ✅ useState based on user.address string
+  const [deliveryAddress, setDeliveryAddress] = useState<Addresses>(() => {
+    // 1. If user has address (as string), parse it
+    if (user?.address && typeof user.address === "string") {
+      setSelectedAddressType("user");
+      const parsed = parseFullAddress(user.address);
+      return parsed;
     }
-  }
 
-  // 3. Fallback default
-  return {
-    street: '',
-    city: '',
-    state: '',
-    postcode: '',
-    country: 'GB',
-    fullAddress: '',
-  };
-});
+    // 2. Try from localStorage
+    const storedAddress = localStorage.getItem("deliveryAddress");
+    if (storedAddress) {
+      try {
+        const parsedAddress = JSON.parse(storedAddress);
+        setSelectedAddressType("delivery");
+        return parsedAddress;
+      } catch (e) {
+        console.error("Error parsing stored address:", e);
+      }
+    }
+
+    // 3. Fallback default
+    return {
+      street: "",
+      city: "",
+      state: "",
+      postcode: "",
+      country: "GB",
+      fullAddress: "",
+    };
+  });
 
   // Update delivery address when user data changes
   useEffect(() => {
     // Only update if we don't already have a valid address
-    if (!deliveryAddress.street && !deliveryAddress.city && !deliveryAddress.postcode) {
+    if (
+      !deliveryAddress.street &&
+      !deliveryAddress.city &&
+      !deliveryAddress.postcode
+    ) {
       const storedAddress = localStorage.getItem("deliveryAddress");
       if (storedAddress) {
         try {
           const parsedAddress = JSON.parse(storedAddress);
           // Ensure the address has proper formatting
           if (parsedAddress.fullAddress) {
-            const parsedComponents = parseFullAddress(parsedAddress.fullAddress);
+            const parsedComponents = parseFullAddress(
+              parsedAddress.fullAddress
+            );
             const updatedAddress = {
               ...parsedAddress,
-              ...parsedComponents
+              ...parsedComponents,
             };
             setDeliveryAddress(updatedAddress);
           } else {
@@ -867,14 +919,19 @@ const [deliveryAddress, setDeliveryAddress] = useState<Addresses>(() => {
         } catch (e) {
           console.error("Error parsing stored address:", e);
         }
-      } else if (user?.address && typeof user.address === 'string') {
+      } else if (user?.address && typeof user.address === "string") {
         // Only parse user address if it's a string and we don't have an address yet
         const parsed = parseFullAddress(user.address);
         setDeliveryAddress(parsed);
-        setSelectedAddressType('user');
+        setSelectedAddressType("user");
       }
     }
-  }, [user, deliveryAddress.street, deliveryAddress.city, deliveryAddress.postcode]);
+  }, [
+    user,
+    deliveryAddress.street,
+    deliveryAddress.city,
+    deliveryAddress.postcode,
+  ]);
 
   // Add click outside handler and cleanup timeout
   useEffect(() => {
@@ -901,7 +958,7 @@ const [deliveryAddress, setDeliveryAddress] = useState<Addresses>(() => {
   // Address search function with API integration
   const handleAddressSearch = (query: string) => {
     setAddressSearchQuery(query);
-    
+
     // Clear previous timeout
     if (searchTimeout) {
       clearTimeout(searchTimeout);
@@ -923,12 +980,12 @@ const [deliveryAddress, setDeliveryAddress] = useState<Addresses>(() => {
   const searchAddressesAPI = async (query: string) => {
     try {
       setIsAddressLoading(true);
-      setAddressError('');
-      
+      setAddressError("");
+
       // Try to search by postcode first
-      const cleanQuery = query.trim().toUpperCase().replace(/\s+/g, '');
+      const cleanQuery = query.trim().toUpperCase().replace(/\s+/g, "");
       const response = await axios.get(`/api/addresses/postcode/${cleanQuery}`);
-      
+
       if (response.data.success && response.data.data) {
         setAddressSearchResults(response.data.data);
         setShowAddressSearch(true);
@@ -937,10 +994,12 @@ const [deliveryAddress, setDeliveryAddress] = useState<Addresses>(() => {
         setShowAddressSearch(false);
       }
     } catch (error: unknown) {
-      console.error('Error searching addresses:', error);
+      console.error("Error searching addresses:", error);
       setAddressSearchResults([]);
       setShowAddressSearch(false);
-      const errorMessage = (error as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Failed to search addresses';
+      const errorMessage =
+        (error as { response?: { data?: { message?: string } } })?.response
+          ?.data?.message || "Failed to search addresses";
       setAddressError(errorMessage);
     } finally {
       setIsAddressLoading(false);
@@ -949,26 +1008,28 @@ const [deliveryAddress, setDeliveryAddress] = useState<Addresses>(() => {
 
   // Handle address selection from API results
   const handleAddressSelect = (address: AddressResult) => {
-    const street = address.line_1 || `${address.building_number} ${address.thoroughfare}`.trim();
-    const city = address.post_town || '';
-    const postcode = address.postcode || '';
-    
+    const street =
+      address.line_1 ||
+      `${address.building_number} ${address.thoroughfare}`.trim();
+    const city = address.post_town || "";
+    const postcode = address.postcode || "";
+
     const fullAddress = formatFullAddress(street, city, postcode);
-    
+
     const formattedAddress: Address = {
       street,
       city,
-      state: address.county || '',
+      state: address.county || "",
       postcode,
-      country: address.country || 'GB',
+      country: address.country || "GB",
       fullAddress,
     };
-    
+
     setDeliveryAddress(formattedAddress);
     setAddressSearchQuery(formattedAddress.fullAddress);
     setShowAddressSearch(false);
     setShowSearchInput(false);
-    setSelectedAddressType('search');
+    setSelectedAddressType("search");
     setSelectedSearchedAddress(address);
     // Update localStorage with the new address
     localStorage.setItem("deliveryAddress", JSON.stringify(formattedAddress));
@@ -976,17 +1037,24 @@ const [deliveryAddress, setDeliveryAddress] = useState<Addresses>(() => {
 
   const handleClearSearchedAddress = () => {
     setSelectedSearchedAddress(null);
-    setDeliveryAddress({ street: '', city: '', state: '', postcode: '', country: '', fullAddress: '' });
-    setAddressSearchQuery('');
-    setSelectedAddressType('user');
+    setDeliveryAddress({
+      street: "",
+      city: "",
+      state: "",
+      postcode: "",
+      country: "",
+      fullAddress: "",
+    });
+    setAddressSearchQuery("");
+    setSelectedAddressType("user");
   };
 
   // Handle user address selection
   const handleUserAddressSelect = () => {
-    if (user?.address && typeof user.address === 'string') {
+    if (user?.address && typeof user.address === "string") {
       const parsed = parseFullAddress(user.address);
       setDeliveryAddress(parsed);
-      setSelectedAddressType('user');
+      setSelectedAddressType("user");
       localStorage.setItem("deliveryAddress", JSON.stringify(parsed));
     }
   };
@@ -1002,13 +1070,13 @@ const [deliveryAddress, setDeliveryAddress] = useState<Addresses>(() => {
           const parsedComponents = parseFullAddress(parsedAddress.fullAddress);
           const updatedAddress = {
             ...parsedAddress,
-            ...parsedComponents
+            ...parsedComponents,
           };
           setDeliveryAddress(updatedAddress);
         } else {
           setDeliveryAddress(parsedAddress);
         }
-        setSelectedAddressType('delivery');
+        setSelectedAddressType("delivery");
       } catch (e) {
         console.error("Error parsing stored address:", e);
       }
@@ -1017,11 +1085,18 @@ const [deliveryAddress, setDeliveryAddress] = useState<Addresses>(() => {
 
   // Handle search for new address
   const handleSearchAddressSelect = () => {
-    setSelectedAddressType('search');
+    setSelectedAddressType("search");
     setShowSearchInput(true);
     setSelectedSearchedAddress(null);
-    setDeliveryAddress({ street: '', city: '', state: '', postcode: '', country: '', fullAddress: '' });
-    setAddressSearchQuery('');
+    setDeliveryAddress({
+      street: "",
+      city: "",
+      state: "",
+      postcode: "",
+      country: "",
+      fullAddress: "",
+    });
+    setAddressSearchQuery("");
   };
 
   // Calculate order totals using CartContext methods
@@ -1056,36 +1131,48 @@ const [deliveryAddress, setDeliveryAddress] = useState<Addresses>(() => {
     setIsApplyingPromo(true);
     try {
       // Calculate current order total for validation
-      const currentOrderTotal = cartItems.reduce(
-        (total, item) =>
-          total +
-          (isPriceObject(item.price)
-            ? item.price.total * item.quantity
-            : 0),
-        0
-      ) + cartSummary.deliveryFee + (cartSummary.serviceCharges?.totalAll || 0);
+      const currentOrderTotal =
+        cartItems.reduce(
+          (total, item) =>
+            total +
+            (isPriceObject(item.price) ? item.price.total * item.quantity : 0),
+          0
+        ) +
+        cartSummary.deliveryFee +
+        (cartSummary.serviceCharges?.totalAll || 0);
 
       // Get delivery method from localStorage
-      const deliveryMethod = localStorage.getItem("deliveryMethod") || "delivery";
+      const deliveryMethod =
+        localStorage.getItem("deliveryMethod") || "delivery";
 
       // Prepare validation request
       const validationData = {
         code: promoCode.trim(),
         branchId: selectedBranch.id,
         orderTotal: currentOrderTotal,
-        deliveryMethod: deliveryMethod === "deliver" ? "delivery" : deliveryMethod === "collect" ? "pickup" : "dine_in",
-        orderType: deliveryMethod === "deliver" ? "delivery" : deliveryMethod === "collect" ? "pickup" : "dine_in",
-        userId: user?._id || null
+        deliveryMethod:
+          deliveryMethod === "deliver"
+            ? "delivery"
+            : deliveryMethod === "collect"
+            ? "pickup"
+            : "dine_in",
+        orderType:
+          deliveryMethod === "deliver"
+            ? "delivery"
+            : deliveryMethod === "collect"
+            ? "pickup"
+            : "dine_in",
+        userId: user?._id || null,
       };
 
       // Make API call to validate discount
       const response = await axios.post(
-        "/api/discounts/validate", 
+        "/api/discounts/validate",
         validationData,
         {
           headers: {
             "Content-Type": "application/json",
-          }
+          },
         }
       );
 
@@ -1100,16 +1187,21 @@ const [deliveryAddress, setDeliveryAddress] = useState<Addresses>(() => {
           discountAmount: discountData.discountAmount,
           originalTotal: discountData.originalTotal,
           newTotal: discountData.newTotal,
-          savings: discountData.savings
+          savings: discountData.savings,
         });
-        toast.success(response.data.message || "Promo code applied successfully!");
+        toast.success(
+          response.data.message || "Promo code applied successfully!"
+        );
       } else {
         setAppliedPromo(null);
         throw new Error("Invalid promo code");
       }
     } catch (error: unknown) {
       console.error("Promo code validation error:", error);
-      const err = error as { response?: { data?: { message?: string } }; message?: string };
+      const err = error as {
+        response?: { data?: { message?: string } };
+        message?: string;
+      };
       const errorMessage = "Invalid promo code";
       toast.error(errorMessage);
       setAppliedPromo(null);
@@ -1121,7 +1213,7 @@ const [deliveryAddress, setDeliveryAddress] = useState<Addresses>(() => {
   const handlePlaceOrder = async () => {
     if (
       !selectedTimeSlot ||
-      !deliveryAddress.fullAddress ||
+      (checkDeliveryMethod !== "collect" && !deliveryAddress.fullAddress) ||
       !personalDetails.firstName
     ) {
       toast.error("Please fill in all required fields");
@@ -1155,7 +1247,7 @@ const [deliveryAddress, setDeliveryAddress] = useState<Addresses>(() => {
       if (
         !personalDetails.firstName ||
         !personalDetails.phone ||
-        !deliveryAddress.fullAddress
+        (checkDeliveryMethod !== "collect" && !deliveryAddress.fullAddress)
       ) {
         toast.error("Please fill in all required fields");
         setIsProcessing(false);
@@ -1169,22 +1261,20 @@ const [deliveryAddress, setDeliveryAddress] = useState<Addresses>(() => {
         const selectedAttributes =
           item.selectedAttributes && Array.isArray(item.selectedAttributes)
             ? item.selectedAttributes
-            : (
-                item.attributes?.map((attr) => {
-                  const selectedChoiceId = item.selectedOptions?.[attr.id];
-                  return {
-                    attributeId: attr.id,
-                    selectedItems: selectedChoiceId
-                      ? [
-                          {
-                            itemId: selectedChoiceId,
-                            quantity: 1,
-                          },
-                        ]
-                      : [],
-                  };
-                }) || []
-              );
+            : item.attributes?.map((attr) => {
+                const selectedChoiceId = item.selectedOptions?.[attr.id];
+                return {
+                  attributeId: attr.id,
+                  selectedItems: selectedChoiceId
+                    ? [
+                        {
+                          itemId: selectedChoiceId,
+                          quantity: 1,
+                        },
+                      ]
+                    : [],
+                };
+              }) || [];
 
         return {
           product: productId,
@@ -1197,7 +1287,7 @@ const [deliveryAddress, setDeliveryAddress] = useState<Addresses>(() => {
 
       // Use the originalTotal and newTotal from discount validation if available
       let subtotal, deliveryFeeAmount, taxAmount, discountAmount, finalTotal;
-      
+
       if (appliedPromo && appliedPromo.originalTotal && appliedPromo.newTotal) {
         // Use values from discount validation API
         subtotal = appliedPromo.originalTotal - cartSummary.deliveryFee; // Subtract delivery fee to get items subtotal
@@ -1239,7 +1329,8 @@ const [deliveryAddress, setDeliveryAddress] = useState<Addresses>(() => {
               }
             : undefined,
         contactNumber: personalDetails.phone,
-        paymentMethod: paymentMethod === "cash" ? "cash_on_delivery" : paymentMethod,
+        paymentMethod:
+          paymentMethod === "cash" ? "cash_on_delivery" : paymentMethod,
         specialInstructions: orderNotes,
         selectedTimeSlot,
         personalDetails: {
@@ -1253,7 +1344,9 @@ const [deliveryAddress, setDeliveryAddress] = useState<Addresses>(() => {
         deliveryFee: deliveryFeeAmount,
         tax: taxAmount,
         discount: discountAmount,
-        totalAmount: appliedPromo?.originalTotal || (subtotal + deliveryFeeAmount + taxAmount), // Use originalTotal from API
+        totalAmount:
+          appliedPromo?.originalTotal ||
+          subtotal + deliveryFeeAmount + taxAmount, // Use originalTotal from API
         finalTotal: finalTotal,
         status: "pending", // Set initial status
       };
@@ -1276,63 +1369,61 @@ const [deliveryAddress, setDeliveryAddress] = useState<Addresses>(() => {
         { headers }
       );
 
-              if (response.data?.success && response.data?.data) {
-          const createdOrder = response.data.data;
+      if (response.data?.success && response.data?.data) {
+        const createdOrder = response.data.data;
 
-          // If payment method is card, show Stripe modal
-          if (paymentMethod === "card") {
-            // Extract clientSecret from the order creation response
-            const clientSecret = response.data.payment?.clientSecret;
-            
-            if (!clientSecret) {
-              toast.error("Failed to create payment intent. Please try again.");
-              setIsProcessing(false);
-              return;
-            }
+        // If payment method is card, show Stripe modal
+        if (paymentMethod === "card") {
+          // Extract clientSecret from the order creation response
+          const clientSecret = response.data.payment?.clientSecret;
 
-            // Validate client secret format
-            if (!clientSecret.includes('_secret_')) {
-              toast.error("Invalid payment configuration. Please try again.");
-              setIsProcessing(false);
-              return;
-            }
-            
-
-            
-            setCreatedOrderId(createdOrder._id);
-            setStripeClientSecret(clientSecret);
-            setShowStripeModal(true);
-            setShowConfirmation(false);
+          if (!clientSecret) {
+            toast.error("Failed to create payment intent. Please try again.");
             setIsProcessing(false);
             return;
-          } else {
-            // For cash payments, proceed normally
-            // Clear cart
-            await clearCart();
+          }
 
-            // Store necessary data for order tracking
-            localStorage.setItem("selectedBranchId", selectedBranch.id);
+          // Validate client secret format
+          if (!clientSecret.includes("_secret_")) {
+            toast.error("Invalid payment configuration. Please try again.");
+            setIsProcessing(false);
+            return;
+          }
 
-            // Navigate to order status with complete order details
-            navigate(`/order-status/${createdOrder._id}`, {
-              state: {
-                orderDetails: {
-                  ...createdOrder,
-                  branchId: {
-                    _id: selectedBranch.id,
-                    name: selectedBranch.name,
-                  },
+          setCreatedOrderId(createdOrder._id);
+          setStripeClientSecret(clientSecret);
+          setShowStripeModal(true);
+          setShowConfirmation(false);
+          setIsProcessing(false);
+          return;
+        } else {
+          // For cash payments, proceed normally
+          // Clear cart
+          await clearCart();
+
+          // Store necessary data for order tracking
+          localStorage.setItem("selectedBranchId", selectedBranch.id);
+
+          // Navigate to order status with complete order details
+          navigate(`/order-status/${createdOrder._id}`, {
+            state: {
+              orderDetails: {
+                ...createdOrder,
+                branchId: {
+                  _id: selectedBranch.id,
+                  name: selectedBranch.name,
                 },
               },
-              replace: true, // Prevent back navigation to checkout
-            });
+            },
+            replace: true, // Prevent back navigation to checkout
+          });
 
-            setShowConfirmation(false);
-            toast.success("Order placed successfully!");
-          }
-        } else {
-          throw new Error(response.data?.message || "Failed to create order");
+          setShowConfirmation(false);
+          toast.success("Order placed successfully!");
         }
+      } else {
+        throw new Error(response.data?.message || "Failed to create order");
+      }
     } catch (error: unknown) {
       const err = error as {
         response?: { data?: { message?: string }; status?: number };
@@ -1391,27 +1482,47 @@ const [deliveryAddress, setDeliveryAddress] = useState<Addresses>(() => {
   }
 
   // Filter valid addresses for search results
-  const validAddressSearchResults = addressSearchResults.filter(addr => (
-    addr.line_1 || addr.thoroughfare || addr.post_town || addr.postcode
-  ));
+  const validAddressSearchResults = addressSearchResults.filter(
+    (addr) =>
+      addr.line_1 || addr.thoroughfare || addr.post_town || addr.postcode
+  );
 
   // Helper to format address as string
-  function formatAddress(addr: Address | string | { street?: string; city?: string; state?: string; zipCode?: string; postcode?: string; country?: string }): string {
-    if (!addr) return '';
-    if (typeof addr === 'string') return addr;
-    if (typeof addr === 'object') {
+  function formatAddress(
+    addr:
+      | Address
+      | string
+      | {
+          street?: string;
+          city?: string;
+          state?: string;
+          zipCode?: string;
+          postcode?: string;
+          country?: string;
+        }
+  ): string {
+    if (!addr) return "";
+    if (typeof addr === "string") return addr;
+    if (typeof addr === "object") {
       // Try to join known fields
-      const addressObj = addr as { street?: string; city?: string; state?: string; zipCode?: string; postcode?: string; country?: string };
+      const addressObj = addr as {
+        street?: string;
+        city?: string;
+        state?: string;
+        zipCode?: string;
+        postcode?: string;
+        country?: string;
+      };
       const fields = [
-        addressObj.street, 
-        addressObj.city, 
-        addressObj.state, 
-        addressObj.zipCode || addressObj.postcode, 
-        addressObj.country
+        addressObj.street,
+        addressObj.city,
+        addressObj.state,
+        addressObj.zipCode || addressObj.postcode,
+        addressObj.country,
       ];
-      return fields.filter(Boolean).join(', ');
+      return fields.filter(Boolean).join(", ");
     }
-    return '';
+    return "";
   }
 
   // Payment success handler
@@ -1444,6 +1555,8 @@ const [deliveryAddress, setDeliveryAddress] = useState<Addresses>(() => {
     // Just close the modal, don't redirect to failure page
     toast.info("Payment cancelled. You can try again later.");
   };
+
+  const checkDeliveryMethod = localStorage.getItem("deliveryMethod") || "";
 
   return (
     <div className="min-h-screen bg-gray-50 py-12">
@@ -1564,7 +1677,6 @@ const [deliveryAddress, setDeliveryAddress] = useState<Addresses>(() => {
                       />
                     </div>
                   </div>
-
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Phone Number <span className="text-red-500">*</span>
@@ -1581,12 +1693,15 @@ const [deliveryAddress, setDeliveryAddress] = useState<Addresses>(() => {
                       className="w-full px-4 py-3 rounded-xl border border-gray-200"
                     />
                   </div>
-
                   {/* Delivery Address */}
                   <div className="relative z-30">
                     <div className="flex justify-between items-center mb-2">
                       <label className="block text-sm font-medium text-gray-700">
-                        Delivery Address <span className="text-red-500">*</span>
+                        Delivery Address{" "}
+                        {checkDeliveryMethod !== "collect" &&
+                          !deliveryAddress.fullAddress && (
+                            <span className="text-red-500">*</span>
+                          )}
                       </label>
                       <button
                         type="button"
@@ -1598,18 +1713,25 @@ const [deliveryAddress, setDeliveryAddress] = useState<Addresses>(() => {
                     </div>
                     {/* Saved Address Card */}
                     {user?.address && (
-                      <div className={`border rounded-xl p-4 mb-4 shadow-sm transition-all ${selectedAddressType === 'user' ? 'border-gray-300 bg-gray-100' : 'border-gray-200 bg-white'}`}>
+                      <div
+                        className={`border rounded-xl p-4 mb-4 shadow-sm transition-all ${
+                          selectedAddressType === "user"
+                            ? "border-gray-300 bg-gray-100"
+                            : "border-gray-200 bg-white"
+                        }`}
+                      >
                         <label className="flex items-center gap-3 cursor-pointer">
                           <input
                             type="radio"
                             name="addressType"
-                            checked={selectedAddressType === 'user'}
+                            checked={selectedAddressType === "user"}
                             onChange={handleUserAddressSelect}
                             className="accent-gray-700 h-4 w-4"
                           />
                           <div>
-
-                            <div className="font-semibold text-gray-900">Use my saved address</div>
+                            <div className="font-semibold text-gray-900">
+                              Use my saved address
+                            </div>
                             <div className="text-gray-700">
                               {user?.address ? deliveryAddress.fullAddress : ""}
                             </div>
@@ -1624,13 +1746,18 @@ const [deliveryAddress, setDeliveryAddress] = useState<Addresses>(() => {
                           <input
                             type="text"
                             value={addressSearchQuery}
-                            onChange={(e) => handleAddressSearch(e.target.value)}
+                            onChange={(e) =>
+                              handleAddressSearch(e.target.value)
+                            }
                             placeholder="Search by postcode or address..."
                             className="w-full px-4 py-3 pl-10 border border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent"
                           />
                           <div className="absolute left-3 top-1/2 transform -translate-y-1/2">
                             {isAddressLoading ? (
-                              <Loader2 size={20} className="text-gray-400 animate-spin" />
+                              <Loader2
+                                size={20}
+                                className="text-gray-400 animate-spin"
+                              />
                             ) : (
                               <Search size={20} className="text-gray-400" />
                             )}
@@ -1644,53 +1771,66 @@ const [deliveryAddress, setDeliveryAddress] = useState<Addresses>(() => {
                           </div>
                         )}
                         {/* Only show dropdown if there are valid results and no error */}
-                        {showAddressSearch && validAddressSearchResults.length > 0 && !addressError && (
-                          <div className="absolute z-50 w-full max-h-60 overflow-y-auto mt-1 bg-white border border-gray-200 rounded-xl shadow-lg">
-                            {validAddressSearchResults.map((result, index) => (
-                              <button
-                                key={index}
-                                onClick={() => handleAddressSelect(result)}
-                                className="w-full px-4 py-3 hover:bg-gray-50 cursor-pointer text-left border-b border-gray-100 last:border-b-0"
-                              >
-                                <div className="flex items-start gap-3">
-                                  <MapPin size={16} className="text-green-500 mt-1 flex-shrink-0" />
-                                  <div className="flex-1 min-w-0">
-                                    <div className="font-medium text-gray-900 truncate">
-                                      {formatFullAddress(
-                                        result.line_1 || `${result.building_number} ${result.thoroughfare}`.trim(),
-                                        result.post_town || '',
-                                        result.postcode || ''
-                                      )}
+                        {showAddressSearch &&
+                          validAddressSearchResults.length > 0 &&
+                          !addressError && (
+                            <div className="absolute z-50 w-full max-h-60 overflow-y-auto mt-1 bg-white border border-gray-200 rounded-xl shadow-lg">
+                              {validAddressSearchResults.map(
+                                (result, index) => (
+                                  <button
+                                    key={index}
+                                    onClick={() => handleAddressSelect(result)}
+                                    className="w-full px-4 py-3 hover:bg-gray-50 cursor-pointer text-left border-b border-gray-100 last:border-b-0"
+                                  >
+                                    <div className="flex items-start gap-3">
+                                      <MapPin
+                                        size={16}
+                                        className="text-green-500 mt-1 flex-shrink-0"
+                                      />
+                                      <div className="flex-1 min-w-0">
+                                        <div className="font-medium text-gray-900 truncate">
+                                          {formatFullAddress(
+                                            result.line_1 ||
+                                              `${result.building_number} ${result.thoroughfare}`.trim(),
+                                            result.post_town || "",
+                                            result.postcode || ""
+                                          )}
+                                        </div>
+                                      </div>
                                     </div>
-                                  </div>
-                                </div>
-                              </button>
-                            ))}
-                          </div>
-                        )}
+                                  </button>
+                                )
+                              )}
+                            </div>
+                          )}
                       </div>
                     )}
                     {/* Only show the selected searched address card if a valid address is selected from search */}
-                    {selectedSearchedAddress && selectedAddressType === 'search' && (
-                      <div className="mt-4 p-4 bg-gray-50 rounded-xl flex items-start gap-2 relative">
-                        <MapPin size={18} className="text-green-500 mt-1 flex-shrink-0" />
-                        <div className="flex-1">
-                          <p className="text-sm font-medium text-gray-900">
-                            {formatFullAddress(
-                              selectedSearchedAddress.line_1 || `${selectedSearchedAddress.building_number} ${selectedSearchedAddress.thoroughfare}`.trim(),
-                              selectedSearchedAddress.post_town || '',
-                              selectedSearchedAddress.postcode || ''
-                            )}
-                          </p>
+                    {selectedSearchedAddress &&
+                      selectedAddressType === "search" && (
+                        <div className="mt-4 p-4 bg-gray-50 rounded-xl flex items-start gap-2 relative">
+                          <MapPin
+                            size={18}
+                            className="text-green-500 mt-1 flex-shrink-0"
+                          />
+                          <div className="flex-1">
+                            <p className="text-sm font-medium text-gray-900">
+                              {formatFullAddress(
+                                selectedSearchedAddress.line_1 ||
+                                  `${selectedSearchedAddress.building_number} ${selectedSearchedAddress.thoroughfare}`.trim(),
+                                selectedSearchedAddress.post_town || "",
+                                selectedSearchedAddress.postcode || ""
+                              )}
+                            </p>
+                          </div>
+                          <button
+                            onClick={handleClearSearchedAddress}
+                            className="absolute top-2 right-2 text-gray-400 hover:text-gray-600 transition-colors"
+                          >
+                            <X size={16} />
+                          </button>
                         </div>
-                        <button
-                          onClick={handleClearSearchedAddress}
-                          className="absolute top-2 right-2 text-gray-400 hover:text-gray-600 transition-colors"
-                        >
-                          <X size={16} />
-                        </button>
-                      </div>
-                    )}
+                      )}
                   </div>
                 </div>
               </div>
@@ -1870,7 +2010,7 @@ const [deliveryAddress, setDeliveryAddress] = useState<Addresses>(() => {
               {/* Promo Code Section */}
               <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
                 <div className="p-4">
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 overflow-x-auto">
                     <input
                       type="text"
                       value={promoCode}
@@ -1896,7 +2036,9 @@ const [deliveryAddress, setDeliveryAddress] = useState<Addresses>(() => {
                   {appliedPromo && (
                     <div className="mt-2 p-2 bg-green-50 text-green-700 rounded-lg text-xs">
                       Promo code "{appliedPromo.code}" applied -{" "}
-                      {appliedPromo.discountType === 'percentage' ? `${appliedPromo.discountValue}% off` : `${formatCurrency(appliedPromo.discountAmount)} off`}
+                      {appliedPromo.discountType === "percentage"
+                        ? `${appliedPromo.discountValue}% off`
+                        : `${formatCurrency(appliedPromo.discountAmount)} off`}
                     </div>
                   )}
                 </div>
@@ -2034,7 +2176,13 @@ const [deliveryAddress, setDeliveryAddress] = useState<Addresses>(() => {
                     {/* Promo Discount */}
                     {appliedPromo && (
                       <div className="flex justify-between text-sm text-green-600">
-                        <span>Promo Discount ({appliedPromo.discountType === 'percentage' ? `${appliedPromo.discountValue}%` : appliedPromo.name})</span>
+                        <span>
+                          Promo Discount (
+                          {appliedPromo.discountType === "percentage"
+                            ? `${appliedPromo.discountValue}%`
+                            : appliedPromo.name}
+                          )
+                        </span>
                         <span>
                           -{formatCurrency(appliedPromo.discountAmount)}
                         </span>
@@ -2059,17 +2207,22 @@ const [deliveryAddress, setDeliveryAddress] = useState<Addresses>(() => {
                                     0
                                   ) +
                                     cartSummary.deliveryFee +
-                                    (cartSummary.serviceCharges?.totalAll || 0) +
-                                    (cartSummary.subtotal * cartSummary.taxRate) /
+                                    (cartSummary.serviceCharges?.totalAll ||
+                                      0) +
+                                    (cartSummary.subtotal *
+                                      cartSummary.taxRate) /
                                       100 -
-                                    (appliedPromo ? appliedPromo.discountAmount : 0)
+                                    (appliedPromo
+                                      ? appliedPromo.discountAmount
+                                      : 0)
                                 )}
                           </span>
                           {(cartItems.some(
                             (item) =>
                               isPriceObject(item.price) &&
                               item.price.base > item.price.currentEffectivePrice
-                          ) || (appliedPromo && appliedPromo.savings > 0)) && (
+                          ) ||
+                            (appliedPromo && appliedPromo.savings > 0)) && (
                             <div className="text-xs text-neutral-600 font-medium">
                               You saved{" "}
                               {formatCurrency(
@@ -2094,7 +2247,14 @@ const [deliveryAddress, setDeliveryAddress] = useState<Addresses>(() => {
 
                   <button
                     onClick={handlePlaceOrder}
-                    title={!acceptedTerms ? "Please accept the terms and conditions" : !deliveryAddress.fullAddress ? "Please select a delivery address" : ""}
+                    title={
+                      !acceptedTerms
+                        ? "Please accept the terms and conditions"
+                        : checkDeliveryMethod !== "collect" &&
+                          !deliveryAddress.fullAddress
+                        ? "Please select a delivery address"
+                        : ""
+                    }
                     disabled={isProcessing || !acceptedTerms}
                     className="w-full bg-green-600 text-white py-3 rounded-xl font-semibold hover:bg-green-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                   >
@@ -2145,12 +2305,23 @@ const [deliveryAddress, setDeliveryAddress] = useState<Addresses>(() => {
         isLoading={isProcessing}
         orderDetails={{
           items: cartItems,
-          total: appliedPromo && appliedPromo.newTotal 
-            ? appliedPromo.newTotal 
-            : cartSummary.total - (appliedPromo ? appliedPromo.discountAmount : 0),
+          total:
+            appliedPromo && appliedPromo.newTotal
+              ? appliedPromo.newTotal
+              : cartSummary.total -
+                (appliedPromo ? appliedPromo.discountAmount : 0),
           originalTotal: appliedPromo?.originalTotal,
           discountAmount: appliedPromo?.discountAmount,
-          address: `${deliveryAddress.street}, ${deliveryAddress.city}, ${deliveryAddress.postcode}`,
+          address: deliveryAddress
+            ? [
+                deliveryAddress.street,
+                deliveryAddress.city,
+                deliveryAddress.postcode,
+              ]
+                .filter(Boolean) // removes undefined, null, or empty strings
+                .join(", ")
+            : "-",
+
           deliveryTime: selectedTimeSlot,
         }}
       />
@@ -2173,10 +2344,6 @@ const [deliveryAddress, setDeliveryAddress] = useState<Addresses>(() => {
           toast.info("Payment cancelled. You can try again later.");
         }}
       />
-
-
-
-
     </div>
   );
 };
