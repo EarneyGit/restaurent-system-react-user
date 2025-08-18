@@ -3,10 +3,6 @@ import axios, { AxiosError } from 'axios';
 export const BASE_URL = import.meta.env.VITE_API_URL || 'http://82.25.104.117:5001';
 export const API_URL = `${BASE_URL}/api`;
 
-
-
-console.log("BASE_URL", import.meta.env.VITE_APP_URL);
-
 // Types
 export interface CategoryReference {
   _id: string;

@@ -108,10 +108,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const checkAuth = async () => {
       try {
         const token = localStorage.getItem('token');
-        console.log('Checking auth with token:', token);
+        // console.log('Checking auth with token:', token);
         
         if (!token) {
-          console.log('No token found in localStorage');
+          // console.log('No token found in localStorage');
           setUser(null);
           setIsLoading(false);
           return;

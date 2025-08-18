@@ -1,9 +1,15 @@
 import React, { useEffect, useState, useCallback, useMemo } from "react";
 import ProductCard from "./ProductCard";
-import { getProducts, Product } from "@/services/api";
-import { ShoppingBag, Clock } from "lucide-react";
-import axios from '@/config/axios.config';
-import { toast } from 'sonner';
+import { Product } from "@/services/api";
+import {
+  ShoppingBag,
+  Clock,
+  ChevronsLeft,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsRight,
+} from "lucide-react";
+import axios from "@/config/axios.config";
 import { useBranch } from "@/context/BranchContext";
 
 interface ProductGridProps {
@@ -13,237 +19,400 @@ interface ProductGridProps {
   branchId?: string;
 }
 
-// Cache for storing products
-const productsCache = {
-  data: null as Product[] | null,
-  timestamp: 0,
-  CACHE_DURATION: 5 * 60 * 1000, // 5 minutes
-};
+interface BranchAvailability {
+  available: boolean;
+  reason: string;
+}
 
-const ProductGrid: React.FC<ProductGridProps> = React.memo(({ 
-  category, 
-  filters,
-  onProductCountUpdate,
-  branchId
-}) => {
-  const [products, setProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [showLoadingState, setShowLoadingState] = useState(true);
-  const [branchAvailability, setBranchAvailability] = useState<{
-    isAvailable: boolean;
-    reason?: string;
-  }>({ isAvailable: false });
-  const [isBranchAvailable, setIsBranchAvailable] = useState<boolean>(true);
+const ProductGrid: React.FC<ProductGridProps> = React.memo(
+  ({ category, filters, onProductCountUpdate, branchId }) => {
+    const [products, setProducts] = useState<Product[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+    const [showLoadingState, setShowLoadingState] = useState(true);
+    const [branchAvailability, setBranchAvailability] = useState<{
+      delivery: BranchAvailability;
+      collection: BranchAvailability;
+    }>({
+      delivery: { available: false, reason: "" },
+      collection: { available: false, reason: "" },
+    });
+    const [isBranchAvailable, setIsBranchAvailable] = useState<boolean>(true);
+    const [closedReason, setClosedReason] = useState<string | null>(null);
 
-  const { selectedBranch } = useBranch();
+    const { selectedBranch } = useBranch();
 
-  // Helper function to check if a product matches the selected category
-  const isCategoryMatch = useCallback((product: Product, selectedCategory: string) => {
-    if (selectedCategory === 'All') return true;
-    
-    const productCategory = product.category;
-    if (typeof productCategory === 'object' && productCategory !== null) {
-      return productCategory.name === selectedCategory;
-    }
-    return String(productCategory) === selectedCategory;
-  }, []);
+    // ✅ Pagination states
+    const [currentPage, setCurrentPage] = useState(1);
+    const productsPerPage = 20;
 
-  // Function to check if cache is valid
-  const isCacheValid = useCallback(() => {
-    return (
-      productsCache.data !== null &&
-      Date.now() - productsCache.timestamp < productsCache.CACHE_DURATION
-    );
-  }, []);
+    // ✅ Check branch closedDates first
+    const checkClosedDates = useCallback((branch: any) => {
+      if (!branch?.orderingTimes?.closedDates) return false;
 
-  // Check branch availability
-  const checkBranchAvailability = useCallback(async (branchId: string) => {
-    try {
-      const currentDate = new Date();
-      const formattedDate = currentDate.toISOString().split('T')[0];
-      const formattedTime = currentDate.toTimeString().slice(0, 5);
+      const todayStr = new Date().toISOString().split("T")[0]; // yyyy-mm-dd
 
-      const response = await axios.post(`/api/ordering-times/${branchId}/check-availability`, {
-        orderType: "delivery",
-        date: formattedDate,
-        time: formattedTime
+      const closedToday = branch.orderingTimes.closedDates.find((d: any) => {
+        return d.date.split("T")[0] === todayStr;
       });
 
-      setBranchAvailability(response.data);
-    } catch (error) {
-      console.error('Error checking branch availability:', error);
-      setBranchAvailability({ isAvailable: false, reason: "Error checking availability" });
-    }
-  }, []);
+      if (closedToday) {
+        setClosedReason(closedToday.reason || "Closed Today");
+        setIsBranchAvailable(false);
+        return true;
+      }
+      return false;
+    }, []);
 
-  // Fetch products based on branch and category
-  useEffect(() => {
-    const fetchProducts = async () => {
+    // ✅ Check branch availability (delivery/collection windows)
+    const checkBranchAvailability = useCallback(async (branchId: string) => {
       try {
-        setLoading(true);
-        setShowLoadingState(true);
-        setError(null);
+        const currentDate = new Date();
+        const formattedDate = currentDate.toISOString().split("T")[0];
+        const formattedTime = currentDate.toTimeString().slice(0, 5);
 
-        if (!branchId) {
-          setProducts([]);
-          onProductCountUpdate?.(0);
-          return;
-        }
+        const [deliveryRes, collectionRes] = await Promise.all([
+          axios.post(`/api/ordering-times/${branchId}/check-availability`, {
+            orderType: "delivery",
+            date: formattedDate,
+            time: formattedTime,
+          }),
+          axios.post(`/api/ordering-times/${branchId}/check-availability`, {
+            orderType: "collection",
+            date: formattedDate,
+            time: formattedTime,
+          }),
+        ]);
 
-        // Check branch availability
-        const availabilityResponse = await axios.post(`/api/ordering-times/${branchId}/check-availability`, {
-          orderType: "delivery",
-          date: new Date().toISOString().split('T')[0],
-          time: new Date().toTimeString().slice(0, 5)
-        });
+        const delivery = deliveryRes.data;
+        const collection = collectionRes.data;
 
-        // Set availability based on response
         setBranchAvailability({
-          isAvailable: availabilityResponse.data.available ?? false,
-          reason: availabilityResponse.data.reason
+          delivery: {
+            available: delivery?.available ?? false,
+            reason: delivery?.reason || "Delivery not available",
+          },
+          collection: {
+            available: collection?.available ?? false,
+            reason: collection?.reason || "Collection not available",
+          },
         });
 
-        setIsBranchAvailable(availabilityResponse?.data.available);
-        // Fetch products regardless of availability
-        const response = await axios.get('/api/products', {
-          params: { branchId }
+        setIsBranchAvailable(delivery?.available || collection?.available);
+      } catch (error) {
+        console.error("Error checking branch availability:", error);
+        setBranchAvailability({
+          delivery: { available: false, reason: "Error checking delivery" },
+          collection: { available: false, reason: "Error checking collection" },
         });
+        setIsBranchAvailable(false);
+      }
+    }, []);
 
-        if (response.data?.success) {
-          let filteredProducts = response.data.data.filter((product: Product) => !product.hideItem);
-          
-          // Filter by category
-          if (category !== 'All') {
-            filteredProducts = filteredProducts.filter((product: Product) => {
-              const productCategory = product.category;
-              if (typeof productCategory === 'object' && productCategory !== null) {
-                return productCategory.name === category;
-              }
-              return String(productCategory) === category;
-            });
+    // ✅ Fetch products
+    useEffect(() => {
+      const fetchProducts = async () => {
+        try {
+          setLoading(true);
+          setShowLoadingState(true);
+          setError(null);
+
+          if (!branchId || !selectedBranch) {
+            setProducts([]);
+            onProductCountUpdate?.(0);
+            return;
           }
 
-          setProducts(filteredProducts);
-          onProductCountUpdate?.(filteredProducts.length);
-        } else {
-          setError('Failed to load products');
+          checkClosedDates(selectedBranch);
+
+          // Then check availability API
+          await checkBranchAvailability(branchId);
+
+          const response = await axios.get("/api/products", {
+            params: { branchId },
+          });
+
+          if (response.data?.success) {
+            let filteredProducts = response.data.data.filter(
+              (product: Product) => !product.hideItem
+            );
+
+            if (category !== "All") {
+              filteredProducts = filteredProducts.filter((product: Product) => {
+                const productCategory = product.category;
+                if (
+                  typeof productCategory === "object" &&
+                  productCategory !== null
+                ) {
+                  return productCategory.name === category;
+                }
+                return String(productCategory) === category;
+              });
+            }
+
+            setProducts(filteredProducts);
+            onProductCountUpdate?.(filteredProducts.length);
+          } else {
+            setError("Failed to load products");
+            setProducts([]);
+            onProductCountUpdate?.(0);
+          }
+        } catch (error) {
+          console.error("Error fetching products:", error);
+          setError("Failed to load products");
           setProducts([]);
           onProductCountUpdate?.(0);
+        } finally {
+          setTimeout(() => {
+            setLoading(false);
+            setShowLoadingState(false);
+          }, 500);
         }
-      } catch (error) {
-        console.error('Error fetching products:', error);
-        setError('Failed to load products');
-        setProducts([]);
-        onProductCountUpdate?.(0);
-      } finally {
-        setTimeout(() => {
-          setLoading(false);
-          setShowLoadingState(false);
-        }, 500);
+      };
+
+      fetchProducts();
+    }, [
+      category,
+      filters,
+      branchId,
+      onProductCountUpdate,
+      checkBranchAvailability,
+      checkClosedDates,
+      selectedBranch,
+    ]);
+
+    // ✅ Apply filters before pagination
+    const filteredProducts = useMemo(() => {
+      if (filters.length === 0) return products;
+      return products.filter((product) =>
+        filters.every((filter) =>
+          product.tags?.some((tag) =>
+            tag.toLowerCase().includes(filter.toLowerCase())
+          )
+        )
+      );
+    }, [products, filters]);
+
+    // ✅ Slice products for current page
+    const totalPages = Math.ceil(filteredProducts.length / productsPerPage);
+    const indexOfLast = currentPage * productsPerPage;
+    const indexOfFirst = indexOfLast - productsPerPage;
+    const currentProducts = filteredProducts.slice(indexOfFirst, indexOfLast);
+
+    const handlePageChange = (page: number) => {
+      if (page >= 1 && page <= totalPages) {
+        setCurrentPage(page);
+        window.scrollTo({ top: 0, behavior: "smooth" });
       }
     };
 
-    fetchProducts();
-  }, [category, filters, branchId, onProductCountUpdate]);
+    // ✅ Reset page when category/filters change
+    useEffect(() => {
+      setCurrentPage(1);
+    }, [category, filters]);
 
-  // Memoize the loading skeleton
-  const LoadingSkeleton = useMemo(() => (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-      {[...Array(8)].map((_, index) => (
-        <div key={index} className="bg-white rounded-xl shadow-sm p-4 animate-pulse">
-          <div className="w-full aspect-square bg-gray-100 rounded-xl mb-4"></div>
-          <div className="space-y-3">
-            <div className="h-4 bg-gray-100 rounded-full w-3/4"></div>
-            <div className="h-4 bg-gray-100 rounded-full w-1/2"></div>
-            <div className="flex justify-between items-center pt-2">
-              <div className="h-6 bg-gray-100 rounded-full w-20"></div>
-              <div className="h-8 bg-gray-100 rounded-full w-24"></div>
-            </div>
-          </div>
-        </div>
-      ))}
-    </div>
-  ), []);
-
-  if (showLoadingState) {
-    return LoadingSkeleton;
-  }
-
-  if (error) {
-    return (
-      <div className="text-center py-12">
-        <div className="mx-auto w-24 h-24 bg-red-100 rounded-full flex items-center justify-center mb-4">
-          <span className="text-red-500 text-2xl">!</span>
-        </div>
-        <h3 className="text-lg font-medium text-[#2e7d32] mb-2">Error Loading Products</h3>
-        <p className="text-[#4caf50]">{error}</p>
-      </div>
-    );
-  }
-
-  if (!branchAvailability.isAvailable) {
-    return (
-      <>
-        <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6">
-          <div className="flex items-center gap-3">
-            <Clock className="text-amber-500" />
-            <div>
-              <h3 className="font-medium text-amber-900">Branch Currently Unavailable</h3>
-              <p className="text-amber-700 text-sm">
-                {branchAvailability.reason || "This branch is not accepting orders at the moment"}
-              </p>
-            </div>
-          </div>
-        </div>
+    // ✅ Loading skeleton
+    const LoadingSkeleton = useMemo(
+      () => (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {products.map(product => (
-            <ProductCard 
-              key={product.id} 
-              product={product} 
-              isOutletAvailable={false}
-            />
+          {[...Array(8)].map((_, index) => (
+            <div
+              key={index}
+              className="bg-white rounded-xl shadow-sm p-4 animate-pulse"
+            >
+              <div className="w-full aspect-square bg-gray-100 rounded-xl mb-4"></div>
+              <div className="space-y-3">
+                <div className="h-4 bg-gray-100 rounded-full w-3/4"></div>
+                <div className="h-4 bg-gray-100 rounded-full w-1/2"></div>
+                <div className="flex justify-between items-center pt-2">
+                  <div className="h-6 bg-gray-100 rounded-full w-20"></div>
+                  <div className="h-8 bg-gray-100 rounded-full w-24"></div>
+                </div>
+              </div>
+            </div>
           ))}
         </div>
+      ),
+      []
+    );
+
+    if (showLoadingState) return LoadingSkeleton;
+
+    if (error) {
+      return (
+        <div className="text-center py-12">
+          <div className="mx-auto w-24 h-24 bg-red-100 rounded-full flex items-center justify-center mb-4">
+            <span className="text-red-500 text-2xl">!</span>
+          </div>
+          <h3 className="text-lg font-medium text-red-600 mb-2">
+            Error Loading Products
+          </h3>
+          <p className="text-red-500">{error}</p>
+        </div>
+      );
+    }
+
+    return (
+      <>
+        {/* 🚨 If branch closed today via closedDates */}
+        {closedReason && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+            <div className="flex items-center gap-3">
+              <Clock className="text-red-500" />
+              <div>
+                <h3 className="font-medium text-red-900">
+                  Outlet Closed Today
+                </h3>
+                <p className="text-red-700 text-sm">{closedReason}</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* 🚨 Show red banner if outlet fully unavailable (but not closedDates) */}
+        {!closedReason && !isBranchAvailable && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+            <div className="flex items-center gap-3">
+              <Clock className="text-red-500" />
+              <div>
+                <h3 className="font-medium text-red-900">
+                  Outlet Currently Unavailable
+                </h3>
+                <p className="text-red-700 text-sm">
+                  Both Delivery and Collection are unavailable at this time.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* 🛒 Products */}
+        {filteredProducts.length === 0 ? (
+          <div className="text-center py-12">
+            <div className="mx-auto w-24 h-24 bg-[#e8f5e9] rounded-full flex items-center justify-center mb-4">
+              <ShoppingBag className="w-12 h-12 text-[#4caf50]" />
+            </div>
+            <h3 className="text-lg font-medium text-[#2e7d32] mb-2">
+              No Products Available
+            </h3>
+            <p className="text-[#4caf50]">
+              {category === "All"
+                ? "No products available at the moment"
+                : `No products found in ${category}`}
+            </p>
+            {filters.length > 0 && (
+              <p className="text-sm text-[#4caf50] mt-2">
+                Try adjusting your filters
+              </p>
+            )}
+          </div>
+        ) : (
+          <>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              {currentProducts.map((product) => (
+                <ProductCard
+                  key={product.id}
+                  product={product}
+                  isBranchAvailable={!closedReason && isBranchAvailable}
+                />
+              ))}
+            </div>
+
+            {/* ✅ Pagination controls */}
+            {totalPages > 1 && (
+              <div className="flex flex-col items-center gap-3 pt-32">
+                {/* ✅ Pagination Controls */}
+                <div className="flex items-center gap-2">
+                  {/* First Page */}
+                  <button
+                    onClick={() => handlePageChange(1)}
+                    disabled={currentPage === 1}
+                    className="w-9 h-9 flex items-center justify-center rounded-lg border border-gray-300 bg-white hover:bg-gray-50 disabled:opacity-50"
+                  >
+                    <ChevronsLeft size={16} />
+                  </button>
+
+                  {/* Prev */}
+                  <button
+                    onClick={() => handlePageChange(currentPage - 1)}
+                    disabled={currentPage === 1}
+                    className="w-9 h-9 flex items-center justify-center rounded-lg border border-gray-300 bg-white hover:bg-gray-50 disabled:opacity-50"
+                  >
+                    <ChevronLeft size={16} />
+                  </button>
+
+                  {/* Page Numbers with Ellipsis */}
+                  {Array.from({ length: totalPages }, (_, i) => i + 1)
+                    .filter(
+                      (page) =>
+                        page === 1 ||
+                        page === totalPages ||
+                        (page >= currentPage - 1 && page <= currentPage + 1)
+                    )
+                    .map((page, idx, arr) => {
+                      const prevPage = arr[idx - 1];
+                      const showEllipsis = prevPage && page - prevPage > 1;
+
+                      return (
+                        <React.Fragment key={page}>
+                          {showEllipsis && (
+                            <span className="px-2 text-gray-500">...</span>
+                          )}
+                          <button
+                            onClick={() => handlePageChange(page)}
+                            className={`w-9 h-9 flex font-semibold text-sm items-center justify-center rounded-lg border ${
+                              currentPage === page
+                                ? "bg-black text-white border-black"
+                                : "bg-white text-gray-700 hover:bg-gray-50 border-gray-300"
+                            }`}
+                          >
+                            {page}
+                          </button>
+                        </React.Fragment>
+                      );
+                    })}
+
+                  {/* Next */}
+                  <button
+                    onClick={() => handlePageChange(currentPage + 1)}
+                    disabled={currentPage === totalPages}
+                    className="w-9 h-9 flex items-center justify-center rounded-lg border border-gray-300 bg-white hover:bg-gray-50 disabled:opacity-50"
+                  >
+                    <ChevronRight size={16} />
+                  </button>
+
+                  {/* Last Page */}
+                  <button
+                    onClick={() => handlePageChange(totalPages)}
+                    disabled={currentPage === totalPages}
+                    className="w-9 h-9 flex items-center justify-center rounded-lg border border-gray-300 bg-white hover:bg-gray-50 disabled:opacity-50"
+                  >
+                    <ChevronsRight size={16} />
+                  </button>
+                </div>
+
+                {/* ✅ Info Text */}
+                <p className="text-sm text-gray-600">
+                  Displaying{" "}
+                  <span className="font-medium">
+                    {Math.min(
+                      productsPerPage,
+                      filteredProducts.length - indexOfFirst
+                    )}
+                  </span>{" "}
+                  of{" "}
+                  <span className="font-medium">{filteredProducts.length}</span>{" "}
+                  products
+                </p>
+              </div>
+            )}
+          </>
+        )}
       </>
     );
   }
+);
 
-  if (products.length === 0) {
-    return (
-      <div className="text-center py-12">
-        <div className="mx-auto w-24 h-24 bg-[#e8f5e9] rounded-full flex items-center justify-center mb-4">
-          <ShoppingBag className="w-12 h-12 text-[#4caf50]" />
-        </div>
-        <h3 className="text-lg font-medium text-[#2e7d32] mb-2">No Products Available</h3>
-        <p className="text-[#4caf50]">
-          {category === 'All' 
-            ? 'No products available at the moment'
-            : `No products found in ${category}`}
-        </p>
-        {filters.length > 0 && (
-          <p className="text-sm text-[#4caf50] mt-2">
-            Try adjusting your filters
-          </p>
-        )}
-      </div>
-    );
-  }
+ProductGrid.displayName = "ProductGrid";
 
-  return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-      {products.map(product => (
-        <ProductCard 
-          key={product.id} 
-          product={product} 
-          isBranchAvailable={isBranchAvailable}
-          isOutletAvailable={branchAvailability.isAvailable}
-        />
-      ))}
-    </div>
-  );
-});
-
-ProductGrid.displayName = 'ProductGrid';
-
-export default ProductGrid; 
+export default ProductGrid;

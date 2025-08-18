@@ -55,9 +55,6 @@ const RegisterCompletePage = () => {
     phone: Yup.string()
       .matches(/^\+?[1-9]\d{1,14}$/, 'Please enter a valid phone number')
       .required('Phone number is required'),
-    address: Yup.string()
-      .min(5, 'Address must be at least 5 characters')
-      .required('Address is required'),
   });
 
   // Address search state
@@ -119,24 +116,24 @@ const RegisterCompletePage = () => {
     }
   };
 
-  const handleSelectAddress = (selectedAddress: AddressResult) => {
-    const formattedAddress = selectedAddress.line_1 || 
-      `${selectedAddress.building_number} ${selectedAddress.thoroughfare}`.trim();
+  // const handleSelectAddress = (selectedAddress: AddressResult) => {
+  //   const formattedAddress = selectedAddress.line_1 || 
+  //     `${selectedAddress.building_number} ${selectedAddress.thoroughfare}`.trim();
     
-      const addressPayload = `${result.line_1 || `${result.building_number} ${result.thoroughfare}`.trim()}, ${result.post_town}, ${result.postcode}`;
+  //     const addressPayload = `${result.line_1 || `${result.building_number} ${result.thoroughfare}`.trim()}, ${result.post_town}, ${result.postcode}`;
 
-    formik.setFieldValue('address', formattedAddress);
-    setAddressSearchValue(formattedAddress);
-    setSelectedAddress(selectedAddress);
-    setShowAddressSuggestions(false);
-    setAddressResults([]);
-  };
+  //   formik.setFieldValue('address', formattedAddress);
+  //   setAddressSearchValue(formattedAddress);
+  //   setSelectedAddress(selectedAddress);
+  //   setShowAddressSuggestions(false);
+  //   setAddressResults([]);
+  // };
 
-  const handleClearAddress = () => {
-    setSelectedAddress(null);
-    setAddressSearchValue('');
-    formik.setFieldValue('address', '');
-  };
+  // const handleClearAddress = () => {
+  //   setSelectedAddress(null);
+  //   setAddressSearchValue('');
+  //   formik.setFieldValue('address', '');
+  // };
 
   // Add click outside handler
   // useEffect(() => {
@@ -302,7 +299,7 @@ const RegisterCompletePage = () => {
               )}
             </div>
 
-            <div>
+            {/* <div>
               <label
                 htmlFor="address"
                 className="block text-xs uppercase font-medium text-gray-500 mb-2"
@@ -344,7 +341,6 @@ const RegisterCompletePage = () => {
                 )}
               </div>
               
-              {/* Error Message */}
               {addressError && (
                 <div className="mt-2 flex items-center gap-2 text-red-600 text-sm">
                   <AlertCircle size={16} className="flex-shrink-0" />
@@ -352,7 +348,6 @@ const RegisterCompletePage = () => {
                 </div>
               )}
 
-              {/* Selected Address Display */}
               {selectedAddress && (
                 <div className="mt-3 p-3 bg-gray-50 border border-gray-300 rounded-md flex items-start gap-3">
                   <MapPin size={18} className="text-green-600 mt-1 flex-shrink-0" />
@@ -395,12 +390,8 @@ const RegisterCompletePage = () => {
                 </div>
               )}
               
-              {formik.touched.address && formik.errors.address && (
-                <div className="text-red-500 text-xs mt-1">
-                  {formik.errors.address}
-                </div>
-              )}
-            </div>
+          
+            </div> */}
 
             <div>
               <button

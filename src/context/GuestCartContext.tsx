@@ -68,11 +68,11 @@ export const GuestCartProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     const isGuest = localStorage.getItem('isGuest') === 'true';
     
     if (existingSessionId && isGuest) {
-      console.log('Using existing guest session:', existingSessionId);
+      // console.log('Using existing guest session:', existingSessionId);
       setSessionId(existingSessionId);
     } else if (isGuest) {
       const newSessionId = uuidv4();
-      console.log('Creating new guest session:', newSessionId);
+      // console.log('Creating new guest session:', newSessionId);
       localStorage.setItem('guestSessionId', newSessionId);
       localStorage.setItem('isGuest', 'true');
       setSessionId(newSessionId);
@@ -85,19 +85,19 @@ export const GuestCartProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   useEffect(() => {
     // Load cart data when sessionId changes and user is guest
     if (sessionId && localStorage.getItem('isGuest') === 'true') {
-      console.log('Loading guest cart for session:', sessionId);
+      // console.log('Loading guest cart for session:', sessionId);
       getGuestCart().catch(console.error);
     }
   }, [sessionId]);
 
   const getGuestCart = async () => {
     if (!sessionId || localStorage.getItem('isGuest') !== 'true') {
-      console.log('No guest session or not a guest user');
+      // console.log('No guest session or not a guest user');
       return null;
     }
 
     try {
-      console.log('Fetching guest cart with session:', sessionId);
+      // console.log('Fetching guest cart with session:', sessionId);
       const response = await axios.get<{ success: boolean; data: CartData }>(
         CART_ENDPOINTS.GUEST_CART,
         {
@@ -109,7 +109,7 @@ export const GuestCartProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       );
       
       if (response.data?.data) {
-        console.log('Guest cart data received:', response.data.data);
+        // console.log('Guest cart data received:', response.data.data);
         setCartData(response.data.data);
         return response.data.data;
       }

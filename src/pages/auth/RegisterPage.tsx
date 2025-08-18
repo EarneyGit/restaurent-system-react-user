@@ -14,7 +14,7 @@ const RegisterPage = () => {
       .min(2, "First name must be at least 2 characters")
       .required("First name is required"),
     lastName: Yup.string()
-      .min(2, "Last name must be at least 2 characters")
+      .min(1, "Last name must be at least 1 character")
       .required("Last name is required"),
     email: Yup.string()
       .email("Invalid email address")

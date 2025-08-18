@@ -109,32 +109,6 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, isOutletAvailable = 
 
   const { isInStock, availableQuantity, isLowStock } = getStockStatus();
 
-  // useEffect(() => {
-  //   const checkBranchAvailability = async () => {
-  //     if (selectedBranch?.id) {
-  //       try {
-  //         const currentDate = new Date();
-  //         const formattedDate = currentDate.toISOString().split('T')[0];
-  //         const formattedTime = currentDate.toTimeString().slice(0, 5);
-
-  //         const response = await axios.post(`/api/ordering-times/${selectedBranch.id}/check-availability`, {
-  //           orderType: "delivery",
-  //           date: formattedDate,
-  //           time: formattedTime
-  //         });
-
-  //         setIsBranchAvailable(response.data.available);
-  //       } catch (error) {
-  //         console.error('Error checking branch availability:', error);
-  //         setIsBranchAvailable(false);
-  //       }
-  //     }
-  //   };
-
-  //   checkBranchAvailability();
-  // }, []);
-
-  // Check if product is in cart - update to check by productId instead of id
   const cartItem = cartItems.find((item) => item.productId === product.id);
   const isInCart = Boolean(cartItem);
 

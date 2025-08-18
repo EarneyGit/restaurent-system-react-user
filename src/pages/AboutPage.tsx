@@ -1,12 +1,22 @@
-import React, { useEffect, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
-import { 
-  MapPin, Clock, Phone, Mail, ArrowLeft, Calendar, Info, 
-  Truck, Users, ShoppingBag, ChevronDown, ChevronUp,
-  LucideIcon 
-} from 'lucide-react';
-import axios from '@/config/axios.config';
-import { toast } from 'sonner';
+import React, { useEffect, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import {
+  MapPin,
+  Clock,
+  Phone,
+  Mail,
+  ArrowLeft,
+  Calendar,
+  Info,
+  Truck,
+  Users,
+  ShoppingBag,
+  ChevronDown,
+  ChevronUp,
+  LucideIcon,
+} from "lucide-react";
+import axios from "@/config/axios.config";
+import { toast } from "sonner";
 
 interface ServiceTimes {
   leadTime: number;
@@ -88,27 +98,28 @@ interface BranchDetails {
 }
 
 interface TabState {
-  [branchId: string]: 'info' | 'hours' | 'closed';
+  [branchId: string]: "info" | "hours" | "closed";
 }
 
 const AboutPage = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const branchId = searchParams.get('branchId');
-  const initialTab = searchParams.get('tab') as 'info' | 'hours' | 'closed' || 'info';
+  const branchId = searchParams.get("branchId");
+  const initialTab =
+    (searchParams.get("tab") as "info" | "hours" | "closed") || "info";
   const [branchDetails, setBranchDetails] = useState<BranchDetails[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [activeTabs, setActiveTabs] = useState<TabState>(() => ({
-    [branchId || '']: initialTab
+    [branchId || ""]: initialTab,
   }));
   const [expandedDay, setExpandedDay] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchBranchDetails = async () => {
       try {
-        const response = branchId 
+        const response = branchId
           ? await axios.get(`/api/branches/public-outlet-settings/${branchId}`)
-          : await axios.get('/api/branches/public-outlet-settings');
+          : await axios.get("/api/branches/public-outlet-settings");
 
         if (response.data?.success) {
           if (branchId) {
@@ -118,8 +129,8 @@ const AboutPage = () => {
           }
         }
       } catch (error) {
-        console.error('Error fetching branch details:', error);
-        toast.error('Failed to load branch details');
+        console.error("Error fetching branch details:", error);
+        toast.error("Failed to load branch details");
       } finally {
         setIsLoading(false);
       }
@@ -131,42 +142,56 @@ const AboutPage = () => {
   useEffect(() => {
     // Update active tab when URL params change
     if (branchId) {
-      setActiveTabs(prev => ({
+      setActiveTabs((prev) => ({
         ...prev,
-        [branchId]: initialTab
+        [branchId]: initialTab,
       }));
     }
   }, [branchId, initialTab]);
 
   const formatTime = (time: string) => {
     try {
-      return new Date(`2000-01-01T${time}`).toLocaleTimeString('en-GB', {
-        hour: 'numeric',
-        minute: 'numeric',
-        hour12: true
+      return new Date(`2000-01-01T${time}`).toLocaleTimeString("en-GB", {
+        hour: "numeric",
+        minute: "numeric",
+        hour12: true,
       });
     } catch {
       return time;
     }
   };
 
-  const getUpcomingClosedDates = (closedDates: BranchDetails['orderingTimes']['closedDates']) => {
+  const getUpcomingClosedDates = (
+    closedDates: BranchDetails["orderingTimes"]["closedDates"] | undefined
+  ) => {
+
+    if (!closedDates) return [];
+
     const now = new Date();
+    const today = new Date(now.toDateString());
+
     return closedDates
-      .filter(date => new Date(date.date) > now)
+      .filter((date) => {
+        const closedDate = new Date(date.date);
+        const closedDay = new Date(closedDate.toDateString());
+        return closedDay >= today;
+      })
       .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
       .slice(0, 3);
   };
 
-  const handleTabChange = (branchId: string, tab: 'info' | 'hours' | 'closed') => {
-    setActiveTabs(prev => ({
+  const handleTabChange = (
+    branchId: string,
+    tab: "info" | "hours" | "closed"
+  ) => {
+    setActiveTabs((prev) => ({
       ...prev,
-      [branchId]: tab
+      [branchId]: tab,
     }));
-    
+
     // Update URL with new tab
     const newSearchParams = new URLSearchParams(searchParams);
-    newSearchParams.set('tab', tab);
+    newSearchParams.set("tab", tab);
     navigate(`/about?${newSearchParams.toString()}`, { replace: true });
   };
 
@@ -174,15 +199,15 @@ const AboutPage = () => {
     return `${formatTime(start)} - ${formatTime(end)}`;
   };
 
-  const ServiceCard = ({ 
-    icon: Icon, 
-    title, 
-    isEnabled, 
-    times, 
-    leadTime, 
+  const ServiceCard = ({
+    icon: Icon,
+    title,
+    isEnabled,
+    times,
+    leadTime,
     displayedTime,
     customTimes,
-    useDifferentTimes
+    useDifferentTimes,
   }: {
     icon: LucideIcon;
     title: string;
@@ -200,8 +225,12 @@ const AboutPage = () => {
         </div>
         <div>
           <h4 className="text-white font-medium">{title}</h4>
-          <p className={`text-sm ${isEnabled ? 'text-green-400' : 'text-red-400'}`}>
-            {isEnabled ? 'Available' : 'Not Available'}
+          <p
+            className={`text-sm ${
+              isEnabled ? "text-green-400" : "text-red-400"
+            }`}
+          >
+            {isEnabled ? "Available" : "Not Available"}
           </p>
         </div>
       </div>
@@ -210,7 +239,7 @@ const AboutPage = () => {
           <div className="flex items-center justify-between text-sm">
             <span className="text-white/60">Hours:</span>
             <span className="text-white">
-              {useDifferentTimes && customTimes 
+              {useDifferentTimes && customTimes
                 ? formatTimeRange(customTimes.start, customTimes.end)
                 : times && formatTimeRange(times.start, times.end)}
             </span>
@@ -224,7 +253,9 @@ const AboutPage = () => {
           {displayedTime && (
             <div className="flex items-center justify-between text-sm">
               <span className="text-white/60">First Available:</span>
-              <span className="text-green-400">{formatTime(displayedTime)}</span>
+              <span className="text-green-400">
+                {formatTime(displayedTime)}
+              </span>
             </div>
           )}
         </div>
@@ -256,8 +287,16 @@ const AboutPage = () => {
             </div>
             <div>
               <h4 className="text-white font-medium">Delivery</h4>
-              <p className={`text-sm ${branch.orderingOptions.delivery.isEnabled ? 'text-green-400' : 'text-red-400'}`}>
-                {branch.orderingOptions.delivery.isEnabled ? 'Available' : 'Not Available'}
+              <p
+                className={`text-sm ${
+                  branch.orderingOptions.delivery.isEnabled
+                    ? "text-green-400"
+                    : "text-red-400"
+                }`}
+              >
+                {branch.orderingOptions.delivery.isEnabled
+                  ? "Available"
+                  : "Not Available"}
               </p>
             </div>
           </div>
@@ -265,7 +304,9 @@ const AboutPage = () => {
             <div className="space-y-2 mt-3 border-t border-white/10 pt-3">
               <div className="flex items-center justify-between text-sm">
                 <span className="text-white/60">Time Slots:</span>
-                <span className="text-green-400">{branch.orderingOptions.delivery.timeslotLength}min</span>
+                <span className="text-green-400">
+                  {branch.orderingOptions.delivery.timeslotLength}min
+                </span>
               </div>
               {branch.preOrdering?.allowDeliveryPreOrders && (
                 <div className="flex items-center justify-between text-sm">
@@ -285,8 +326,16 @@ const AboutPage = () => {
             </div>
             <div>
               <h4 className="text-white font-medium">Collection</h4>
-              <p className={`text-sm ${branch.orderingOptions.collection.isEnabled ? 'text-green-400' : 'text-red-400'}`}>
-                {branch.orderingOptions.collection.isEnabled ? 'Available' : 'Not Available'}
+              <p
+                className={`text-sm ${
+                  branch.orderingOptions.collection.isEnabled
+                    ? "text-green-400"
+                    : "text-red-400"
+                }`}
+              >
+                {branch.orderingOptions.collection.isEnabled
+                  ? "Available"
+                  : "Not Available"}
               </p>
             </div>
           </div>
@@ -294,7 +343,9 @@ const AboutPage = () => {
             <div className="space-y-2 mt-3 border-t border-white/10 pt-3">
               <div className="flex items-center justify-between text-sm">
                 <span className="text-white/60">Time Slots:</span>
-                <span className="text-green-400">{branch.orderingOptions.collection.timeslotLength}min</span>
+                <span className="text-green-400">
+                  {branch.orderingOptions.collection.timeslotLength}min
+                </span>
               </div>
               {branch.preOrdering?.allowCollectionPreOrders && (
                 <div className="flex items-center justify-between text-sm">
@@ -314,8 +365,16 @@ const AboutPage = () => {
             </div>
             <div>
               <h4 className="text-white font-medium">Table Service</h4>
-              <p className={`text-sm ${branch.orderingOptions.tableOrdering.isEnabled ? 'text-green-400' : 'text-red-400'}`}>
-                {branch.orderingOptions.tableOrdering.isEnabled ? 'Available' : 'Not Available'}
+              <p
+                className={`text-sm ${
+                  branch.orderingOptions.tableOrdering.isEnabled
+                    ? "text-green-400"
+                    : "text-red-400"
+                }`}
+              >
+                {branch.orderingOptions.tableOrdering.isEnabled
+                  ? "Available"
+                  : "Not Available"}
               </p>
             </div>
           </div>
@@ -345,7 +404,7 @@ const AboutPage = () => {
       <div className="max-w-4xl mx-auto px-4 py-8">
         {/* Navigation */}
         <div className="flex justify-between items-center mb-8">
-          <button 
+          <button
             onClick={() => navigate(-1)}
             className="flex items-center gap-2 text-white/80 hover:text-white"
           >
@@ -356,33 +415,41 @@ const AboutPage = () => {
 
         {/* Restaurant Description */}
         <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold text-white mb-4">Welcome to Restroman</h1>
+          <h1 className="text-4xl font-bold text-white mb-4">
+            Welcome to Restroman
+          </h1>
           <p className="text-white/80 text-lg max-w-2xl mx-auto">
-            Experience the perfect blend of taste and tradition at Restroman. We pride ourselves on serving 
-            delicious meals made with the finest ingredients, creating memorable dining experiences for our guests.
+            Experience the perfect blend of taste and tradition at Restroman. We
+            pride ourselves on serving delicious meals made with the finest
+            ingredients, creating memorable dining experiences for our guests.
           </p>
         </div>
 
         {branchDetails.map((branch) => {
-          const currentTab = activeTabs[branch.id] || 'info';
+          const currentTab = activeTabs[branch.id] || "info";
           const weeklySchedule = branch.orderingTimes?.weeklySchedule || {};
-          
+
           return (
-            <div key={branch.id} className="bg-white/10 backdrop-blur-sm rounded-2xl overflow-hidden mb-8">
+            <div
+              key={branch.id}
+              className="bg-white/10 backdrop-blur-sm rounded-2xl overflow-hidden mb-8"
+            >
               {/* Branch Header */}
               <div className="p-6 border-b border-white/10">
-                <h2 className="text-2xl font-bold text-white mb-2">{branch.name}</h2>
+                <h2 className="text-2xl font-bold text-white mb-2">
+                  {branch.name}
+                </h2>
                 <p className="text-white/70">{branch.aboutUs}</p>
               </div>
 
               {/* Navigation Tabs */}
-              <div className="flex border-b border-white/10">
+              <div className="flex border-b overflow-x-auto border-white/10">
                 <button
-                  onClick={() => handleTabChange(branch.id, 'info')}
+                  onClick={() => handleTabChange(branch.id, "info")}
                   className={`flex-1 px-4 py-3 text-sm font-medium ${
-                    currentTab === 'info' 
-                      ? 'text-green-400 border-b-2 border-green-400' 
-                      : 'text-white/60 hover:text-white'
+                    currentTab === "info"
+                      ? "text-green-400 border-b-2 border-green-400"
+                      : "text-white/60 hover:text-white"
                   }`}
                 >
                   <div className="flex items-center justify-center gap-2">
@@ -391,11 +458,11 @@ const AboutPage = () => {
                   </div>
                 </button>
                 <button
-                  onClick={() => handleTabChange(branch.id, 'hours')}
+                  onClick={() => handleTabChange(branch.id, "hours")}
                   className={`flex-1 px-4 py-3 text-sm font-medium ${
-                    currentTab === 'hours' 
-                      ? 'text-green-400 border-b-2 border-green-400' 
-                      : 'text-white/60 hover:text-white'
+                    currentTab === "hours"
+                      ? "text-green-400 border-b-2 border-green-400"
+                      : "text-white/60 hover:text-white"
                   }`}
                 >
                   <div className="flex items-center justify-center gap-2">
@@ -404,11 +471,11 @@ const AboutPage = () => {
                   </div>
                 </button>
                 <button
-                  onClick={() => handleTabChange(branch.id, 'closed')}
+                  onClick={() => handleTabChange(branch.id, "closed")}
                   className={`flex-1 px-4 py-3 text-sm font-medium ${
-                    currentTab === 'closed' 
-                      ? 'text-green-400 border-b-2 border-green-400' 
-                      : 'text-white/60 hover:text-white'
+                    currentTab === "closed"
+                      ? "text-green-400 border-b-2 border-green-400"
+                      : "text-white/60 hover:text-white"
                   }`}
                 >
                   <div className="flex items-center justify-center gap-2">
@@ -420,7 +487,7 @@ const AboutPage = () => {
 
               {/* Tab Content */}
               <div className="p-6">
-                {currentTab === 'info' && (
+                {currentTab === "info" && (
                   <div className="space-y-6 p-6">
                     {/* Contact Info */}
                     <div className="space-y-4">
@@ -429,10 +496,13 @@ const AboutPage = () => {
                           <MapPin className="text-green-400" />
                         </div>
                         <div>
-                          <h3 className="text-white font-medium mb-1">Address</h3>
+                          <h3 className="text-white font-medium mb-1">
+                            Address
+                          </h3>
                           <p className="text-white/70">
                             {branch.address.street}
-                            {branch.address.addressLine2 && `, ${branch.address.addressLine2}`}
+                            {branch.address.addressLine2 &&
+                              `, ${branch.address.addressLine2}`}
                             <br />
                             {branch.address.city}, {branch.address.postcode}
                             <br />
@@ -446,7 +516,9 @@ const AboutPage = () => {
                           <Phone className="text-green-400" />
                         </div>
                         <div>
-                          <h3 className="text-white font-medium mb-1">Contact</h3>
+                          <h3 className="text-white font-medium mb-1">
+                            Contact
+                          </h3>
                           <p className="text-white/70">
                             {branch.contactNumber}
                             {branch.telephone && (
@@ -475,7 +547,7 @@ const AboutPage = () => {
                   </div>
                 )}
 
-                {currentTab === 'hours' && (
+                {currentTab === "hours" && (
                   <div className="space-y-4 p-6">
                     {Object.keys(weeklySchedule).length > 0 ? (
                       Object.entries(weeklySchedule).map(([day, times]) => {
@@ -483,23 +555,37 @@ const AboutPage = () => {
                         const hasBreakTime = daySchedule.breakTime?.enabled;
                         const hasDelivery = daySchedule.isDeliveryAllowed;
                         const hasCollection = daySchedule.isCollectionAllowed;
-                        
+
                         return (
-                          <div key={day} className="border border-white/10 rounded-lg overflow-hidden bg-white/0 transition-all duration-300 hover:bg-white/10">
+                          <div
+                            key={day}
+                            className="border border-white/10 rounded-lg overflow-hidden bg-white/0 transition-all duration-300 hover:bg-white/10"
+                          >
                             <button
                               onClick={() => toggleDayExpansion(day)}
                               className="w-full px-4 py-3 flex items-center justify-between text-left"
                             >
                               <div>
-                                <p className="font-medium text-white capitalize">{day}</p>
+                                <p className="font-medium text-white capitalize">
+                                  {day}
+                                </p>
                                 <p className="text-sm text-white/60">
-                                  {formatTimeRange(daySchedule.defaultTimes.start, daySchedule.defaultTimes.end)}
+                                  {formatTimeRange(
+                                    daySchedule.defaultTimes.start,
+                                    daySchedule.defaultTimes.end
+                                  )}
                                 </p>
                               </div>
                               {expandedDay === day ? (
-                                <ChevronUp className="text-white/60" size={20} />
+                                <ChevronUp
+                                  className="text-white/60"
+                                  size={20}
+                                />
                               ) : (
-                                <ChevronDown className="text-white/60" size={20} />
+                                <ChevronDown
+                                  className="text-white/60"
+                                  size={20}
+                                />
                               )}
                             </button>
 
@@ -507,35 +593,65 @@ const AboutPage = () => {
                               <div className="px-4 py-3 space-y-4 bg-black/20">
                                 {hasBreakTime && (
                                   <div className="flex items-center justify-between text-sm">
-                                    <span className="text-white/60">Break Time:</span>
+                                    <span className="text-white/60">
+                                      Break Time:
+                                    </span>
                                     <span className="text-yellow-400">
-                                      {formatTimeRange(daySchedule.breakTime.start, daySchedule.breakTime.end)}
+                                      {formatTimeRange(
+                                        daySchedule.breakTime.start,
+                                        daySchedule.breakTime.end
+                                      )}
                                     </span>
                                   </div>
                                 )}
 
                                 {/* Delivery Times */}
                                 {hasDelivery && (
-                                  <div className={`pt-3 ${hasBreakTime ? 'border-t border-white/10' : ''}`}>
+                                  <div
+                                    className={`pt-3 ${
+                                      hasBreakTime
+                                        ? "border-t border-white/10"
+                                        : ""
+                                    }`}
+                                  >
                                     <div className="flex items-center justify-between mb-2">
-                                      <p className="text-sm font-medium text-white">Delivery Hours</p>
+                                      <p className="text-sm font-medium text-white">
+                                        Delivery Hours
+                                      </p>
                                       <span className="text-xs bg-green-500/20 text-green-400 px-2 py-1 rounded">
                                         Available
                                       </span>
                                     </div>
                                     <div className="space-y-2 text-sm">
                                       <div className="flex justify-between">
-                                        <span className="text-white/60">Hours:</span>
+                                        <span className="text-white/60">
+                                          Hours:
+                                        </span>
                                         <span className="text-white">
-                                          {daySchedule.delivery.useDifferentTimes && daySchedule.delivery.customTimes
-                                            ? formatTimeRange(daySchedule.delivery.customTimes.start, daySchedule.delivery.customTimes.end)
-                                            : formatTimeRange(daySchedule.defaultTimes.start, daySchedule.defaultTimes.end)}
+                                          {daySchedule.delivery
+                                            .useDifferentTimes &&
+                                          daySchedule.delivery.customTimes
+                                            ? formatTimeRange(
+                                                daySchedule.delivery.customTimes
+                                                  .start,
+                                                daySchedule.delivery.customTimes
+                                                  .end
+                                              )
+                                            : formatTimeRange(
+                                                daySchedule.defaultTimes.start,
+                                                daySchedule.defaultTimes.end
+                                              )}
                                         </span>
                                       </div>
                                       {daySchedule.delivery.leadTime > 0 && (
                                         <div className="flex justify-between">
-                                          <span className="text-white/60">Lead Time:</span>
-                                          <span className="text-green-400">{daySchedule.delivery.leadTime} minutes</span>
+                                          <span className="text-white/60">
+                                            Lead Time:
+                                          </span>
+                                          <span className="text-green-400">
+                                            {daySchedule.delivery.leadTime}{" "}
+                                            minutes
+                                          </span>
                                         </div>
                                       )}
                                     </div>
@@ -544,38 +660,68 @@ const AboutPage = () => {
 
                                 {/* Collection Times */}
                                 {hasCollection && (
-                                  <div className={`pt-3 ${(hasBreakTime || hasDelivery) ? 'border-t border-white/10' : ''}`}>
+                                  <div
+                                    className={`pt-3 ${
+                                      hasBreakTime || hasDelivery
+                                        ? "border-t border-white/10"
+                                        : ""
+                                    }`}
+                                  >
                                     <div className="flex items-center justify-between mb-2">
-                                      <p className="text-sm font-medium text-white">Collection Hours</p>
+                                      <p className="text-sm font-medium text-white">
+                                        Collection Hours
+                                      </p>
                                       <span className="text-xs bg-green-500/20 text-green-400 px-2 py-1 rounded">
                                         Available
                                       </span>
                                     </div>
                                     <div className="space-y-2 text-sm">
                                       <div className="flex justify-between">
-                                        <span className="text-white/60">Hours:</span>
+                                        <span className="text-white/60">
+                                          Hours:
+                                        </span>
                                         <span className="text-white">
-                                          {daySchedule.collection.useDifferentTimes && daySchedule.collection.customTimes
-                                            ? formatTimeRange(daySchedule.collection.customTimes.start, daySchedule.collection.customTimes.end)
-                                            : formatTimeRange(daySchedule.defaultTimes.start, daySchedule.defaultTimes.end)}
+                                          {daySchedule.collection
+                                            .useDifferentTimes &&
+                                          daySchedule.collection.customTimes
+                                            ? formatTimeRange(
+                                                daySchedule.collection
+                                                  .customTimes.start,
+                                                daySchedule.collection
+                                                  .customTimes.end
+                                              )
+                                            : formatTimeRange(
+                                                daySchedule.defaultTimes.start,
+                                                daySchedule.defaultTimes.end
+                                              )}
                                         </span>
                                       </div>
                                       {daySchedule.collection.leadTime > 0 && (
                                         <div className="flex justify-between">
-                                          <span className="text-white/60">Lead Time:</span>
-                                          <span className="text-green-400">{daySchedule.collection.leadTime} minutes</span>
+                                          <span className="text-white/60">
+                                            Lead Time:
+                                          </span>
+                                          <span className="text-green-400">
+                                            {daySchedule.collection.leadTime}{" "}
+                                            minutes
+                                          </span>
                                         </div>
                                       )}
                                     </div>
                                   </div>
                                 )}
 
-                                {!hasBreakTime && !hasDelivery && !hasCollection && (
-                                  <div className="text-center py-4">
-                                    <Info className="w-8 h-8 text-white/20 mx-auto mb-2" />
-                                    <p className="text-white/60">No additional service information available</p>
-                                  </div>
-                                )}
+                                {!hasBreakTime &&
+                                  !hasDelivery &&
+                                  !hasCollection && (
+                                    <div className="text-center py-4">
+                                      <Info className="w-8 h-8 text-white/20 mx-auto mb-2" />
+                                      <p className="text-white/60">
+                                        No additional service information
+                                        available
+                                      </p>
+                                    </div>
+                                  )}
                               </div>
                             )}
                           </div>
@@ -584,36 +730,51 @@ const AboutPage = () => {
                     ) : (
                       <div className="text-center py-2">
                         <Clock className="w-12 h-12 text-white/20 mx-auto mb-3" />
-                        <p className="text-white/60">No opening hours information available</p>
+                        <p className="text-white/60">
+                          No opening hours information available
+                        </p>
                       </div>
                     )}
                   </div>
                 )}
 
-                {currentTab === 'closed' && (
+                {currentTab === "closed" && (
                   <div className="space-y-4">
-                    {branch.orderingTimes?.closedDates ? (
-                      branch.orderingTimes.closedDates.length > 0 ? (
-                        getUpcomingClosedDates(branch.orderingTimes.closedDates).map((date, index) => (
-                          <div key={index} className="bg-white/5 rounded-xl p-4">
+                    {(() => {
+                      const upcomingDates = getUpcomingClosedDates(
+                        branch.orderingTimes?.closedDates || []
+                      );
+                      return upcomingDates.length > 0 ? (
+                        upcomingDates.map((date, index) => (
+                          <div
+                            key={index}
+                            className="bg-white/5 rounded-xl p-4"
+                          >
                             <div className="flex justify-between items-start">
                               <div>
                                 <h4 className="text-white font-medium">
-                                  {new Date(date.date).toLocaleDateString('en-GB', {
-                                    weekday: 'long',
-                                    day: 'numeric',
-                                    month: 'long',
-                                    year: 'numeric'
-                                  })}
+                                  {new Date(date.date).toLocaleDateString(
+                                    "en-GB",
+                                    {
+                                      weekday: "long",
+                                      day: "numeric",
+                                      month: "long",
+                                      year: "numeric",
+                                    }
+                                  )}
                                 </h4>
                                 {date.endDate && (
                                   <p className="text-white/70 text-sm mt-1">
-                                    Until {new Date(date.endDate).toLocaleDateString('en-GB', {
-                                      weekday: 'long',
-                                      day: 'numeric',
-                                      month: 'long',
-                                      year: 'numeric'
-                                    })}
+                                    Until{" "}
+                                    {new Date(date.endDate).toLocaleDateString(
+                                      "en-GB",
+                                      {
+                                        weekday: "long",
+                                        day: "numeric",
+                                        month: "long",
+                                        year: "numeric",
+                                      }
+                                    )}
                                   </p>
                                 )}
                               </div>
@@ -626,15 +787,12 @@ const AboutPage = () => {
                       ) : (
                         <div className="text-center py-8">
                           <Calendar className="w-12 h-12 text-white/20 mx-auto mb-3" />
-                          <p className="text-white/60">No upcoming closed dates</p>
+                          <p className="text-white/60">
+                            No upcoming closed dates
+                          </p>
                         </div>
-                      )
-                    ) : (
-                      <div className="text-center py-8">
-                        <Calendar className="w-12 h-12 text-white/20 mx-auto mb-3" />
-                        <p className="text-white/60">No closed dates information available</p>
-                      </div>
-                    )}
+                      );
+                    })()}
                   </div>
                 )}
               </div>
@@ -646,4 +804,4 @@ const AboutPage = () => {
   );
 };
 
-export default AboutPage; 
+export default AboutPage;
