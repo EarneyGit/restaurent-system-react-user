@@ -66,7 +66,7 @@ const VariantPlaceholderSVG = ({ color }: { color: string }) => (
   </svg>
 );
 
-const ProductCard: React.FC<ProductCardProps> = ({ product, isOutletAvailable = true, isBranchAvailable = true }) => {
+const ProductCard: React.FC<ProductCardProps> = ({ product, isOutletAvailable = true, isBranchAvailable = true,disableAddToCart }) => {
   const [selectedVariant, setSelectedVariant] = useState(0);
   const [quantity, setQuantity] = useState(1);
   const [isOptionsModalOpen, setIsOptionsModalOpen] = useState(false);
@@ -344,7 +344,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, isOutletAvailable = 
             <img
               src={imageUrl}
               alt={product.name}
-              className="w-full p-3 rounded-xl h-full object-contain"
+              className="w-full p-3 rounded-xl h-full "
               onError={() => setImageError(true)}
               loading="eager"
             />
@@ -468,7 +468,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, isOutletAvailable = 
 
         {/* Sticky Cart Controls */}
         <div className="sticky bottom-0 left-0 right-0 p-4 bg-white border-t border-gray-100">
-          {isBranchAvailable ? (
+          {isBranchAvailable && !disableAddToCart ? (
             (() => {
               const currentCartQuantity = cartItem?.quantity || 0;
               const isAtMaxQuantity = isInCart && currentCartQuantity >= availableQuantity;

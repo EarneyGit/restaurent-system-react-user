@@ -126,7 +126,6 @@ const AddressSelector = () => {
 
   const handleSelect = (address: AddressResult) => {
     setSelectedAddress(address);
-    console.log("address",address)
     setSelectedSearchedAddress(address);
     setSearchValue(address.line_1 || `${address.building_number} ${address.thoroughfare}`.trim());
     setShowSuggestions(false);

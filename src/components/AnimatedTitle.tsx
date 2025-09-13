@@ -5,7 +5,7 @@ interface AnimatedTitleProps {
 }
 
 const AnimatedTitle: React.FC<AnimatedTitleProps> = ({ onAnimationComplete }) => {
-  const text = "RESTROMEN";
+  const text = "RESOIE RESTAURENT";
   const [displayText, setDisplayText] = useState("");
   const [isAnimating, setIsAnimating] = useState(true);
 
