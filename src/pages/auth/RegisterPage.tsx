@@ -67,7 +67,7 @@ const RegisterPage = () => {
               <span className="text-white font-bold text-sm">R</span>
             </div>
             <span className="ml-2 uppercase font-mono font-semibold text-2xl text-gray-800">
-              Restroman
+              Rasoie
             </span>
           </Link>
         </div>
@@ -188,7 +188,7 @@ const RegisterPage = () => {
         <div className="absolute inset-0 flex flex-col justify-center items-start z-20 p-12">
           <div className="max-w-xl">
             <h2 className="text-4xl font-bold text-white mb-6">
-              Join Restroman Today
+              Join Rasoie Today
             </h2>
             <p className="text-white/90 text-lg mb-8">
               Get access to exclusive restaurants and enjoy premium food delivery

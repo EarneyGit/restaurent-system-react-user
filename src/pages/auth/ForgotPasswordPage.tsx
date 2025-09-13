@@ -80,7 +80,6 @@ const ForgotPasswordPage = () => {
           otp: values?.otp,
         });
 
-        console.log("response",response)
 
         setResetToken(response?.data?.token);
         toast.success("OTP verified successfully");
@@ -93,7 +92,6 @@ const ForgotPasswordPage = () => {
     },
   });
 
-  console.log("resetToken",resetToken)
 
   const resetPasswordFormik = useFormik<FormValues>({
     initialValues: {

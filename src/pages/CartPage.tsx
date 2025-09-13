@@ -98,40 +98,45 @@ const CartItem: React.FC<CartItemProps> = ({
   const { formatCurrency } = useCart();
   const [showAttributes, setShowAttributes] = useState(false);
 
-  const getActivePriceChange = (priceChanges?: PriceChange[]): PriceChange | null => {
+  const getActivePriceChange = (
+    priceChanges?: PriceChange[]
+  ): PriceChange | null => {
     if (!priceChanges?.length) return null;
     const now = new Date();
-    return priceChanges.find(change => 
-      change.active && 
-      new Date(change.endDate) > now
-    ) || null;
+    return (
+      priceChanges.find(
+        (change) => change.active && new Date(change.endDate) > now
+      ) || null
+    );
   };
 
   const activePriceChange = getActivePriceChange(price.priceChanges);
 
   // Stock management functions
   const getStockStatus = () => {
-    // For demonstration purposes, let's create mock stock data
-    // In a real implementation, this would come from the API
     const mockStockData: StockManagement = {
       isManaged: true,
       quantity: 5, // Mock available quantity
       lowStockThreshold: 2,
-      lastUpdated: new Date().toISOString()
+      lastUpdated: new Date().toISOString(),
     };
-    
+
     // Use provided stockManagement or fall back to mock data for demo
     const stockData = stockManagement || mockStockData;
-    
+
     if (!stockData.isManaged) {
-      return { isInStock: true, availableQuantity: Infinity, isLowStock: false };
+      return {
+        isInStock: true,
+        availableQuantity: Infinity,
+        isLowStock: false,
+      };
     }
-    
+
     const { quantity: stockQuantity, lowStockThreshold } = stockData;
     return {
       isInStock: stockQuantity > 0,
       availableQuantity: stockQuantity,
-      isLowStock: stockQuantity <= lowStockThreshold && stockQuantity > 0
+      isLowStock: stockQuantity <= lowStockThreshold && stockQuantity > 0,
     };
   };
 
@@ -160,12 +165,16 @@ const CartItem: React.FC<CartItemProps> = ({
         <div className="flex-1 min-w-0">
           <h3 className="text-base font-semibold text-gray-900">{name}</h3>
           {description && (
-            <p className="text-sm text-gray-600 flex-wrap line-clamp-2">{description}</p>
+            <p className="text-sm text-gray-600 flex-wrap line-clamp-2">
+              {description}
+            </p>
           )}
           <div className="mt-1 space-y-1">
             <div className="flex items-center gap-2">
               <span className="text-base font-semibold text-black">
-                {formatCurrency(activePriceChange ? activePriceChange.tempPrice : price.base)}
+                {formatCurrency(
+                  activePriceChange ? activePriceChange.tempPrice : price.base
+                )}
               </span>
               {activePriceChange && (
                 <span className="text-sm line-through text-gray-400">
@@ -181,7 +190,7 @@ const CartItem: React.FC<CartItemProps> = ({
       <div className="mt-3">
         {(() => {
           const isAtMaxQuantity = quantity >= availableQuantity;
-          
+
           if (!isInStock) {
             return (
               <div className="flex items-center gap-2">
@@ -191,7 +200,7 @@ const CartItem: React.FC<CartItemProps> = ({
               </div>
             );
           }
-          
+
           if (isAtMaxQuantity) {
             return (
               <div className="flex items-center gap-2">
@@ -201,7 +210,7 @@ const CartItem: React.FC<CartItemProps> = ({
               </div>
             );
           }
-          
+
           return (
             <div className="flex items-center gap-2">
               <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 w-fit">
@@ -224,11 +233,15 @@ const CartItem: React.FC<CartItemProps> = ({
             onClick={() => onUpdateQuantity(id, Math.max(1, quantity - 1))}
             className="w-8 h-8 flex items-center justify-center text-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
             disabled={quantity === 1}
-            title={quantity === 1 ? "Minimum quantity is 1" : "Decrease quantity"}
+            title={
+              quantity === 1 ? "Minimum quantity is 1" : "Decrease quantity"
+            }
           >
             −
           </button>
-          <span className="w-8 text-center font-medium text-gray-800">{quantity}</span>
+          <span className="w-8 text-center font-medium text-gray-800">
+            {quantity}
+          </span>
           <button
             onClick={() => {
               if (quantity >= availableQuantity) {
@@ -239,7 +252,11 @@ const CartItem: React.FC<CartItemProps> = ({
             }}
             className="w-8 h-8 flex items-center justify-center text-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
             disabled={!isInStock || quantity >= availableQuantity}
-            title={quantity >= availableQuantity ? "Maximum quantity reached" : "Increase quantity"}
+            title={
+              quantity >= availableQuantity
+                ? "Maximum quantity reached"
+                : "Increase quantity"
+            }
           >
             +
           </button>
@@ -269,7 +286,9 @@ const CartItem: React.FC<CartItemProps> = ({
             onClick={() => setShowAttributes((prev) => !prev)}
             className="flex items-center gap-1 text-gray-600 underline"
           >
-            {showAttributes ? "Hide Selected Attributes" : "See Selected Attributes"}
+            {showAttributes
+              ? "Hide Selected Attributes"
+              : "See Selected Attributes"}
             {showAttributes ? (
               <ChevronUp className="w-4 h-4" />
             ) : (
@@ -303,7 +322,11 @@ const CartItem: React.FC<CartItemProps> = ({
                 <div className="flex justify-between">
                   <span>Base Price:</span>
                   <span className="font-medium">
-                    {formatCurrency(activePriceChange ? activePriceChange.tempPrice : price.base)}
+                    {formatCurrency(
+                      activePriceChange
+                        ? activePriceChange.tempPrice
+                        : price.base
+                    )}
                   </span>
                 </div>
                 {activePriceChange && (
@@ -317,19 +340,35 @@ const CartItem: React.FC<CartItemProps> = ({
                 {price.attributes > 0 && (
                   <div className="flex justify-between">
                     <span>Add-ons:</span>
-                    <span className="font-medium">{formatCurrency(price.attributes)}</span>
+                    <span className="font-medium">
+                      {formatCurrency(price.attributes)}
+                    </span>
                   </div>
                 )}
                 <div className="flex justify-between pt-1 border-t">
                   <span className="font-medium">Item Total:</span>
                   <span className="font-medium">
-                    {formatCurrency((activePriceChange ? activePriceChange.tempPrice : price.base) * quantity + (price.attributes * quantity))}
+                    {formatCurrency(
+                      (activePriceChange
+                        ? activePriceChange.tempPrice
+                        : price.base) *
+                        quantity +
+                        price.attributes * quantity
+                    )}
                   </span>
                 </div>
                 <div className="flex justify-between pt-1 border-t text-black">
-                  <span className="font-semibold">Final Total (× {quantity}):</span>
                   <span className="font-semibold">
-                    {formatCurrency((activePriceChange ? activePriceChange.tempPrice : price.base) * quantity + (price.attributes * quantity))}
+                    Final Total (× {quantity}):
+                  </span>
+                  <span className="font-semibold">
+                    {formatCurrency(
+                      (activePriceChange
+                        ? activePriceChange.tempPrice
+                        : price.base) *
+                        quantity +
+                        price.attributes * quantity
+                    )}
                   </span>
                 </div>
               </div>
@@ -409,14 +448,21 @@ const CartPage = () => {
   const handleUpdateQuantity = async (id: string, newQuantity: number) => {
     try {
       // Find the cart item to check its stock
-      const cartItem = cartItems.find(item => item.id === id);
+      const cartItem = cartItems.find((item) => item.id === id);
       if (!cartItem) return;
 
       // Only check stock availability for increases, allow decreases
       const currentQuantity = cartItem.quantity;
-      const stockData = cartItem.stockManagement || { isManaged: true, quantity: 5, lowStockThreshold: 2, lastUpdated: new Date().toISOString() };
-      const availableQuantity = stockData.isManaged ? stockData.quantity : Infinity;
-      
+      const stockData = cartItem.stockManagement || {
+        isManaged: true,
+        quantity: 5,
+        lowStockThreshold: 2,
+        lastUpdated: new Date().toISOString(),
+      };
+      const availableQuantity = stockData.isManaged
+        ? stockData.quantity
+        : Infinity;
+
       if (newQuantity > currentQuantity && newQuantity > availableQuantity) {
         toast.error(`Only ${availableQuantity} items available in stock`);
         return;
@@ -424,7 +470,7 @@ const CartPage = () => {
 
       await updateCartItemQuantity(id, newQuantity);
     } catch (error) {
-      console.error('Error updating quantity:', error);
+      console.error("Error updating quantity:", error);
       // The error will be handled by the cart context
     }
   };
@@ -546,7 +592,10 @@ const CartPage = () => {
                     {/* Items Summary */}
                     <div className="space-y-2">
                       {cartItems.map((item) => (
-                        <div key={item.id} className="flex justify-between text-sm">
+                        <div
+                          key={item.id}
+                          className="flex justify-between text-sm"
+                        >
                           <span className="text-gray-600">
                             {item.name} × {item.quantity}
                           </span>
@@ -562,18 +611,27 @@ const CartPage = () => {
                       <div className="flex justify-between text-sm">
                         <span className="text-gray-600">Items Subtotal</span>
                         <span className="font-medium">
-                          {formatCurrency(cartItems.reduce((total, item) => total + item.price.total, 0))}
+                          {formatCurrency(
+                            cartItems.reduce(
+                              (total, item) => total + item.price.total,
+                              0
+                            )
+                          )}
                         </span>
                       </div>
 
                       {/* Attributes Total */}
-                      {cartItems.some(item => item.price.attributes > 0) && (
+                      {cartItems.some((item) => item.price.attributes > 0) && (
                         <div className="flex justify-between text-sm">
                           <span className="text-gray-600">Add-ons Total</span>
                           <span className="font-medium">
-                            {formatCurrency(cartItems.reduce((total, item) => 
-                              total + (item.price.attributes * item.quantity), 0
-                            ))}
+                            {formatCurrency(
+                              cartItems.reduce(
+                                (total, item) =>
+                                  total + item.price.attributes * item.quantity,
+                                0
+                              )
+                            )}
                           </span>
                         </div>
                       )}
@@ -593,13 +651,23 @@ const CartPage = () => {
                       </div>
 
                       {/* Total Savings */}
-                      {cartItems.some(item => item.price.base > item.price.currentEffectivePrice) && (
+                      {cartItems.some(
+                        (item) =>
+                          item.price.base > item.price.currentEffectivePrice
+                      ) && (
                         <div className="flex justify-between text-sm text-green-600">
                           <span>Total Savings</span>
                           <span className="font-medium">
-                            {formatCurrency(cartItems.reduce((total, item) => 
-                              total + ((item.price.base - item.price.currentEffectivePrice) * item.quantity), 0
-                            ))}
+                            {formatCurrency(
+                              cartItems.reduce(
+                                (total, item) =>
+                                  total +
+                                  (item.price.base -
+                                    item.price.currentEffectivePrice) *
+                                    item.quantity,
+                                0
+                              )
+                            )}
                           </span>
                         </div>
                       )}
@@ -611,13 +679,30 @@ const CartPage = () => {
                         <span className="font-semibold">Total</span>
                         <div className="text-right">
                           <span className="font-bold text-neutral-900 text-xl">
-                            {formatCurrency(cartItems.reduce((total, item) => total + item.price.total, 0) + cartSummary.deliveryFee)}
+                            {formatCurrency(
+                              cartItems.reduce(
+                                (total, item) => total + item.price.total,
+                                0
+                              ) + cartSummary.deliveryFee
+                            )}
                           </span>
-                          {cartItems.some(item => item.price.base > item.price.currentEffectivePrice) && (
+                          {cartItems.some(
+                            (item) =>
+                              item.price.base > item.price.currentEffectivePrice
+                          ) && (
                             <div className="text-xs text-green-600 font-medium">
-                              You saved {formatCurrency(cartItems.reduce((total, item) => 
-                                total + ((item.price.base - item.price.currentEffectivePrice) * item.quantity), 0
-                              ))}!
+                              You saved{" "}
+                              {formatCurrency(
+                                cartItems.reduce(
+                                  (total, item) =>
+                                    total +
+                                    (item.price.base -
+                                      item.price.currentEffectivePrice) *
+                                      item.quantity,
+                                  0
+                                )
+                              )}
+                              !
                             </div>
                           )}
                         </div>

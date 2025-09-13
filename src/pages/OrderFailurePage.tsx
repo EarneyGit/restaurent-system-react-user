@@ -146,7 +146,8 @@ const OrderFailurePage = () => {
     if (error.response?.status === 404) {
       navigate('/app', { replace: true });
     } else if (errorMessage.includes('Branch ID is required')) {
-      navigate('/outlet-selection', { state: { returnUrl: `/order-failure/${orderId}` } });
+      navigate('/select-outlet', { state: { returnUrl: `/order-failure/${orderId}` } });
+      // navigate('/outlet-selection', { state: { returnUrl: `/order-failure/${orderId}` } });
     }
   };
 

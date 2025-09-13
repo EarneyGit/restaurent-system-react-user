@@ -124,7 +124,7 @@ const LoginPage = () => {
               <span className="text-white font-bold text-sm">R</span>
             </div>
             <span className="ml-2 uppercase font-mono font-semibold text-2xl text-gray-800">
-              Restroman
+              Rasoie
             </span>
           </Link>
         </div>
@@ -257,7 +257,7 @@ const LoginPage = () => {
         <div className="absolute inset-0 flex flex-col justify-center items-start z-20 p-12">
           <div className="max-w-xl">
             <h2 className="text-4xl font-bold text-white mb-6">
-              Welcome Back to Restroman
+              Welcome Back to Rasoie
             </h2>
             <p className="text-white/90 text-lg mb-8">
               Log in to your account to access your favorite restaurants, track

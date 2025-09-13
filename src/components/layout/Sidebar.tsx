@@ -35,7 +35,7 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
               <div className="h-8 w-8 bg-gradient-to-r from-foodyman-lime to-foodyman-green rounded-full flex items-center justify-center">
                 <span className="text-white font-bold text-sm">R</span>
               </div>
-              <span className="ml-2 font-semibold text-gray-800">Restroman</span>
+              <span className="ml-2 font-semibold text-gray-800">Rasoie</span>
             </div>
             <button onClick={onClose} className="p-1">
               <X size={24} />
