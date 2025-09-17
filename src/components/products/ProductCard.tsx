@@ -16,6 +16,7 @@ interface ProductCardProps {
   product: Product;
   isOutletAvailable?: boolean;
   isBranchAvailable?: boolean;
+  disableAddToCart?: boolean;
 }
 
 interface PriceChange {
@@ -40,6 +41,99 @@ const getDaysLeft = (endDate: string): number => {
   const end = new Date(endDate);
   const diffTime = end.getTime() - now.getTime();
   return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+};
+
+// Utility function to check if product is available at current time
+const isProductAvailable = (product: Product): boolean => {
+  if (!product.availability) return true; // If no availability data, assume available
+
+  const now = new Date();
+  const currentDay = now.toLocaleDateString('en-US', { weekday: 'short' }).toLowerCase(); // Get day name (mon, tue, etc.)
+  const currentTime = now.toTimeString().substring(0, 5); // Get time in HH:MM format
+
+  // Map day names to availability keys
+  const dayMap: { [key: string]: keyof typeof product.availability } = {
+    'mon': 'monday',
+    'tue': 'tuesday', 
+    'wed': 'wednesday',
+    'thu': 'thursday',
+    'fri': 'friday',
+    'sat': 'saturday',
+    'sun': 'sunday'
+  };
+
+  const dayKey = dayMap[currentDay];
+  if (!dayKey || !product.availability[dayKey]) return true;
+
+  const dayAvailability = product.availability[dayKey];
+
+  // If not available for this day - type takes priority over isAvailable
+  if (dayAvailability.type === 'Not Available') {
+    return false;
+  }
+
+  // If available all day
+  if (dayAvailability.type === 'All Day') {
+    return dayAvailability.isAvailable;
+  }
+
+  // If specific times, check if current time falls within any time slot
+  if (dayAvailability.type === 'Specific Times') {
+    // For specific times, we need both isAvailable to be true AND have valid time slots
+    if (!dayAvailability.isAvailable || !dayAvailability.times || dayAvailability.times.length === 0) {
+      return false;
+    }
+
+    return dayAvailability.times.some(timeSlot => {
+      return currentTime >= timeSlot.start && currentTime <= timeSlot.end;
+    });
+  }
+
+  return true;
+};
+
+// Utility function to get availability message
+const getAvailabilityMessage = (product: Product): string => {
+  if (!product.availability) return '';
+
+  const now = new Date();
+  const currentDay = now.toLocaleDateString('en-US', { weekday: 'short' }).toLowerCase();
+  
+  const dayMap: { [key: string]: keyof typeof product.availability } = {
+    'mon': 'monday',
+    'tue': 'tuesday', 
+    'wed': 'wednesday',
+    'thu': 'thursday',
+    'fri': 'friday',
+    'sat': 'saturday',
+    'sun': 'sunday'
+  };
+
+  const dayKey = dayMap[currentDay];
+  if (!dayKey || !product.availability[dayKey]) return '';
+
+  const dayAvailability = product.availability[dayKey];
+
+  if (dayAvailability.type === 'Not Available') {
+    return 'Not available today';
+  }
+
+  if (dayAvailability.type === 'All Day') {
+    return dayAvailability.isAvailable ? '' : 'Not available today';
+  }
+
+  if (dayAvailability.type === 'Specific Times') {
+    if (!dayAvailability.isAvailable || !dayAvailability.times || dayAvailability.times.length === 0) {
+      return 'Not available today';
+    }
+    
+    const timeRanges = dayAvailability.times
+      .map(slot => `${slot.start} - ${slot.end}`)
+      .join(', ');
+    return `Available ${timeRanges}`;
+  }
+
+  return '';
 };
 
 const VariantPlaceholderSVG = ({ color }: { color: string }) => (
@@ -81,6 +175,10 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, isOutletAvailable = 
 
   const activePriceChange = getActivePriceChange(product.priceChanges);
   const daysLeft = activePriceChange ? getDaysLeft(activePriceChange.endDate) : 0;
+  
+  // Check product availability
+  const isAvailable = isProductAvailable(product);
+  const availabilityMessage = getAvailabilityMessage(product);
 
   // Stock management functions
   const getStockStatus = () => {
@@ -169,6 +267,12 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, isOutletAvailable = 
       return;
     }
 
+    // Check product availability first
+    if (!isAvailable) {
+      toast.error(`${product.name} is not available at this time`);
+      return;
+    }
+
     // Check stock availability
     if (!isInStock) {
       toast.error("This item is out of stock");
@@ -243,6 +347,12 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, isOutletAvailable = 
   ) => {
     if (!selectedBranch) {
       toast.error("Please select a branch first");
+      return;
+    }
+
+    // Check product availability first
+    if (!isAvailable) {
+      toast.error(`${product.name} is not available at this time`);
       return;
     }
 
@@ -330,7 +440,9 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, isOutletAvailable = 
 
   return (
     <>
-      <div className="bg-white rounded-3xl overflow-hidden border border-gray-200 shadow-sm hover:shadow-md transition-all duration-300 relative flex flex-col h-full">
+      <div className={`bg-white rounded-3xl overflow-hidden border border-gray-200 shadow-sm hover:shadow-md transition-all duration-300 relative flex flex-col h-full ${
+        !isAvailable ? 'opacity-60' : ''
+      }`}>
         {/* Category Badge */}
         <div className="absolute top-5 left-4 z-10">
           <span className="px-3 py-1 bg-green-900 text-white rounded-full text-xs font-medium">
@@ -344,12 +456,16 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, isOutletAvailable = 
             <img
               src={imageUrl}
               alt={product.name}
-              className="w-full p-3 rounded-xl h-full "
+              className={`w-full p-3 rounded-xl h-full ${
+                !isAvailable ? 'grayscale' : ''
+              }`}
               onError={() => setImageError(true)}
               loading="eager"
             />
           ) : (
-            <div className="w-full h-full bg-gray-100 flex items-center justify-center">
+            <div className={`w-full h-full bg-gray-100 flex items-center justify-center ${
+              !isAvailable ? 'grayscale' : ''
+            }`}>
               <svg
                 className="w-12 h-12 text-gray-400"
                 viewBox="0 0 24 24"
@@ -366,6 +482,11 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, isOutletAvailable = 
                   fill="currentColor"
                 />
               </svg>
+            </div>
+          )}
+          {!isAvailable && (
+            <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+              <span className="text-white font-semibold text-lg">Not Available</span>
             </div>
           )}
         </div>
@@ -402,10 +523,25 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, isOutletAvailable = 
 
         {/* Product Info */}
         <div className="flex-1 p-4">
-          <h3 className="font-medium text-gray-900">{product.name}</h3>
-          <p className="text-left text-sm text-neutral-500 mt-1 break-words">
+          <h3 className={`font-medium ${!isAvailable ? 'text-gray-500' : 'text-gray-900'}`}>
+            {product.name}
+          </h3>
+          <p className={`text-left text-sm mt-1 break-words ${
+            !isAvailable ? 'text-gray-400' : 'text-neutral-500'
+          }`}>
             {product?.description}
           </p>
+          
+          {/* Availability Status */}
+          {availabilityMessage && (
+            <div className={`text-xs mt-2 px-2 py-1 rounded ${
+              !isAvailable 
+                ? 'bg-red-100 text-red-700' 
+                : 'bg-green-100 text-green-700'
+            }`}>
+              {availabilityMessage}
+            </div>
+          )}
           
           {/* Stock Status */}
           <div className="mt-2 mb-1">
@@ -448,7 +584,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, isOutletAvailable = 
           <div className="flex items-baseline gap-2 mt-1">
             {activePriceChange ? (
               <>
-                <span className="font-bold text-lg text-black">
+                <span className={`font-bold text-lg ${!isAvailable ? 'text-gray-500' : 'text-black'}`}>
                   {formatPrice(activePriceChange.tempPrice)}
                 </span>
                 <span className="text-sm text-gray-400 line-through">
@@ -459,7 +595,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, isOutletAvailable = 
                 </span>
               </>
             ) : (
-              <span className="font-bold text-lg">
+              <span className={`font-bold text-lg ${!isAvailable ? 'text-gray-500' : ''}`}>
                 {formatPrice(product.price)}
               </span>
             )}
@@ -472,6 +608,15 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, isOutletAvailable = 
             (() => {
               const currentCartQuantity = cartItem?.quantity || 0;
               const isAtMaxQuantity = isInCart && currentCartQuantity >= availableQuantity;
+              
+              // Check availability first
+              if (!isAvailable) {
+                return (
+                  <div className="text-center text-sm text-red-600 bg-red-50 py-2.5 rounded-xl">
+                    Not Available
+                  </div>
+                );
+              }
               
               if (!isInStock) {
                 return (

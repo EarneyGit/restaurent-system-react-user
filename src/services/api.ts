@@ -87,6 +87,43 @@ export interface Product {
   dineIn?: boolean;
   priceChanges?: PriceChange[];
   stockManagement?: StockManagement;
+  availability?: {
+    monday: {
+      isAvailable: boolean;
+      type: 'All Day' | 'Specific Times' | 'Not Available';
+      times: Array<{ start: string; end: string }>;
+    };
+    tuesday: {
+      isAvailable: boolean;
+      type: 'All Day' | 'Specific Times' | 'Not Available';
+      times: Array<{ start: string; end: string }>;
+    };
+    wednesday: {
+      isAvailable: boolean;
+      type: 'All Day' | 'Specific Times' | 'Not Available';
+      times: Array<{ start: string; end: string }>;
+    };
+    thursday: {
+      isAvailable: boolean;
+      type: 'All Day' | 'Specific Times' | 'Not Available';
+      times: Array<{ start: string; end: string }>;
+    };
+    friday: {
+      isAvailable: boolean;
+      type: 'All Day' | 'Specific Times' | 'Not Available';
+      times: Array<{ start: string; end: string }>;
+    };
+    saturday: {
+      isAvailable: boolean;
+      type: 'All Day' | 'Specific Times' | 'Not Available';
+      times: Array<{ start: string; end: string }>;
+    };
+    sunday: {
+      isAvailable: boolean;
+      type: 'All Day' | 'Specific Times' | 'Not Available';
+      times: Array<{ start: string; end: string }>;
+    };
+  };
 }
 
 interface ApiResponse<T> {
