@@ -43,8 +43,48 @@ const getDaysLeft = (endDate: string): number => {
   return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 };
 
+// Utility function to check if category is available at current time
+const isCategoryAvailable = (category: any): boolean => {
+  if (!category?.availability) return true; // If no availability data, assume available
+
+  const now = new Date();
+  const currentDay = now.toLocaleDateString('en-US', { weekday: 'long' }); // Get full day name (Monday, Tuesday, etc.)
+  const currentTime = now.toTimeString().substring(0, 5); // Get time in HH:MM format
+
+  const dayAvailability = category.availability[currentDay];
+  if (!dayAvailability) return true;
+
+  // If not available for this day
+  if (dayAvailability.type === 'Not Available') {
+    return false;
+  }
+
+  // If available all day
+  if (dayAvailability.type === 'All Day') {
+    return true;
+  }
+
+  // If specific times, check if current time falls within the time slot
+  if (dayAvailability.type === 'Specific Times') {
+    if (!dayAvailability.startTime || !dayAvailability.endTime) {
+      return false;
+    }
+
+    return currentTime >= dayAvailability.startTime && currentTime <= dayAvailability.endTime;
+  }
+
+  return true;
+};
+
 // Utility function to check if product is available at current time
 const isProductAvailable = (product: Product): boolean => {
+  // First check if the category is available - if not, product is not available
+  if (product.category && typeof product.category === 'object' && product.category.availability) {
+    if (!isCategoryAvailable(product.category)) {
+      return false;
+    }
+  }
+
   if (!product.availability) return true; // If no availability data, assume available
 
   const now = new Date();
@@ -94,6 +134,13 @@ const isProductAvailable = (product: Product): boolean => {
 
 // Utility function to get availability message
 const getAvailabilityMessage = (product: Product): string => {
+  // First check if the category is available - if not, show category unavailable message
+  if (product.category && typeof product.category === 'object' && product.category.availability) {
+    if (!isCategoryAvailable(product.category)) {
+      return 'Category not available';
+    }
+  }
+
   if (!product.availability) return '';
 
   const now = new Date();

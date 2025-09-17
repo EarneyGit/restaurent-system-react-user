@@ -19,8 +19,42 @@ export interface Category {
   displayOrder: number;
   hidden: boolean;
   imageUrl: string;
-  availability: {
-    [key: string]: string;
+  availability?: {
+    Monday: {
+      type: 'All Day' | 'Specific Times' | 'Not Available';
+      startTime: string | null;
+      endTime: string | null;
+    };
+    Tuesday: {
+      type: 'All Day' | 'Specific Times' | 'Not Available';
+      startTime: string | null;
+      endTime: string | null;
+    };
+    Wednesday: {
+      type: 'All Day' | 'Specific Times' | 'Not Available';
+      startTime: string | null;
+      endTime: string | null;
+    };
+    Thursday: {
+      type: 'All Day' | 'Specific Times' | 'Not Available';
+      startTime: string | null;
+      endTime: string | null;
+    };
+    Friday: {
+      type: 'All Day' | 'Specific Times' | 'Not Available';
+      startTime: string | null;
+      endTime: string | null;
+    };
+    Saturday: {
+      type: 'All Day' | 'Specific Times' | 'Not Available';
+      startTime: string | null;
+      endTime: string | null;
+    };
+    Sunday: {
+      type: 'All Day' | 'Specific Times' | 'Not Available';
+      startTime: string | null;
+      endTime: string | null;
+    };
   };
   printers: string[];
   color?: string;
@@ -77,6 +111,43 @@ export interface Product {
   category?: {
     id: string;
     name: string;
+    availability?: {
+      Monday: {
+        type: 'All Day' | 'Specific Times' | 'Not Available';
+        startTime: string | null;
+        endTime: string | null;
+      };
+      Tuesday: {
+        type: 'All Day' | 'Specific Times' | 'Not Available';
+        startTime: string | null;
+        endTime: string | null;
+      };
+      Wednesday: {
+        type: 'All Day' | 'Specific Times' | 'Not Available';
+        startTime: string | null;
+        endTime: string | null;
+      };
+      Thursday: {
+        type: 'All Day' | 'Specific Times' | 'Not Available';
+        startTime: string | null;
+        endTime: string | null;
+      };
+      Friday: {
+        type: 'All Day' | 'Specific Times' | 'Not Available';
+        startTime: string | null;
+        endTime: string | null;
+      };
+      Saturday: {
+        type: 'All Day' | 'Specific Times' | 'Not Available';
+        startTime: string | null;
+        endTime: string | null;
+      };
+      Sunday: {
+        type: 'All Day' | 'Specific Times' | 'Not Available';
+        startTime: string | null;
+        endTime: string | null;
+      };
+    };
   } | string;
   originalPrice?: number;
   rating?: number;
