@@ -21,7 +21,7 @@ export function useBranchApi<T>({ endpoint, params = {}, onSuccess, onError }: B
   useEffect(() => {
     const fetchData = async () => {
       if (!selectedBranch) {
-        navigate('/outlet-selection');
+        navigate('/select-outlet');
         return;
       }
 
@@ -47,7 +47,7 @@ export function useBranchApi<T>({ endpoint, params = {}, onSuccess, onError }: B
 
         if (err.response?.status === 401) {
           toast.error('Please select a branch first');
-          navigate('/outlet-selection');
+          navigate('/select-outlet');
         } else {
           toast.error(err.response?.data?.message || 'Failed to fetch data');
         }

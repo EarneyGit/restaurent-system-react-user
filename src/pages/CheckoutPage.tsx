@@ -648,7 +648,7 @@ const OrderConfirmationModal: React.FC<OrderConfirmationModalProps> = ({
 
 const CheckoutPage = () => {
   const { user, isAuthenticated, token } = useAuth();
-  const { selectedBranch } = useBranch();
+  const { selectedBranch, fetchBranches } = useBranch();
   const [paymentMethod, setPaymentMethod] = useState("card");
   const navigate = useNavigate();
   const { cartItems, formatCurrency, clearCart } = useCart();
@@ -711,6 +711,7 @@ const CheckoutPage = () => {
     null
   );
 
+
   const [creditCardDetails, setCreditCardDetails] = useState<CreditCardDetails>(
     {
       number: "",
@@ -736,7 +737,6 @@ const CheckoutPage = () => {
     }
   }, [selectedAddressType]);
 
-  // Fetch cart summary
   useEffect(() => {
     const fetchCartSummary = async () => {
       try {
@@ -750,7 +750,6 @@ const CheckoutPage = () => {
               "Content-Type": "application/json",
             };
 
-        // First get cart data
         const cartResponse = await axios.get(
           isAuthenticated
             ? CART_ENDPOINTS.USER_CART
@@ -764,7 +763,6 @@ const CheckoutPage = () => {
 
         const cartData: CartData = cartResponse.data.data;
 
-        // Get service charges from cart response
         const serviceCharges = {
           totalMandatory: cartData.serviceCharges?.totalMandatory || 0,
           totalOptional: cartData.serviceCharges?.totalOptional || 0,
@@ -772,7 +770,6 @@ const CheckoutPage = () => {
           breakdown: cartData.serviceCharges?.breakdown || [],
         };
 
-        // Calculate all totals
         const totals = calculateOrderTotals(
           cartData,
           cartItems,
@@ -805,7 +802,6 @@ const CheckoutPage = () => {
     appliedPromo?.discountAmount,
   ]);
 
-  // Check authentication
   React.useEffect(() => {
     const isGuest = localStorage.getItem("isGuest") === "true";
     if (!isAuthenticated && !isGuest) {
@@ -815,7 +811,6 @@ const CheckoutPage = () => {
     }
   }, [isAuthenticated, navigate]);
 
-  // Personal details state
   const [personalDetails, setPersonalDetails] = useState({
     firstName: user?.firstName || "",
     lastName: user?.lastName || "",
@@ -823,7 +818,6 @@ const CheckoutPage = () => {
     email: user?.email || "",
   });
 
-  // Update personal details when user data changes
   useEffect(() => {
     if (user) {
       setPersonalDetails({
@@ -835,8 +829,6 @@ const CheckoutPage = () => {
     }
   }, [user]);
 
-  // Helper function to parse full address into components
-  // ✅ Helper: Parse full string address like "Street, City, Postcode, [State?]"
   const parseFullAddress = (fullAddress: string) => {
     const parts = fullAddress.split(",").map((part) => part.trim());
 
@@ -850,7 +842,6 @@ const CheckoutPage = () => {
     };
   };
 
-  // ✅ Helper: Format full address from parts
   const formatFullAddress = (
     street: string,
     city: string,
@@ -1239,7 +1230,7 @@ const CheckoutPage = () => {
     try {
       if (!selectedBranch?.id) {
         toast.error("Please select a branch first");
-        navigate("/outlet-selection");
+        navigate("/select-outlet");
         return;
       }
 
@@ -1836,8 +1827,7 @@ const CheckoutPage = () => {
               </div>
             </div>
 
-            {/* Update Cart Items Display */}
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+            <div className="bg-white rounded-2xl shadow-sm border  border-gray-100 overflow-y-auto">
               <div className="p-4 border-b border-gray-100 bg-gray-50">
                 <h2 className="text-lg font-semibold text-gray-900">
                   Order Items ({cartItems.length})

@@ -45,9 +45,12 @@ axios.interceptors.response.use(
     // Handle branch selection errors
     if (error.response?.status === 400 && error.response?.data?.message?.includes('Branch ID is required')) {
       const currentPath = window.location.pathname;
-      if (!currentPath.includes('/outlet-selection')) {
-        window.location.href = '/outlet-selection';
+      if (!currentPath.includes('/select-outlet')) {
+        window.location.href = '/select-outlet';
       }
+      // if (!currentPath.includes('/outlet-selection')) {
+      //   window.location.href = '/outlet-selection';
+      // }
     }
     
     // Handle unauthorized errors

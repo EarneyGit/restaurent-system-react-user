@@ -154,7 +154,8 @@ const SpecialAboutPage = () => {
         <div className="text-white text-center">
           <p className="text-xl">Branch details not found</p>
           <button
-            onClick={() => navigate('/outlet-selection')}
+            onClick={() => navigate('/select-outlet')}
+            // onClick={() => navigate('/outlet-selection')}
             className="mt-4 px-6 py-2 bg-green-600 rounded-lg hover:bg-green-700 transition-colors"
           >
             Back to Outlets
@@ -181,7 +182,8 @@ const SpecialAboutPage = () => {
         {/* Navigation */}
         <div className="flex justify-between items-center mb-8">
           <button 
-            onClick={() => navigate('/outlet-selection')}
+            onClick={() => navigate('/select-outlet')}
+            // onClick={() => navigate('/outlet-selection')}
             className="flex items-center gap-2 text-white/80 hover:text-white transition-colors"
           >
             <ArrowLeft size={20} />

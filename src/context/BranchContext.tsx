@@ -1,8 +1,8 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import axios from '@/config/axios.config';
-import { BRANCH_ENDPOINTS } from '@/config/api.config';
-import { Branch } from '../types/branch.types';
-import { toast } from 'sonner';
+import React, { createContext, useContext, useState, useEffect } from "react";
+import axios from "@/config/axios.config";
+import { BRANCH_ENDPOINTS } from "@/config/api.config";
+import { Branch } from "../types/branch.types";
+import { toast } from "sonner";
 
 interface BranchContextType {
   selectedBranch: Branch | null;
@@ -18,14 +18,16 @@ const BranchContext = createContext<BranchContextType | undefined>(undefined);
 export const useBranch = () => {
   const context = useContext(BranchContext);
   if (!context) {
-    throw new Error('useBranch must be used within a BranchProvider');
+    throw new Error("useBranch must be used within a BranchProvider");
   }
   return context;
 };
 
-export const BranchProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const BranchProvider: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
   const [selectedBranch, setSelectedBranch] = useState<Branch | null>(() => {
-    const stored = localStorage.getItem('selectedBranch');
+    const stored = localStorage.getItem("selectedBranch");
     return stored ? JSON.parse(stored) : null;
   });
   const [branches, setBranches] = useState<Branch[]>([]);
@@ -33,9 +35,9 @@ export const BranchProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   useEffect(() => {
     if (selectedBranch) {
-      localStorage.setItem('selectedBranch', JSON.stringify(selectedBranch));
+      localStorage.setItem("selectedBranch", JSON.stringify(selectedBranch));
     } else {
-      localStorage.removeItem('selectedBranch');
+      localStorage.removeItem("selectedBranch");
     }
   }, [selectedBranch]);
 
@@ -46,11 +48,11 @@ export const BranchProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       if (response.data?.success) {
         setBranches(response.data.data);
       } else {
-        toast.error('Failed to load branches');
+        toast.error("Failed to load branches");
       }
     } catch (error) {
-      console.error('Error fetching branches:', error);
-      toast.error('Failed to load branches');
+      console.error("Error fetching branches:", error);
+      toast.error("Failed to load branches");
     } finally {
       setIsLoading(false);
     }
@@ -58,18 +60,18 @@ export const BranchProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   const clearSelectedBranch = () => {
     setSelectedBranch(null);
-    localStorage.removeItem('selectedBranch');
+    localStorage.removeItem("selectedBranch");
   };
 
   return (
-    <BranchContext.Provider 
-      value={{ 
-        selectedBranch, 
-        setSelectedBranch, 
+    <BranchContext.Provider
+      value={{
+        selectedBranch,
+        setSelectedBranch,
         clearSelectedBranch,
         branches,
         isLoading,
-        fetchBranches
+        fetchBranches,
       }}
     >
       {children}
@@ -77,4 +79,4 @@ export const BranchProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   );
 };
 
-export default BranchContext; 
+export default BranchContext;

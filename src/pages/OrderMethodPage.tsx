@@ -79,9 +79,6 @@ const OrderMethodPage = () => {
 
   const isCollectionAllowed = todaySchedule?.isCollectionAllowed ?? false;
   const isDeliveryAllowed = todaySchedule?.isDeliveryAllowed ?? false;
-
-  console.log("branchDetails", branchDetails);
-  console.log("selectedBranch", selectedBranch);
   useEffect(() => {
     const fetchBranchDetails = async () => {
       try {

@@ -30,6 +30,7 @@ const ProductGrid: React.FC<ProductGridProps> = React.memo(
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [showLoadingState, setShowLoadingState] = useState(true);
+
     const [branchAvailability, setBranchAvailability] = useState<{
       delivery: BranchAvailability;
       collection: BranchAvailability;
@@ -37,20 +38,30 @@ const ProductGrid: React.FC<ProductGridProps> = React.memo(
       delivery: { available: false, reason: "" },
       collection: { available: false, reason: "" },
     });
+
     const [isBranchAvailable, setIsBranchAvailable] = useState<boolean>(true);
     const [closedReason, setClosedReason] = useState<string | null>(null);
 
     const { selectedBranch } = useBranch();
 
-    // ✅ Pagination states
     const [currentPage, setCurrentPage] = useState(1);
     const productsPerPage = 20;
 
-    // ✅ Check branch closedDates first
+    // 🚨 Delivery method from localStorage
+    const [deliveryMethod, setDeliveryMethod] = useState<string | null>(null);
+    const [availabilityMessage, setAvailabilityMessage] = useState<string | null>(null);
+    const [canOrder, setCanOrder] = useState(true);
+
+    useEffect(() => {
+      const method = localStorage.getItem("deliveryMethod");
+      setDeliveryMethod(method);
+    }, []);
+
+    // ✅ Check closedDates
     const checkClosedDates = useCallback((branch: any) => {
       if (!branch?.orderingTimes?.closedDates) return false;
 
-      const todayStr = new Date().toISOString().split("T")[0]; // yyyy-mm-dd
+      const todayStr = new Date().toISOString().split("T")[0];
 
       const closedToday = branch.orderingTimes.closedDates.find((d: any) => {
         return d.date.split("T")[0] === todayStr;
@@ -64,7 +75,7 @@ const ProductGrid: React.FC<ProductGridProps> = React.memo(
       return false;
     }, []);
 
-    // ✅ Check branch availability (delivery/collection windows)
+    // ✅ Check availability API
     const checkBranchAvailability = useCallback(async (branchId: string) => {
       try {
         const getTodayDate = () => {
@@ -133,7 +144,6 @@ const ProductGrid: React.FC<ProductGridProps> = React.memo(
 
           checkClosedDates(selectedBranch);
 
-          // Then check availability API
           await checkBranchAvailability(branchId);
 
           const response = await axios.get("/api/products", {
@@ -189,7 +199,22 @@ const ProductGrid: React.FC<ProductGridProps> = React.memo(
       selectedBranch,
     ]);
 
-    // ✅ Apply filters before pagination
+    useEffect(() => {
+      if (!deliveryMethod) return;
+
+      if (deliveryMethod === "deliver" && !branchAvailability.delivery.available) {
+        setAvailabilityMessage(branchAvailability.delivery.reason || "Delivery is not available right now.");
+        setCanOrder(false);
+      } else if ((deliveryMethod === "collect" || deliveryMethod === "pickup") && !branchAvailability.collection.available) {
+        setAvailabilityMessage(branchAvailability.collection.reason || "Collection is not available right now.");
+        setCanOrder(false);
+      } else {
+        setAvailabilityMessage(null);
+        setCanOrder(true);
+      }
+    }, [deliveryMethod, branchAvailability]);
+
+    // ✅ Apply filters
     const filteredProducts = useMemo(() => {
       if (filters.length === 0) return products;
       return products.filter((product) =>
@@ -201,7 +226,7 @@ const ProductGrid: React.FC<ProductGridProps> = React.memo(
       );
     }, [products, filters]);
 
-    // ✅ Slice products for current page
+    // ✅ Pagination
     const totalPages = Math.ceil(filteredProducts.length / productsPerPage);
     const indexOfLast = currentPage * productsPerPage;
     const indexOfFirst = indexOfLast - productsPerPage;
@@ -214,7 +239,6 @@ const ProductGrid: React.FC<ProductGridProps> = React.memo(
       }
     };
 
-    // ✅ Reset page when category/filters change
     useEffect(() => {
       setCurrentPage(1);
     }, [category, filters]);
@@ -262,7 +286,7 @@ const ProductGrid: React.FC<ProductGridProps> = React.memo(
 
     return (
       <>
-        {/* 🚨 If branch closed today via closedDates */}
+        {/* 🚨 Closed Today */}
         {closedReason && (
           <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
             <div className="flex items-center gap-3">
@@ -277,7 +301,7 @@ const ProductGrid: React.FC<ProductGridProps> = React.memo(
           </div>
         )}
 
-        {/* 🚨 Show red banner if outlet fully unavailable (but not closedDates) */}
+        {/* 🚨 Outlet unavailable */}
         {!closedReason && !isBranchAvailable && (
           <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
             <div className="flex items-center gap-3">
@@ -289,6 +313,19 @@ const ProductGrid: React.FC<ProductGridProps> = React.memo(
                 <p className="text-red-700 text-sm">
                   Both Delivery and Collection are unavailable at this time.
                 </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* 🚨 Method not available */}
+        {availabilityMessage && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+            <div className="flex items-center gap-3">
+              <Clock className="text-red-500" />
+              <div>
+                <h3 className="font-medium text-red-900">Service Unavailable</h3>
+                <p className="text-red-700 text-sm">{availabilityMessage}</p>
               </div>
             </div>
           </div>
@@ -322,16 +359,15 @@ const ProductGrid: React.FC<ProductGridProps> = React.memo(
                   key={product.id}
                   product={product}
                   isBranchAvailable={!closedReason && isBranchAvailable}
+                  disableAddToCart={!canOrder}
                 />
               ))}
             </div>
 
-            {/* ✅ Pagination controls */}
+            {/* ✅ Pagination */}
             {totalPages > 1 && (
               <div className="flex flex-col items-center gap-3 pt-32">
-                {/* ✅ Pagination Controls */}
                 <div className="flex items-center gap-2">
-                  {/* First Page */}
                   <button
                     onClick={() => handlePageChange(1)}
                     disabled={currentPage === 1}
@@ -340,7 +376,6 @@ const ProductGrid: React.FC<ProductGridProps> = React.memo(
                     <ChevronsLeft size={16} />
                   </button>
 
-                  {/* Prev */}
                   <button
                     onClick={() => handlePageChange(currentPage - 1)}
                     disabled={currentPage === 1}
@@ -349,7 +384,6 @@ const ProductGrid: React.FC<ProductGridProps> = React.memo(
                     <ChevronLeft size={16} />
                   </button>
 
-                  {/* Page Numbers with Ellipsis */}
                   {Array.from({ length: totalPages }, (_, i) => i + 1)
                     .filter(
                       (page) =>
@@ -380,7 +414,6 @@ const ProductGrid: React.FC<ProductGridProps> = React.memo(
                       );
                     })}
 
-                  {/* Next */}
                   <button
                     onClick={() => handlePageChange(currentPage + 1)}
                     disabled={currentPage === totalPages}
@@ -389,7 +422,6 @@ const ProductGrid: React.FC<ProductGridProps> = React.memo(
                     <ChevronRight size={16} />
                   </button>
 
-                  {/* Last Page */}
                   <button
                     onClick={() => handlePageChange(totalPages)}
                     disabled={currentPage === totalPages}
@@ -399,7 +431,6 @@ const ProductGrid: React.FC<ProductGridProps> = React.memo(
                   </button>
                 </div>
 
-                {/* ✅ Info Text */}
                 <p className="text-sm text-gray-600">
                   Displaying{" "}
                   <span className="font-medium">

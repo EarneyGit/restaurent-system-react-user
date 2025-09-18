@@ -203,7 +203,7 @@ const RegisterCompletePage = () => {
               <span className="text-white font-bold text-sm">R</span>
             </div>
             <span className="ml-2 uppercase font-mono font-semibold text-2xl text-gray-800">
-              Restroman
+              Rasoie
             </span>
           </Link>
           <button

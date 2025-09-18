@@ -74,7 +74,8 @@ const BranchSelector = () => {
     localStorage.setItem('selectedBranchId', branch.id);
 
     // If we're on the outlet selection or order method page, navigate to home
-    if (location.pathname === '/outlet-selection' || location.pathname === '/order-method') {
+    if (location.pathname === '/select-outlet' || location.pathname === '/order-method') {
+    // if (location.pathname === '/outlet-selection' || location.pathname === '/order-method') {
       navigate('/');
     } else {
       // Update URL with new branchId
@@ -92,7 +93,8 @@ const BranchSelector = () => {
   const handleStartOver = () => {
     setSelectedBranch(null);
     localStorage.removeItem('selectedBranchId');
-    navigate('/outlet-selection');
+    navigate('/select-outlet');
+    // navigate('/outlet-selection');
   };
 
   if (!selectedBranch) {

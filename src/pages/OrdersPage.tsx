@@ -29,15 +29,20 @@ import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
-import { OrderStatus, OrderStatusType, getStatusColor, getStatusIcon } from "@/types/order.types";
+import {
+  OrderStatus,
+  OrderStatusType,
+  getStatusColor,
+  getStatusIcon,
+} from "@/types/order.types";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogClose
+  DialogClose,
 } from "@/components/ui/dialog";
-import { Address } from '../types/branch.types';
+import { Address } from "../types/branch.types";
 
 interface Product {
   product: {
@@ -49,9 +54,19 @@ interface Product {
   price: number;
   notes?: string;
   selectedAttributes: Array<{
-    name: string;
-    value: string;
-    itemPrice?: number;
+    attributeId: string;
+    attributeName: string;
+    attributeType: string;
+    selectedItems: Array<{
+      itemId: string;
+      itemName: string;
+      itemPrice: number;
+      quantity: number;
+      _id?: string;
+      id?: string;
+    }>;
+    _id?: string;
+    id?: string;
   }>;
 }
 
@@ -116,22 +131,27 @@ const OrderSkeleton = () => (
 
 // Helper function to get delivery method safely
 const getDeliveryMethod = (order: Order | null) => {
-  const method = typeof order?.deliveryMethod === 'string' && order.deliveryMethod
-    ? order.deliveryMethod
-    : null;
-  return method ? method.charAt(0).toUpperCase() + method.slice(1).replace('_', ' ') : 'N/A';
+  const method =
+    typeof order?.deliveryMethod === "string" && order.deliveryMethod
+      ? order.deliveryMethod
+      : null;
+  return method
+    ? method.charAt(0).toUpperCase() + method.slice(1).replace("_", " ")
+    : "N/A";
 };
 
 // Helper to format address object
 const formatAddress = (address: Address | string | undefined) => {
-  if (!address || typeof address === 'string') return address || '';
+  if (!address || typeof address === "string") return address || "";
   return [
     address.street,
     address.city,
     address.state,
     address.postalCode,
-    address.country
-  ].filter(Boolean).join(', ');
+    address.country,
+  ]
+    .filter(Boolean)
+    .join(", ");
 };
 
 const OrdersPage = () => {
@@ -156,7 +176,8 @@ const OrdersPage = () => {
     const fetchBranches = async () => {
       try {
         setIsLoadingBranches(true);
-        const API_URL = import.meta.env.VITE_API_URL || "http://82.25.104.117:5001";
+        const API_URL =
+          import.meta.env.VITE_API_URL || "http://82.25.104.117:5001";
         const response = await axios.get(`${API_URL}/api/branches`);
         if (response.data?.success) {
           setAvailableBranches(response.data.data);
@@ -266,7 +287,13 @@ const OrdersPage = () => {
   ];
 
   // Reset page to 1 when filters change
-  useEffect(() => { setCurrentPage(1); }, [statusFilter, selectedBranchFilter]);
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [statusFilter, selectedBranchFilter]);
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, [currentPage]);
 
   return (
     <>
@@ -275,28 +302,34 @@ const OrdersPage = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
             <h1 className="text-2xl font-bold text-neutral-800">My Orders</h1>
-            <div className="flex flex-wrap gap-4 items-center">
+            <div className="flex gap-4 items-center">
               {/* Status Filter */}
               <select
                 value={statusFilter}
-                onChange={e => setStatusFilter(e.target.value as StatusFilter)}
+                onChange={(e) =>
+                  setStatusFilter(e.target.value as StatusFilter)
+                }
                 className="px-4 py-2 rounded-lg border border-gray-300 bg-white text-sm font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-green-500"
               >
-                {statusFilterOptions.map(opt => (
-                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                {statusFilterOptions.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
                 ))}
               </select>
-              
+
               {/* Branch Filter */}
               <select
                 value={selectedBranchFilter}
-                onChange={e => setSelectedBranchFilter(e.target.value)}
+                onChange={(e) => setSelectedBranchFilter(e.target.value)}
                 className="px-4 py-2 rounded-lg border border-gray-300 bg-white text-sm font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-green-500"
                 disabled={isLoadingBranches}
               >
                 <option value="">All Branches</option>
-                {availableBranches.map(branch => (
-                  <option key={branch._id} value={branch._id}>{branch.name}</option>
+                {availableBranches.map((branch) => (
+                  <option key={branch._id} value={branch._id}>
+                    {branch.name}
+                  </option>
                 ))}
               </select>
             </div>
@@ -305,38 +338,81 @@ const OrdersPage = () => {
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Order #</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Delivery Method</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Order #
+                  </th>
+                  <th className="px-6 w-96 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Date
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Status
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Delivery Method
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Total
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Action
+                  </th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-100">
                 {isLoading ? (
-                  <tr><td colSpan={6} className="text-center py-8">Loading...</td></tr>
+                  <tr>
+                    <td colSpan={6} className="text-center py-8">
+                      Loading...
+                    </td>
+                  </tr>
                 ) : paginatedOrders.length === 0 ? (
-                  <tr><td colSpan={6} className="text-center py-8 text-gray-500">No orders found.</td></tr>
+                  <tr>
+                    <td colSpan={6} className="text-center py-8 text-gray-500">
+                      No orders found.
+                    </td>
+                  </tr>
                 ) : (
                   paginatedOrders.map((order) => (
-                    <tr key={order._id} className="hover:bg-green-50/30 transition">
-                      <td className="px-6 py-4 font-medium text-gray-900">{order.orderNumber}</td>
-                      <td className="px-6 py-4 text-gray-700">{format(new Date(order.createdAt), "MMM d, yyyy • h:mm a")}</td>
+                    <tr
+                      key={order._id}
+                      className="hover:bg-green-50/30 transition"
+                    >
+                      <td className="px-6 py-4 font-medium text-gray-900">
+                        {order.orderNumber}
+                      </td>
+                      <td className="px-6 w-96 py-4 text-gray-700">
+                        {format(
+                          new Date(order.createdAt),
+                          "MMM d, yyyy • h:mm a"
+                        )}
+                      </td>
                       <td className="px-6 py-4">
-                        <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(order.status)}`}>
-                          {order.status === OrderStatus.COMPLETED ? "Completed" :
-                          order.status === OrderStatus.PROCESSING ? "Processing" :
-                          order.status === OrderStatus.PENDING ? "Pending" :
-                          order.status === OrderStatus.CANCELLED ? "Cancelled" : order.status}
+                        <span
+                          className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(
+                            order.status
+                          )}`}
+                        >
+                          {order.status === OrderStatus.COMPLETED
+                            ? "Completed"
+                            : order.status === OrderStatus.PROCESSING
+                            ? "Processing"
+                            : order.status === OrderStatus.PENDING
+                            ? "Pending"
+                            : order.status === OrderStatus.CANCELLED
+                            ? "Cancelled"
+                            : order.status}
                         </span>
                       </td>
-                      <td className="px-6 py-4 text-gray-700 capitalize">{getDeliveryMethod(order)}</td>
-                      <td className="px-6 py-4 font-semibold text-black">£{order.totalAmount.toFixed(2)}</td>
+                      <td className="px-6 py-4 text-gray-700 capitalize">
+                        {getDeliveryMethod(order)}
+                      </td>
+                      <td className="px-6 py-4 font-semibold text-black">
+                        £{order.totalAmount.toFixed(2)}
+                      </td>
                       <td className="px-6 py-4">
                         <button
                           onClick={() => setModalOrder(order)}
-                          className="px-4 py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition"
+                          className="px-4 py-2 bg-green-600 md:text-base text-sm text-white rounded-lg font-medium hover:bg-green-700 transition"
                         >
                           Show Details
                         </button>
@@ -349,27 +425,78 @@ const OrdersPage = () => {
           </div>
           {/* Pagination Controls */}
           {totalPages > 1 && (
-            <div className="flex justify-center items-center gap-2 mt-6">
+            <div className="flex flex-wrap justify-center items-center gap-2 mt-6 text-sm">
+              {/* Prev button */}
               <button
                 onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                 disabled={currentPage === 1}
-                className="px-3 py-1 rounded bg-gray-100 text-gray-700 disabled:opacity-50"
+                className="px-3 py-2 rounded font-medium border border-gray-300 bg-gray-100 text-gray-700 disabled:opacity-50"
               >
                 Prev
               </button>
-              {Array.from({ length: totalPages }, (_, i) => (
-                <button
-                  key={i}
-                  onClick={() => setCurrentPage(i + 1)}
-                  className={`px-3 py-1 rounded ${currentPage === i + 1 ? "bg-green-600 text-white" : "bg-gray-100 text-gray-700"}`}
-                >
-                  {i + 1}
-                </button>
-              ))}
+
+              {/* First page */}
+              {currentPage > 2 && (
+                <>
+                  <button
+                    onClick={() => setCurrentPage(1)}
+                    className={`px-3 py-1 rounded ${
+                      currentPage === 1
+                        ? "bg-green-600 text-white"
+                        : "bg-gray-100 text-gray-700"
+                    }`}
+                  >
+                    1
+                  </button>
+                  {currentPage > 3 && <span className="px-2">...</span>}
+                </>
+              )}
+
+              {/* Pages around current */}
+              {Array.from({ length: totalPages }, (_, i) => i + 1)
+                .filter(
+                  (page) => page >= currentPage - 1 && page <= currentPage + 1 // show 1 before and 1 after
+                )
+                .map((page) => (
+                  <button
+                    key={page}
+                    onClick={() => setCurrentPage(page)}
+                    className={`px-3 py-2 rounded ${
+                      currentPage === page
+                        ? "bg-green-600 text-white"
+                        : "bg-gray-100 text-gray-700"
+                    }`}
+                  >
+                    {page}
+                  </button>
+                ))}
+
+              {/* Last page */}
+              {currentPage < totalPages - 1 && (
+                <>
+                  {currentPage < totalPages - 2 && (
+                    <span className="px-2">...</span>
+                  )}
+                  <button
+                    onClick={() => setCurrentPage(totalPages)}
+                    className={`px-3 py-2 rounded ${
+                      currentPage === totalPages
+                        ? "bg-green-600 text-white"
+                        : "bg-gray-100 text-gray-700"
+                    }`}
+                  >
+                    {totalPages}
+                  </button>
+                </>
+              )}
+
+              {/* Next button */}
               <button
-                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                onClick={() =>
+                  setCurrentPage((p) => Math.min(totalPages, p + 1))
+                }
                 disabled={currentPage === totalPages}
-                className="px-3 py-1 rounded bg-gray-100 text-gray-700 disabled:opacity-50"
+                className="px-3 py-2 rounded font-medium border border-gray-300 bg-gray-100 text-gray-700 disabled:opacity-50"
               >
                 Next
               </button>
@@ -377,7 +504,10 @@ const OrdersPage = () => {
           )}
           {/* Order Details Modal */}
           {modalOrder && (
-            <Dialog open={!!modalOrder} onOpenChange={(open) => !open && setModalOrder(null)}>
+            <Dialog
+              open={!!modalOrder}
+              onOpenChange={(open) => !open && setModalOrder(null)}
+            >
               <DialogContent>
                 <DialogHeader>
                   <DialogTitle>Order Details</DialogTitle>
@@ -389,61 +519,101 @@ const OrdersPage = () => {
                   </div>
                   <div className="flex justify-between mb-2">
                     <span className="font-medium">Date:</span>
-                    <span>{format(new Date(modalOrder.createdAt), "MMM d, yyyy • h:mm a")}</span>
+                    <span>
+                      {format(
+                        new Date(modalOrder.createdAt),
+                        "MMM d, yyyy • h:mm a"
+                      )}
+                    </span>
                   </div>
                   <div className="flex justify-between mb-2">
                     <span className="font-medium">Status:</span>
-                    <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(modalOrder.status)}`}>
+                    <span
+                      className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(
+                        modalOrder.status
+                      )}`}
+                    >
                       {modalOrder.status}
                     </span>
                   </div>
                   <div className="flex justify-between mb-2">
                     <span className="font-medium">Delivery Method:</span>
-                    <span className="capitalize">{getDeliveryMethod(modalOrder)}</span>
+                    <span className="capitalize">
+                      {getDeliveryMethod(modalOrder)}
+                    </span>
                   </div>
                   <div className="flex justify-between mb-2">
                     <span className="font-medium">Total:</span>
-                    <span className="font-semibold">£{modalOrder.totalAmount.toFixed(2)}</span>
+                    <span className="font-semibold">
+                      £{modalOrder.totalAmount.toFixed(2)}
+                    </span>
                   </div>
                 </div>
                 <div className="mb-4">
                   <h3 className="font-semibold mb-2">Branch</h3>
-                  <div className="text-sm text-gray-700 mb-1"><MapPin className="w-4 h-4 inline-block mb-0.5 text-green-700 mr-1" />{modalOrder.branchId.name}</div>
-                  <div className="text-xs text-gray-500">{String(formatAddress(modalOrder.branchId.address))}</div>
+                  <div className="text-sm text-gray-700 mb-1">
+                    <MapPin className="w-4 h-4 inline-block mb-0.5 text-green-700 mr-1" />
+                    {modalOrder.branchId.name}
+                  </div>
+                  <div className="text-xs text-gray-500">
+                    {String(formatAddress(modalOrder.branchId.address))}
+                  </div>
                 </div>
                 <div className="mb-4">
                   <h3 className="font-semibold mb-2">Products</h3>
                   <ul className="divide-y divide-gray-100">
-                    {modalOrder.products.map((item, idx) => (
+                    {modalOrder?.products?.map((item, idx) => (
                       <li key={idx} className="py-2">
                         <div className="flex justify-between">
-                          <span>{item.quantity}x {item.product.name}</span>
-                          <span>£{(item.price * item.quantity).toFixed(2)}</span>
+                          <span>
+                            {item.quantity}x {item.product.name}
+                          </span>
+                          <span>
+                            £{(item.price * item.quantity).toFixed(2)}
+                          </span>
                         </div>
-                        {item.selectedAttributes && item.selectedAttributes.length > 0 && (
-                          <ul className="ml-4 mt-1 text-xs text-gray-500">
-                            {item.selectedAttributes.map((attr, i) => (
-                              <li key={i} className="mb-1">
-                                <span className="font-medium text-gray-700">{attr.name}:</span> {attr.value}
-                                {attr.itemPrice !== undefined && (
-                                  <span className="ml-2 text-green-600">£{Number(attr.itemPrice).toFixed(2)}</span>
-                                )}
-                              </li>
-                            ))}
-                          </ul>
-                        )}
+
+                        {/* Selected Attributes */}
+                        {item.selectedAttributes &&
+                          item.selectedAttributes.length > 0 && (
+                            <ul className="ml-4 mt-1 text-xs text-gray-500">
+                              {item.selectedAttributes.map((attr, i) => (
+                                <li key={i} className="mb-1">
+                                  <span className="font-medium text-sm mt-2 text-gray-700">
+                                    {attr?.attributeName}:
+                                  </span>
+                                  <ul className="ml-3 text-sm list-disc">
+                                    {attr?.selectedItems?.map((sel, j) => (
+                                      <li key={j}>
+                                        {sel.quantity}x {sel.itemName}
+                                        {sel.itemPrice !== undefined && (
+                                          <span className="ml-2 text-green-600">
+                                            £{Number(sel.itemPrice).toFixed(2)}
+                                          </span>
+                                        )}
+                                      </li>
+                                    ))}
+                                  </ul>
+                                </li>
+                              ))}
+                            </ul>
+                          )}
                       </li>
                     ))}
                   </ul>
                 </div>
-                {modalOrder.deliveryMethod === "delivery" && modalOrder.deliveryAddress && (
-                  <div className="mb-4">
-                    <h3 className="font-semibold mb-2">Delivery Address</h3>
-                    <div className="text-sm text-gray-700">
-                      {modalOrder.deliveryAddress.street}, {modalOrder.deliveryAddress.city}, {modalOrder.deliveryAddress.state}, {modalOrder.deliveryAddress.postalCode}
+                {modalOrder.deliveryMethod === "delivery" &&
+                  modalOrder.deliveryAddress && (
+                    <div className="mb-4">
+                      <h3 className="font-semibold mb-2">Delivery Address</h3>
+                      <div className="text-sm text-gray-700">
+                        {modalOrder.deliveryAddress.street},{" "}
+                        {modalOrder.deliveryAddress.city},{" "}
+                        {modalOrder.deliveryAddress.state},{" "}
+                        {modalOrder.deliveryAddress.postalCode}
+                      </div>
                     </div>
-                  </div>
-                )}
+                  )}
                 <div className="flex justify-end">
                   <button
                     onClick={() => setModalOrder(null)}

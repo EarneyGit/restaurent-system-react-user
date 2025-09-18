@@ -110,8 +110,6 @@ const ProductCard: React.FC<{ product: Product }> = ({ product }) => {
   const imageUrl = getImageUrl(product.images?.[selectedVariant]);
   const hasMultipleImages = (product.images?.length || 0) > 2;
 
-  console.log("imageUrl",imageUrl)
-  console.log("imageError",imageError)
   return (
     <div className="bg-white rounded-3xl overflow-hidden border border-gray-200 shadow-sm hover:shadow-md transition-all duration-300 relative flex flex-col h-[400px] w-full">
       {/* Category Badge */}

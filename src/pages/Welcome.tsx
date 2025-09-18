@@ -90,7 +90,7 @@ const Welcome = () => {
         {/* Info Card */}
         <div className="text-center bg-white/90 backdrop-blur-lg glow-effect p-8 rounded-3xl shadow-2xl border border-green-800/90 max-w-xl mb-6">
           <h1 className="text-4xl font-mono font-bold bg-gradient-to-r from-foodyman-green via-foodyman-green to-[#4caf50] bg-clip-text text-transparent tracking-tight mb-4">
-            RESTROMAN
+            Rasoie - Indian Restaurent
           </h1>
           <p className="text-black/70 font-semibold text-lg mb-8">
             Experience the finest flavors, crafted with passion and served with

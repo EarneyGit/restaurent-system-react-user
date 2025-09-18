@@ -416,10 +416,10 @@ const AboutPage = () => {
         {/* Restaurant Description */}
         <div className="text-center mb-12">
           <h1 className="text-4xl font-bold text-white mb-4">
-            Welcome to Restroman
+            Welcome to Rasoie
           </h1>
           <p className="text-white/80 text-lg max-w-2xl mx-auto">
-            Experience the perfect blend of taste and tradition at Restroman. We
+            Experience the perfect blend of taste and tradition at Rasoie. We
             pride ourselves on serving delicious meals made with the finest
             ingredients, creating memorable dining experiences for our guests.
           </p>
