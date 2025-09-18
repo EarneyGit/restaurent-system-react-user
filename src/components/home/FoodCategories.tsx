@@ -22,6 +22,68 @@ import {
 } from "lucide-react";
 import { useBranch } from "@/context/BranchContext";
 
+// Utility function to check if category is available at current time
+const isCategoryAvailable = (category: Category): boolean => {
+  if (!category.availability) return true; // If no availability data, assume available
+
+  const now = new Date();
+  const currentDay = now.toLocaleDateString('en-US', { weekday: 'long' }); // Get full day name (Monday, Tuesday, etc.)
+  const currentTime = now.toTimeString().substring(0, 5); // Get time in HH:MM format
+
+  const dayAvailability = category.availability[currentDay as keyof typeof category.availability];
+  if (!dayAvailability) return true;
+
+  // If not available for this day
+  if (dayAvailability.type === 'Not Available') {
+    return false;
+  }
+
+  // If available all day
+  if (dayAvailability.type === 'All Day') {
+    return true;
+  }
+
+  // If specific times, check if current time falls within the time slot
+  if (dayAvailability.type === 'Specific Times') {
+    if (!dayAvailability.startTime || !dayAvailability.endTime) {
+      return false;
+    }
+
+    return currentTime >= dayAvailability.startTime && currentTime <= dayAvailability.endTime;
+  }
+
+  return true;
+};
+
+// Utility function to get availability message for category
+const getCategoryAvailabilityMessage = (category: Category): string => {
+  if (!category.availability) return '';
+
+  const now = new Date();
+  const currentDay = now.toLocaleDateString('en-US', { weekday: 'long' });
+  
+  const dayAvailability = category.availability[currentDay as keyof typeof category.availability];
+  if (!dayAvailability) return '';
+
+  if (dayAvailability.type === 'Not Available') {
+    return 'Not available today';
+  }
+
+  if (dayAvailability.type === 'All Day') {
+    return ''; // Don't show message for all day availability
+  }
+
+  if (dayAvailability.type === 'Specific Times') {
+    if (!dayAvailability.startTime || !dayAvailability.endTime) {
+      return 'Not available today';
+    }
+    
+    return `Available ${dayAvailability.startTime} - ${dayAvailability.endTime}`;
+  }
+
+  return '';
+};
+
 // Expanded icon mapping
 const CATEGORY_ICONS: { [key: string]: { icon: LucideIcon; color: string } } = {
   Desserts: { icon: IceCream2, color: "text-pink-400" },
@@ -50,6 +112,7 @@ interface CategoryProps {
   id: string;
   index: number;
   onClick: () => void;
+  category: Category;
 }
 
 const CategoryItem: React.FC<CategoryProps> = ({
@@ -57,9 +120,14 @@ const CategoryItem: React.FC<CategoryProps> = ({
   name,
   isActive,
   onClick,
+  category,
 }) => {
   const [imageError, setImageError] = useState(false);
   const IconComponent = CATEGORY_ICONS[name] || CATEGORY_ICONS.default;
+  
+  // Check category availability
+  const isAvailable = isCategoryAvailable(category);
+  const availabilityMessage = getCategoryAvailabilityMessage(category);
 
   const getImageUrl = (url: string): string | null => {
     if (!url || url.trim() === "") return null;
@@ -86,28 +154,51 @@ const CategoryItem: React.FC<CategoryProps> = ({
   return (
     <button
       onClick={onClick}
-      className="flex flex-col items-center min-w-[90px] shrink-0 snap-start"
+      className={`flex flex-col items-center min-w-[90px] shrink-0 snap-start ${
+        !isAvailable ? 'opacity-60' : ''
+      }`}
     >
-      <div className="w-[80px] h-[80px] border-gray-200 border rounded-xl shadow-sm transition-all duration-300 mb-2 flex items-center justify-center bg-white overflow-hidden">
+      <div className={`w-[80px] h-[80px] border-gray-200 border rounded-xl shadow-sm transition-all duration-300 mb-2 flex items-center justify-center bg-white overflow-hidden relative ${
+        !isAvailable ? 'grayscale' : ''
+      }`}>
         {shouldShowImage ? (
           <img
             src={processedImageUrl}
             alt={name}
-            className="w-full h-full object-cover"
+            className={`w-full h-full object-cover ${
+              !isAvailable ? 'grayscale' : ''
+            }`}
             onError={() => setImageError(true)}
             loading="lazy"
           />
         ) : (
-          <IconComponent.icon className={`w-6 h-6 ${IconComponent.color}`} />
+          <IconComponent.icon className={`w-6 h-6 ${IconComponent.color} ${
+            !isAvailable ? 'grayscale' : ''
+          }`} />
+        )}
+        {!isAvailable && (
+          <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+            <span className="text-white text-xs font-semibold">Not Available</span>
+          </div>
         )}
       </div>
       <span
         className={`text-sm text-center font-medium break-words ${
           isActive ? "text-neutral-700" : "text-neutral-600"
-        }`}
+        } ${!isAvailable ? 'text-gray-500' : ''}`}
       >
         {name}
       </span>
+      {/* Availability Status */}
+      {availabilityMessage && (
+        <div className={`text-xs mt-1 px-2 py-0.5 rounded ${
+          !isAvailable 
+            ? 'bg-red-100 text-red-700' 
+            : 'bg-green-100 text-green-700'
+        }`}>
+          {availabilityMessage}
+        </div>
+      )}
     </button>
   );
 };
@@ -195,6 +286,7 @@ const FoodCategories = () => {
             isActive={category.id === activeCategory}
             index={index}
             onClick={() => handleCategoryClick(category.id, category.name)}
+            category={category}
           />
         ))}
       </div>
