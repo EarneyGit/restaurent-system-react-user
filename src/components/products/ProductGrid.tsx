@@ -67,8 +67,16 @@ const ProductGrid: React.FC<ProductGridProps> = React.memo(
     // ✅ Check branch availability (delivery/collection windows)
     const checkBranchAvailability = useCallback(async (branchId: string) => {
       try {
+        const getTodayDate = () => {
+          const today = new Date();
+          const year = today.getFullYear();
+          const month = String(today.getMonth() + 1).padStart(2, "0");
+          const day = String(today.getDate()).padStart(2, "0");
+          return `${year}-${month}-${day}`;
+        };
+        const todayDate = getTodayDate();
         const currentDate = new Date();
-        const formattedDate = currentDate.toISOString().split("T")[0];
+        const formattedDate = todayDate;
         const formattedTime = currentDate.toTimeString().slice(0, 5);
 
         const [deliveryRes, collectionRes] = await Promise.all([
