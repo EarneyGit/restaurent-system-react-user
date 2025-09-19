@@ -24,6 +24,18 @@ import { ChevronDown, ChevronUp } from "lucide-react";
 interface CartSummary {
   subtotal: number;
   deliveryFee: number;
+  serviceCharges?: {
+    totalMandatory: number;
+    totalOptional: number;
+    totalAll: number;
+    breakdown: Array<{
+      id: string;
+      name: string;
+      amount: number;
+      type: string;
+      optional: boolean;
+    }>;
+  };
   total: number;
   itemCount: number;
 }
@@ -395,6 +407,8 @@ const CartPage = () => {
     removeFromCart,
     formatCurrency,
     getCartItemCount,
+    toggleOptionalServiceCharge,
+    isOptionalServiceChargeAccepted,
   } = useCart();
   const { isAuthenticated, token } = useAuth();
   const { sessionId } = useGuestCart();
@@ -402,6 +416,12 @@ const CartPage = () => {
   const [cartSummary, setCartSummary] = useState<CartSummary>({
     subtotal: 0,
     deliveryFee: 0,
+    serviceCharges: {
+      totalMandatory: 0,
+      totalOptional: 0,
+      totalAll: 0,
+      breakdown: []
+    },
     total: 0,
     itemCount: 0,
   });
@@ -431,6 +451,12 @@ const CartPage = () => {
           setCartSummary({
             subtotal: response.data.data.subtotal || 0,
             deliveryFee: response.data.data.deliveryFee || 0,
+            serviceCharges: response.data.data.serviceCharges || {
+              totalMandatory: 0,
+              totalOptional: 0,
+              totalAll: 0,
+              breakdown: []
+            },
             total: response.data.data.total || 0,
             itemCount: response.data.data.itemCount || 0,
           });
@@ -650,6 +676,46 @@ const CartPage = () => {
                         )}
                       </div>
 
+                      {/* Service Charges */}
+                      {cartSummary.serviceCharges && cartSummary.serviceCharges.totalMandatory > 0 && (
+                        <div className="flex justify-between text-sm items-center">
+                          <span className="text-gray-600">Service Charge (Mandatory)</span>
+                          <span className="font-medium">
+                            {formatCurrency(cartSummary.serviceCharges.totalMandatory)}
+                          </span>
+                        </div>
+                      )}
+
+                      {/* Optional Service Charges with Checkboxes */}
+                      {cartSummary.serviceCharges && cartSummary.serviceCharges.breakdown && cartSummary.serviceCharges.breakdown.length > 0 && (
+                        <div className="space-y-2">
+                          {cartSummary.serviceCharges.breakdown
+                            .filter(charge => charge.optional)
+                            .map((charge) => (
+                              <div key={charge.id} className="flex justify-between text-sm items-center">
+                                <div className="flex items-center space-x-2">
+                                  <input
+                                    type="checkbox"
+                                    id={`optional-charge-${charge.id}`}
+                                    checked={isOptionalServiceChargeAccepted(charge.id)}
+                                    onChange={() => toggleOptionalServiceCharge(charge.id)}
+                                    className="w-4 h-4 text-green-600 bg-gray-100 border-gray-300 rounded focus:ring-green-500 focus:ring-2"
+                                  />
+                                  <label 
+                                    htmlFor={`optional-charge-${charge.id}`}
+                                    className="text-gray-600 cursor-pointer"
+                                  >
+                                    {charge.name} (Optional)
+                                  </label>
+                                </div>
+                                <span className="font-medium">
+                                  {formatCurrency(charge.amount)}
+                                </span>
+                              </div>
+                            ))}
+                        </div>
+                      )}
+
                       {/* Total Savings */}
                       {cartItems.some(
                         (item) =>
@@ -683,7 +749,12 @@ const CartPage = () => {
                               cartItems.reduce(
                                 (total, item) => total + item.price.total,
                                 0
-                              ) + cartSummary.deliveryFee
+                              ) + 
+                              cartSummary.deliveryFee + 
+                              (cartSummary.serviceCharges?.totalMandatory || 0) +
+                              (cartSummary.serviceCharges?.breakdown
+                                ?.filter(charge => charge.optional && isOptionalServiceChargeAccepted(charge.id))
+                                ?.reduce((total, charge) => total + charge.amount, 0) || 0)
                             )}
                           </span>
                           {cartItems.some(

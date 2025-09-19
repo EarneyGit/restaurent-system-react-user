@@ -44,6 +44,7 @@ export interface CartItem extends Omit<Product, 'price'> {
   itemTotal?: number;
   price: PriceStructure;
   selectedAttributes?: SelectedAttribute[];
+  orderType?: string;
 }
 
 interface BranchCart {
@@ -63,12 +64,17 @@ interface CartContextType {
   getOrderTotal: () => number;
   clearBranchCart: (branchId: string) => Promise<void>;
   formatCurrency: (amount: number) => string;
+  // Optional service charge handling
+  acceptedOptionalServiceCharges: string[];
+  toggleOptionalServiceCharge: (chargeId: string) => void;
+  isOptionalServiceChargeAccepted: (chargeId: string) => boolean;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
 export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [branchCarts, setBranchCarts] = useState<BranchCart>({});
+  const [acceptedOptionalServiceCharges, setAcceptedOptionalServiceCharges] = useState<string[]>([]);
   const { selectedBranch } = useBranch();
   const { isAuthenticated, token, user } = useAuth();
   const { sessionId, cartData: guestCartData } = useGuestCart();
@@ -113,6 +119,21 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
               branchId: selectedBranch.id
             }))
           }));
+
+          // Auto-accept all optional service charges by default
+          if (response.data.data.serviceCharges?.breakdown) {
+            const optionalChargeIds = response.data.data.serviceCharges.breakdown
+              .filter((charge: any) => charge.optional)
+              .map((charge: any) => charge.id);
+            
+            if (optionalChargeIds.length > 0) {
+              setAcceptedOptionalServiceCharges(prev => {
+                // Merge with existing accepted charges, avoiding duplicates
+                const newAcceptedCharges = [...new Set([...prev, ...optionalChargeIds])];
+                return newAcceptedCharges;
+              });
+            }
+          }
         }
       } catch (error) {
         console.error('Error loading cart:', error);
@@ -157,11 +178,15 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     try {
+      // Get delivery method from localStorage
+      const deliveryMethod = localStorage.getItem("deliveryMethod") || "delivery";
+      
       const payload = {
         productId: product.id,
         quantity: product.quantity,
         branchId: selectedBranch.id,
         specialRequirements: product.specialRequirements,
+        orderType: deliveryMethod,
         selectedAttributes: product.attributes?.map(attr => ({
           attributeId: attr.id,
           selectedItems: product.selectedOptions?.[attr.id] ? [{
@@ -192,6 +217,21 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
           ...prevCarts,
           [selectedBranch.id]: response.data.data.items
         }));
+
+        // Auto-accept all optional service charges by default
+        if (response.data.data.serviceCharges?.breakdown) {
+          const optionalChargeIds = response.data.data.serviceCharges.breakdown
+            .filter((charge: any) => charge.optional)
+            .map((charge: any) => charge.id);
+          
+          if (optionalChargeIds.length > 0) {
+            setAcceptedOptionalServiceCharges(prev => {
+              // Merge with existing accepted charges, avoiding duplicates
+              const newAcceptedCharges = [...new Set([...prev, ...optionalChargeIds])];
+              return newAcceptedCharges;
+            });
+          }
+        }
       }
 
       // toast.success('Added to cart');
@@ -262,6 +302,21 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
             ...prevCarts,
             [selectedBranch.id]: response.data.data.items
           }));
+
+          // Auto-accept all optional service charges by default
+          if (response.data.data.serviceCharges?.breakdown) {
+            const optionalChargeIds = response.data.data.serviceCharges.breakdown
+              .filter((charge: any) => charge.optional)
+              .map((charge: any) => charge.id);
+            
+            if (optionalChargeIds.length > 0) {
+              setAcceptedOptionalServiceCharges(prev => {
+                // Merge with existing accepted charges, avoiding duplicates
+                const newAcceptedCharges = [...new Set([...prev, ...optionalChargeIds])];
+                return newAcceptedCharges;
+              });
+            }
+          }
         }
       } else {
         const response = await axios.put(`${CART_ENDPOINTS.GUEST_CART_ITEMS}/${cartItemId}`, updates, { headers });
@@ -270,6 +325,21 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
             ...prevCarts,
             [selectedBranch.id]: response.data.data.items
           }));
+
+          // Auto-accept all optional service charges by default
+          if (response.data.data.serviceCharges?.breakdown) {
+            const optionalChargeIds = response.data.data.serviceCharges.breakdown
+              .filter((charge: any) => charge.optional)
+              .map((charge: any) => charge.id);
+            
+            if (optionalChargeIds.length > 0) {
+              setAcceptedOptionalServiceCharges(prev => {
+                // Merge with existing accepted charges, avoiding duplicates
+                const newAcceptedCharges = [...new Set([...prev, ...optionalChargeIds])];
+                return newAcceptedCharges;
+              });
+            }
+          }
         }
       }
       
@@ -367,6 +437,21 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return getCartTotal() + getDeliveryFee() + getTaxAmount();
   };
 
+  // Optional service charge functions
+  const toggleOptionalServiceCharge = (chargeId: string) => {
+    setAcceptedOptionalServiceCharges(prev => {
+      if (prev.includes(chargeId)) {
+        return prev.filter(id => id !== chargeId);
+      } else {
+        return [...prev, chargeId];
+      }
+    });
+  };
+
+  const isOptionalServiceChargeAccepted = (chargeId: string) => {
+    return acceptedOptionalServiceCharges.includes(chargeId);
+  };
+
   return (
     <CartContext.Provider
       value={{
@@ -381,7 +466,10 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
         getTaxAmount,
         getOrderTotal,
         clearBranchCart,
-        formatCurrency
+        formatCurrency,
+        acceptedOptionalServiceCharges,
+        toggleOptionalServiceCharge,
+        isOptionalServiceChargeAccepted
       }}
     >
       {children}
