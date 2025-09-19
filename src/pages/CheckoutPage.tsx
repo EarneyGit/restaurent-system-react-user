@@ -349,9 +349,12 @@ interface CartData {
     totalOptional: number;
     totalAll: number;
     breakdown: Array<{
+      id: string;
       name: string;
-      amount: number;
       type: string;
+      value: number;
+      amount: number;
+      optional: boolean;
     }>;
   };
 }
@@ -360,6 +363,8 @@ interface OrderTotals {
   subtotal: number;
   attributesTotal: number;
   deliveryFee: number;
+  serviceCharges: number;
+  optionalServiceCharges: number;
   taxAmount: number;
   taxRate: number;
   mandatoryCharges: number;
@@ -411,7 +416,8 @@ function getItemTotal(item: CartItemType): number {
 const calculateOrderTotals = (
   cartData: CartData,
   items: CartItemType[],
-  promoDiscountAmount?: number
+  promoDiscountAmount?: number,
+  acceptedOptionalServiceCharges: string[] = []
 ): OrderTotals => {
   // Calculate base subtotal from items
   const subtotal = items.reduce(
@@ -439,8 +445,16 @@ const calculateOrderTotals = (
   const taxAmount = (subtotal * taxRate) / 100;
 
   // Get service charges
-  const mandatoryCharges = cartData.serviceCharges?.totalMandatory || 0;
-  const optionalCharges = cartData.serviceCharges?.totalOptional || 0;
+  const serviceCharges = cartData.serviceCharges?.totalMandatory || 0;
+  
+  // Calculate accepted optional service charges
+  const acceptedOptionalCharges = cartData.serviceCharges?.breakdown
+    ?.filter(charge => charge.optional && acceptedOptionalServiceCharges.includes(charge.id))
+    ?.reduce((total, charge) => total + charge.amount, 0) || 0;
+  
+  // Legacy fields for backward compatibility
+  const mandatoryCharges = serviceCharges;
+  const optionalCharges = acceptedOptionalCharges;
 
   // Calculate total savings
   const totalSavings = items.reduce(
@@ -469,6 +483,8 @@ const calculateOrderTotals = (
     subtotal,
     attributesTotal,
     deliveryFee,
+    serviceCharges,
+    optionalServiceCharges: acceptedOptionalCharges,
     taxAmount,
     taxRate,
     mandatoryCharges,
@@ -651,7 +667,14 @@ const CheckoutPage = () => {
   const { selectedBranch, fetchBranches } = useBranch();
   const [paymentMethod, setPaymentMethod] = useState("card");
   const navigate = useNavigate();
-  const { cartItems, formatCurrency, clearCart } = useCart();
+  const { 
+    cartItems, 
+    formatCurrency, 
+    clearCart, 
+    toggleOptionalServiceCharge,
+    isOptionalServiceChargeAccepted,
+    acceptedOptionalServiceCharges,
+  } = useCart();
   const { sessionId } = useGuestCart();
   const [isProcessing, setIsProcessing] = useState(false);
   const [showConfirmation, setShowConfirmation] = useState(false);
@@ -773,7 +796,8 @@ const CheckoutPage = () => {
         const totals = calculateOrderTotals(
           cartData,
           cartItems,
-          appliedPromo?.discountAmount
+          appliedPromo?.discountAmount,
+          acceptedOptionalServiceCharges
         );
 
         setCartSummary({
@@ -800,6 +824,7 @@ const CheckoutPage = () => {
     cartItems,
     selectedBranch?.id,
     appliedPromo?.discountAmount,
+    acceptedOptionalServiceCharges,
   ]);
 
   React.useEffect(() => {
@@ -1340,6 +1365,7 @@ const CheckoutPage = () => {
           subtotal + deliveryFeeAmount + taxAmount, // Use originalTotal from API
         finalTotal: finalTotal,
         status: "pending", // Set initial status
+        acceptedOptionalServiceCharges: acceptedOptionalServiceCharges,
       };
 
       // Set up headers based on authentication status
@@ -2111,16 +2137,33 @@ const CheckoutPage = () => {
                       </div>
                     )}
 
-                    {cartSummary.serviceCharges.totalOptional > 0 && (
-                      <div className="flex justify-between text-sm">
-                        <span className="text-gray-600">
-                          Service Charge (Optional)
-                        </span>
-                        <span className="font-medium">
-                          {formatCurrency(
-                            cartSummary.serviceCharges.totalOptional
-                          )}
-                        </span>
+                    {/* Optional Service Charges with Checkboxes */}
+                    {cartSummary.serviceCharges.breakdown && cartSummary.serviceCharges.breakdown.length > 0 && (
+                      <div className="space-y-2">
+                        {cartSummary.serviceCharges.breakdown
+                          .filter(charge => charge.optional)
+                          .map((charge) => (
+                            <div key={charge.id} className="flex justify-between text-sm items-center">
+                              <div className="flex items-center space-x-2">
+                                <input
+                                  type="checkbox"
+                                  id={`checkout-optional-charge-${charge.id}`}
+                                  checked={isOptionalServiceChargeAccepted(charge.id)}
+                                  onChange={() => toggleOptionalServiceCharge(charge.id)}
+                                  className="w-4 h-4 text-green-600 bg-gray-100 border-gray-300 rounded focus:ring-green-500 focus:ring-2"
+                                />
+                                <label 
+                                  htmlFor={`checkout-optional-charge-${charge.id}`}
+                                  className="text-gray-600 cursor-pointer"
+                                >
+                                  {charge.name} (Optional)
+                                </label>
+                              </div>
+                              <span className="font-medium">
+                                {formatCurrency(charge.amount)}
+                              </span>
+                            </div>
+                          ))}
                       </div>
                     )}
 
@@ -2197,8 +2240,10 @@ const CheckoutPage = () => {
                                     0
                                   ) +
                                     cartSummary.deliveryFee +
-                                    (cartSummary.serviceCharges?.totalAll ||
-                                      0) +
+                                    (cartSummary.serviceCharges?.totalMandatory || 0) +
+                                    (cartSummary.serviceCharges?.breakdown
+                                      ?.filter(charge => charge.optional && acceptedOptionalServiceCharges.includes(charge.id))
+                                      ?.reduce((total, charge) => total + charge.amount, 0) || 0) +
                                     (cartSummary.subtotal *
                                       cartSummary.taxRate) /
                                       100 -
