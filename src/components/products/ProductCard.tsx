@@ -452,6 +452,9 @@ const ProductCard: React.FC<ProductCardProps> = ({
         total: effectivePrice,
       };
 
+      // Get delivery method from localStorage
+      const deliveryMethod = localStorage.getItem("deliveryMethod") || "delivery";
+      
       await addToCart({
         ...product,
         productId: product.id,
@@ -460,6 +463,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
         specialRequirements: "",
         itemTotal: effectivePrice * quantity,
         branchId: selectedBranch.id,
+        orderType: deliveryMethod,
         price: priceStructure,
       });
       toast.success("Added to cart successfully");
@@ -540,6 +544,9 @@ const ProductCard: React.FC<ProductCardProps> = ({
         total: effectivePrice + attributesTotal,
       };
 
+      // Get delivery method from localStorage
+      const deliveryMethod = localStorage.getItem("deliveryMethod") || "delivery";
+      
       await addToCart({
         ...product,
         productId: product.id,
@@ -548,6 +555,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
         specialRequirements,
         itemTotal: (effectivePrice + attributesTotal) * quantity,
         branchId: selectedBranch.id,
+        orderType: deliveryMethod,
         price: priceStructure,
       });
       setIsOptionsModalOpen(false);
