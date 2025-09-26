@@ -63,7 +63,7 @@ export interface Category {
 export interface ProductAttribute {
   id: string;
   name: string;
-  type: 'single' | 'multiple';
+  type: 'single' | 'multiple' | 'multiple-times';
   requiresSelection: boolean;
   description?: string;
   choices: {

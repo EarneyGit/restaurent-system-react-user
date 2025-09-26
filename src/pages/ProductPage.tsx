@@ -99,7 +99,10 @@ const ProductPage = () => {
     toast.success(`${product.name} added to cart`);
   };
 
-  const handleOptionsSubmit = (selectedOptions: Record<string, string>, specialRequirements: string) => {
+  interface SelectedAttributeItem { itemId: string; itemName: string; itemPrice: number; quantity: number; }
+  interface SelectedAttribute { attributeId: string; attributeName: string; attributeType: 'single' | 'multiple' | 'multiple-times'; selectedItems: SelectedAttributeItem[] }
+
+  const handleOptionsSubmit = (selectedAttributes: SelectedAttribute[], specialRequirements: string) => {
     if (!selectedProduct) return;
 
     addToCart({
@@ -116,7 +119,7 @@ const ProductPage = () => {
       quantity: 1,
       category: selectedProduct.category,
       branchId: branchId || '',
-      selectedOptions,
+      selectedAttributes,
       specialRequirements,
       attributes: selectedProduct.attributes
     });

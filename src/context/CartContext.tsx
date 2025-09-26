@@ -187,14 +187,21 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
         branchId: selectedBranch.id,
         specialRequirements: product.specialRequirements,
         orderType: deliveryMethod,
-        selectedAttributes: product.attributes?.map(attr => ({
-          attributeId: attr.id,
-          selectedItems: product.selectedOptions?.[attr.id] ? [{
-            itemId: product.selectedOptions[attr.id],
-            quantity: 1
-          }] : []
-        }))
-      };
+        selectedAttributes: (product.selectedAttributes && product.selectedAttributes.length > 0)
+          ? product.selectedAttributes.map(sa => ({
+              attributeId: sa.attributeId,
+              attributeName: sa.attributeName,
+              attributeType: sa.attributeType,
+              selectedItems: sa.selectedItems.map(si => ({ itemId: si.itemId, quantity: si.quantity }))
+            }))
+          : product.attributes?.map(attr => ({
+              attributeId: attr.id,
+              selectedItems: product.selectedOptions?.[attr.id] ? [{
+                itemId: product.selectedOptions[attr.id],
+                quantity: 1
+              }] : []
+            }))
+      } as any;
 
       const headers = isAuthenticated ? {
         Authorization: `Bearer ${token}`,
