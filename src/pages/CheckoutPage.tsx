@@ -572,8 +572,8 @@ const OrderConfirmationModal: React.FC<OrderConfirmationModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl p-6 max-w-lg w-full">
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50  flex items-center justify-center p-4">
+      <div className="bg-white rounded-2xl p-6 max-w-lg w-full max-h-[80vh] overflow-y-auto">
         <div className="text-center mb-6">
           <h3 className="text-2xl font-bold text-gray-900 mb-2">
             Confirm Your Order
