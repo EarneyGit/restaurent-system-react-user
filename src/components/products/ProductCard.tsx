@@ -479,8 +479,11 @@ const ProductCard: React.FC<ProductCardProps> = ({
     }
   };
 
+  interface SelectedAttributeItem { itemId: string; itemName: string; itemPrice: number; quantity: number; }
+  interface SelectedAttribute { attributeId: string; attributeName: string; attributeType: 'single' | 'multiple' | 'multiple-times'; selectedItems: SelectedAttributeItem[] }
+
   const handleOptionsSubmit = async (
-    selectedOptions: Record<string, string>,
+    selectedAttributes: SelectedAttribute[],
     specialRequirements: string
   ) => {
     if (!selectedBranch) {
@@ -519,19 +522,13 @@ const ProductCard: React.FC<ProductCardProps> = ({
     try {
       setIsAddingToCart(true);
 
-      // Calculate attributes price from selected options
+      // Calculate attributes price from selected attributes
       let attributesTotal = 0;
-      if (product.attributes) {
-        product.attributes.forEach((attr) => {
-          const selectedChoiceId = selectedOptions[attr.id];
-          if (selectedChoiceId) {
-            const choice = attr.choices.find((c) => c.id === selectedChoiceId);
-            if (choice) {
-              attributesTotal += choice.price;
-            }
-          }
+      selectedAttributes.forEach(attr => {
+        attr.selectedItems.forEach(item => {
+          attributesTotal += (item.itemPrice || 0) * (item.quantity || 1);
         });
-      }
+      });
 
       // Create proper price structure
       const effectivePrice = activePriceChange
@@ -551,7 +548,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
         ...product,
         productId: product.id,
         quantity,
-        selectedOptions,
+        selectedAttributes,
         specialRequirements,
         itemTotal: (effectivePrice + attributesTotal) * quantity,
         branchId: selectedBranch.id,

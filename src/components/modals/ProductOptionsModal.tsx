@@ -6,10 +6,24 @@ import { useAuth } from '@/context/AuthContext';
 import { useGuestCart } from '@/context/GuestCartContext';
 import { useNavigate } from 'react-router-dom';
 
+interface SelectedAttributeItem {
+  itemId: string;
+  itemName: string;
+  itemPrice: number;
+  quantity: number;
+}
+
+interface SelectedAttribute {
+  attributeId: string;
+  attributeName: string;
+  attributeType: 'single' | 'multiple' | 'multiple-times';
+  selectedItems: SelectedAttributeItem[];
+}
+
 interface ProductOptionsModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onAddToCart: (selectedOptions: Record<string, string>, specialRequirements: string) => void;
+  onAddToCart: (selectedAttributes: SelectedAttribute[], specialRequirements: string) => void;
   productName: string;
   options: ProductAttribute[];
   productId?: string;
@@ -23,7 +37,7 @@ const ProductOptionsModal = ({
   options,
   productId
 }: ProductOptionsModalProps) => {
-  const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>({});
+  const [selectedOptions, setSelectedOptions] = useState<Record<string, string | string[]>>({});
   const [specialRequirements, setSpecialRequirements] = useState('');
   const { isAuthenticated } = useAuth();
   const { sessionId } = useGuestCart();
@@ -36,16 +50,57 @@ const ProductOptionsModal = ({
     }
   }, [isOpen]);
 
-  const handleOptionSelect = (optionId: string, choiceId: string) => {
-    setSelectedOptions(prev => ({
-      ...prev,
-      [optionId]: choiceId
-    }));
+  const handleOptionSelect = (option: ProductAttribute, choiceId: string) => {
+    setSelectedOptions(prev => {
+      const current = prev[option.id];
+      if (option.type === 'single') {
+        return { ...prev, [option.id]: choiceId };
+      }
+      if (option.type === 'multiple') {
+        const currentArray = Array.isArray(current) ? current : [];
+        const exists = currentArray.includes(choiceId);
+        const next = exists ? currentArray.filter(id => id !== choiceId) : [...currentArray, choiceId];
+        return { ...prev, [option.id]: next };
+      }
+      // multiple-times: toggle selection and manage quantities
+      const currentArray = Array.isArray(current) ? current : [];
+      const exists = currentArray.includes(choiceId);
+      const next = exists ? currentArray.filter(id => id !== choiceId) : [...currentArray, choiceId];
+      // Update quantities to ensure selected starts at 1 and deselected is removed
+      setQuantities(prevQty => {
+        const attr = prevQty[option.id] || {};
+        if (!exists) {
+          // newly selected -> start at 1
+          return { ...prevQty, [option.id]: { ...attr, [choiceId]: attr[choiceId] && attr[choiceId] > 0 ? attr[choiceId] : 1 } };
+        }
+        // deselected -> remove entry
+        const { [choiceId]: _removed, ...rest } = attr as Record<string, number>;
+        return { ...prevQty, [option.id]: rest };
+      });
+      return { ...prev, [option.id]: next };
+    });
+  };
+
+  const [quantities, setQuantities] = useState<Record<string, Record<string, number>>>({});
+
+  const updateQuantity = (attributeId: string, choiceId: string, delta: number) => {
+    setQuantities(prev => {
+      const attr = prev[attributeId] || {};
+      const current = attr[choiceId] || 0;
+      const next = Math.max(0, current + delta);
+      return { ...prev, [attributeId]: { ...attr, [choiceId]: next } };
+    });
   };
 
   const validateForm = (): boolean => {
     const missingOptions = options
-      .filter(option => option.requiresSelection && !selectedOptions[option.id])
+      .filter(option => {
+        const sel = selectedOptions[option.id];
+        if (!option.requiresSelection) return false;
+        if (option.type === 'single') return !sel;
+        const arr = Array.isArray(sel) ? sel : [];
+        return arr.length === 0;
+      })
       .map(option => option.name);
     
     if (missingOptions.length > 0) {
@@ -68,28 +123,32 @@ const ProductOptionsModal = ({
       return;
     }
 
-    // Calculate total price including options
-    let totalPrice = 0;
-    options.forEach(option => {
-      const selectedChoiceId = selectedOptions[option.id];
-      if (selectedChoiceId) {
-        const choice = option.choices.find(c => c.id === selectedChoiceId);
+    // Build SelectedAttribute[] structure
+    const selectedAttributes: SelectedAttribute[] = options.map(option => {
+      const sel = selectedOptions[option.id];
+      let selectedItems: SelectedAttributeItem[] = [];
+      if (option.type === 'single' && typeof sel === 'string') {
+        const choice = option.choices.find(c => c.id === sel);
         if (choice) {
-          totalPrice += choice.price;
+          selectedItems = [{ itemId: choice.id, itemName: choice.name, itemPrice: choice.price, quantity: 1 }];
         }
+      } else {
+        const ids = Array.isArray(sel) ? sel : [];
+        selectedItems = ids.map(id => {
+          const choice = option.choices.find(c => c.id === id)!;
+          const qty = option.type === 'multiple-times' ? Math.max(1, quantities[option.id]?.[id] || 1) : 1;
+          return { itemId: id, itemName: choice?.name || '', itemPrice: choice?.price || 0, quantity: qty };
+        });
       }
-    });
+      return {
+        attributeId: option.id,
+        attributeName: option.name,
+        attributeType: option.type,
+        selectedItems
+      };
+    }).filter(attr => attr.selectedItems.length > 0);
 
-    // Prepare cart item
-    const cartItem = {
-      productId,
-      quantity: 1,
-      selectedOptions,
-      specialRequirements,
-      price: totalPrice
-    };
-
-    onAddToCart(selectedOptions, specialRequirements);
+    onAddToCart(selectedAttributes, specialRequirements);
     onClose();
   };
 
@@ -145,19 +204,30 @@ const ProductOptionsModal = ({
                         key={choice.id}
                         className={`flex items-center justify-between px-4 py-3.5 border rounded-xl cursor-pointer
                           transition-all duration-200 hover:border-green-500/50 hover:bg-green-50/30
-                          ${selectedOptions[option.id] === choice.id 
+                          ${option.type === 'single' ? (selectedOptions[option.id] === choice.id) : (Array.isArray(selectedOptions[option.id]) && (selectedOptions[option.id] as string[]).includes(choice.id)) 
                             ? 'border-green-500/50 bg-green-50/30 shadow-sm' 
                             : 'border-gray-200'}`}
                       >
                         <div className="flex items-center gap-3">
-                          <input
-                            type={option.type === 'multiple' ? 'checkbox' : 'radio'}
-                            name={option.id}
-                            value={choice.id}
-                            checked={selectedOptions[option.id] === choice.id}
-                            onChange={() => handleOptionSelect(option.id, choice.id)}
-                            className="w-4 h-4 text-green-500 border-gray-300 focus:ring-green-400 focus:ring-offset-1"
-                          />
+                          {option.type === 'single' ? (
+                            <input
+                              type="radio"
+                              name={option.id}
+                              value={choice.id}
+                              checked={selectedOptions[option.id] === choice.id}
+                              onChange={() => handleOptionSelect(option, choice.id)}
+                              className="w-4 h-4 text-green-500 border-gray-300 focus:ring-green-400 focus:ring-offset-1"
+                            />
+                          ) : (
+                            <input
+                              type="checkbox"
+                              name={`${option.id}-${choice.id}`}
+                              value={choice.id}
+                              checked={Array.isArray(selectedOptions[option.id]) && (selectedOptions[option.id] as string[]).includes(choice.id)}
+                              onChange={() => handleOptionSelect(option, choice.id)}
+                              className="w-4 h-4 text-green-500 border-gray-300 focus:ring-green-400 focus:ring-offset-1"
+                            />
+                          )}
                           <div className="flex items-center gap-2">
                             <span className="text-sm text-gray-700">{choice.name}</span>
                             {choice.price > 0 && (
@@ -165,6 +235,13 @@ const ProductOptionsModal = ({
                             )}
                           </div>
                         </div>
+                        {option.type === 'multiple-times' && Array.isArray(selectedOptions[option.id]) && (selectedOptions[option.id] as string[]).includes(choice.id) && (
+                          <div className="flex items-center gap-2">
+                            <button type="button" onClick={() => updateQuantity(option.id, choice.id, -1)} className="px-2 py-1 rounded bg-gray-100">-</button>
+                            <span className="min-w-[24px] text-center">{Math.max(1, quantities[option.id]?.[choice.id] || 1)}</span>
+                            <button type="button" onClick={() => updateQuantity(option.id, choice.id, 1)} className="px-2 py-1 rounded bg-gray-100">+</button>
+                          </div>
+                        )}
                       </label>
                     ))}
                   </div>
