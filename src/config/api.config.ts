@@ -1,4 +1,19 @@
-export const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://82.25.104.117:5001';
+const RAW_API_URL = import.meta.env.VITE_API_URL || 'http://82.25.104.117:5001';
+const ALLOW_INSECURE = import.meta.env.VITE_ALLOW_INSECURE_REQUESTS === 'true';
+
+export const API_BASE_URL = (() => {
+  try {
+    const url = new URL(RAW_API_URL);
+    if (ALLOW_INSECURE) {
+      url.protocol = 'http:'; // force HTTP when insecure requests are allowed
+    }
+    return url.toString().replace(/\/$/, '');
+  } catch {
+    // Fallback if VITE_API_URL is not a valid URL
+    return RAW_API_URL;
+  }
+})();
+
 export const BASE_URL = API_BASE_URL;
 
 
