@@ -39,6 +39,7 @@ import {
   type OrderItem,
   type DiscountInfo,
 } from "@/utils/orderCalculations";
+import { useGuestCart } from "@/context/GuestCartContext";
 
 interface OrderProduct {
   id: string;
@@ -131,6 +132,8 @@ const OrderSuccessPage = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { orderId } = useParams<{ orderId: string }>();
+  const { sessionId } = useGuestCart();
+
   const { isAuthenticated, token } = useAuth();
   const [orderDetails, setOrderDetails] = useState<OrderDetails | undefined>(
     location.state?.orderDetails
@@ -254,6 +257,8 @@ const OrderSuccessPage = () => {
       // Add authorization header if authenticated
       if (isAuthenticated && token) {
         headers.Authorization = `Bearer ${token}`;
+      } else if (sessionId) {
+        headers["x-session-id"] = sessionId;
       }
       
       // Add session ID header if guest
@@ -287,7 +292,6 @@ const OrderSuccessPage = () => {
         headers,
         params: { branchId },
       });
-
 
       if (response.data.success) {
         const order = response.data.data;
@@ -418,7 +422,6 @@ const OrderSuccessPage = () => {
       );
 
       const unsubscribe = subscribeToOrderUpdates((data: OrderUpdate) => {
-
         if (data.orderId === orderId) {
           console.log("Updating order status:", data.status);
           setCurrentStatus(data.status);
@@ -600,7 +603,7 @@ const OrderSuccessPage = () => {
                       to="/app"
                       className="inline-flex  px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-black hover:bg-opacity-80 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
                     >
-                     <ChevronLeftIcon className="-mt-0.5" /> Return to Home
+                      <ChevronLeftIcon className="-mt-0.5" /> Return to Home
                     </Link>
                   </div>
                 </div>
