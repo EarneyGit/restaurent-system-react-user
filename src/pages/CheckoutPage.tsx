@@ -726,6 +726,7 @@ const CheckoutPage = () => {
   const [showSearchInput, setShowSearchInput] = useState(false);
   const [selectedSearchedAddress, setSelectedSearchedAddress] =
     useState<AddressResult | null>(null);
+  const [personalDetailsRequired, setPersonalDetailsRequired] = useState(false);
 
   // Stripe modal state
   const [showStripeModal, setShowStripeModal] = useState(false);
@@ -835,6 +836,12 @@ const CheckoutPage = () => {
       localStorage.setItem("returnUrl", "/checkout");
       toast.error("Please login or continue as guest to proceed");
       navigate("/login", { state: { returnUrl: "/checkout" } });
+    }
+    
+    // For guest users, ensure we collect all required information
+    if (!isAuthenticated && isGuest) {
+      // Make sure all personal details fields are required for guest users
+      setPersonalDetailsRequired(true);
     }
   }, [isAuthenticated, navigate]);
 
@@ -1229,6 +1236,9 @@ const CheckoutPage = () => {
   };
 
   const handlePlaceOrder = async () => {
+    const isGuest = localStorage.getItem("isGuest") === "true";
+    
+    // Basic validation for all users
     if (
       !selectedTimeSlot ||
       (checkDeliveryMethod !== "collect" && !deliveryAddress.fullAddress) ||
@@ -1236,6 +1246,27 @@ const CheckoutPage = () => {
     ) {
       toast.error("Please fill in all required fields");
       return;
+    }
+    
+    // Additional validation for guest users
+    if (!isAuthenticated && isGuest) {
+      if (!personalDetails.firstName || !personalDetails.lastName || !personalDetails.email || !personalDetails.phone) {
+        toast.error("Please provide your full name, email, and phone number to continue as guest");
+        return;
+      }
+      
+      // Validate email format
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(personalDetails.email)) {
+        toast.error("Please enter a valid email address");
+        return;
+      }
+      
+      // Validate phone number (basic validation)
+      if (personalDetails.phone.length < 5) {
+        toast.error("Please enter a valid phone number");
+        return;
+      }
     }
 
     if (!acceptedTerms) {
@@ -1332,6 +1363,9 @@ const CheckoutPage = () => {
         orderType = "pickup";
       }
 
+      // Check if this is a guest user
+      const isGuest = localStorage.getItem("isGuest") === "true";
+      
       // Prepare order data according to backend schema
       const orderData = {
         branchId: selectedBranch.id,
@@ -1357,6 +1391,15 @@ const CheckoutPage = () => {
           phone: personalDetails.phone,
           email: personalDetails.email,
         },
+        // Add guest user flag and information for account creation
+        isGuest: !isAuthenticated && isGuest,
+        guestUserInfo: (!isAuthenticated && isGuest) ? {
+          firstName: personalDetails.firstName,
+          lastName: personalDetails.lastName,
+          email: personalDetails.email,
+          phone: personalDetails.phone,
+          address: deliveryAddress.fullAddress,
+        } : undefined,
         couponCode: appliedPromo?.code,
         subtotal,
         deliveryFee: deliveryFeeAmount,
@@ -1676,6 +1719,7 @@ const CheckoutPage = () => {
                           }))
                         }
                         className="w-full px-4 py-3 rounded-xl border border-gray-200"
+                        required
                       />
                     </div>
 
@@ -1693,8 +1737,27 @@ const CheckoutPage = () => {
                           }))
                         }
                         className="w-full px-4 py-3 rounded-xl border border-gray-200"
+                        required
                       />
                     </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Email {(!isAuthenticated || personalDetailsRequired) && <span className="text-red-500">*</span>}
+                    </label>
+                    <input
+                      type="email"
+                      value={personalDetails.email}
+                      onChange={(e) =>
+                        setPersonalDetails((prev) => ({
+                          ...prev,
+                          email: e.target.value,
+                        }))
+                      }
+                      className="w-full px-4 py-3 rounded-xl border border-gray-200"
+                      required={!isAuthenticated || personalDetailsRequired}
+                      placeholder="Your email address"
+                    />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -1710,6 +1773,7 @@ const CheckoutPage = () => {
                         }))
                       }
                       className="w-full px-4 py-3 rounded-xl border border-gray-200"
+                      required
                     />
                   </div>
                   {/* Delivery Address */}

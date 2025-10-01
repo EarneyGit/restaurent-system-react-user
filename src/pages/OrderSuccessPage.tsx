@@ -189,8 +189,29 @@ const OrderSuccessPage = () => {
       error.message ||
       "Failed to fetch order details";
     const requiresAuth = error.response?.data?.requiresAuth || false;
+    
+    // Check if user is in guest mode
+    const isGuest = localStorage.getItem("isGuest") === "true";
 
-    setError({ message: errorMessage, requiresAuth });
+    // If authentication is required but user is in guest mode, try to handle it
+    if (requiresAuth && isGuest) {
+      // We'll still show the error but with modified handling for guests
+      setError({ 
+        message: "Please ensure you have the correct order ID and branch selected. For guest users, you can only view orders placed in the current session.", 
+        requiresAuth: false // Don't show login requirement for guests
+      });
+      
+      // Log detailed info for debugging
+      console.log("Guest order access error:", {
+        orderId,
+        sessionId: localStorage.getItem("sessionId"),
+        customerId: localStorage.getItem("customerId"),
+        error: errorMessage
+      });
+    } else {
+      setError({ message: errorMessage, requiresAuth });
+    }
+    
     toast.error(errorMessage);
 
     // Handle specific error cases
@@ -226,16 +247,47 @@ const OrderSuccessPage = () => {
         throw new Error("Branch ID is required. Please select a branch first.");
       }
 
+      // Check if user is a guest
+      const isGuest = localStorage.getItem("isGuest") === "true";
+
       // Set up headers based on authentication status
       const headers: Record<string, string> = {
         "Content-Type": "application/json",
       };
+
+      // Add authorization header if authenticated
       if (isAuthenticated && token) {
         headers.Authorization = `Bearer ${token}`;
       } else if (sessionId) {
         headers["x-session-id"] = sessionId;
       }
+      
+      // Add session ID header if guest
+      if (!isAuthenticated && isGuest) {
+        const sessionId = localStorage.getItem("sessionId");
+        if (sessionId) {
+          headers["x-session-id"] = sessionId;
+          console.log("Adding session ID to request:", sessionId);
+        } else {
+          // If we're in guest mode but don't have a session ID, try to get it from customerId in localStorage
+          const customerId = localStorage.getItem("customerId");
+          if (customerId) {
+            headers["x-session-id"] = customerId;
+            console.log("Using customerId as session ID:", customerId);
+          } else {
+            console.warn("No session ID or customerId found for guest user");
+          }
+        }
+      }
 
+      console.log("Making API call with:", {
+        url: `/api/orders/${orderId}`,
+        headers,
+        branchId,
+        isGuest,
+        isAuthenticated
+      });
+      
       // Make API call with branchId in query params
       const response = await axios.get(`/api/orders/${orderId}`, {
         headers,
@@ -334,6 +386,27 @@ const OrderSuccessPage = () => {
     }
   };
 
+  // Check if the user is a guest and ensure we have necessary data
+  useEffect(() => {
+    // If not authenticated, check if user is in guest mode
+    if (!isAuthenticated) {
+      const isGuest = localStorage.getItem("isGuest") === "true";
+      console.log("Guest user status:", isGuest);
+      
+      if (isGuest) {
+        // Ensure we have a customerId or sessionId for guest users
+        let guestId = localStorage.getItem("customerId") || localStorage.getItem("sessionId");
+        
+        if (!guestId) {
+          // Generate a temporary guest ID if needed
+          guestId = `guest_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+          localStorage.setItem("customerId", guestId);
+          console.log("Generated new guest ID:", guestId);
+        }
+      }
+    }
+  }, [isAuthenticated]);
+
   useEffect(() => {
     if (orderId) {
       fetchOrderDetails();
@@ -391,12 +464,14 @@ const OrderSuccessPage = () => {
   };
 
   if (error) {
+    const isGuest = localStorage.getItem("isGuest") === "true";
+    
     return (
       <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4">
         <div className="bg-white rounded-lg shadow-sm p-6 max-w-md w-full text-center">
           <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
           <h2 className="text-xl font-semibold text-gray-900 mb-2">
-            {error.requiresAuth ? "Authentication Required" : "Access Denied"}
+            {error.requiresAuth && !isGuest ? "Authentication Required" : "Access Denied"}
           </h2>
           <p className="text-gray-600 mb-6">{error.message}</p>
           <div className="space-y-3">
@@ -411,6 +486,28 @@ const OrderSuccessPage = () => {
                 >
                   Login to View Order
                 </Link>
+                {!isGuest && (
+                  <button
+                    onClick={() => {
+                      // Set up guest mode
+                      localStorage.setItem("isGuest", "true");
+                      
+                      // Generate a temporary guest ID if needed
+                      if (!localStorage.getItem("sessionId") && !localStorage.getItem("customerId")) {
+                        const tempGuestId = `guest_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+                        localStorage.setItem("customerId", tempGuestId);
+                      }
+                      
+                      // Prevent immediate redirect by adding a delay
+                      setTimeout(() => {
+                        window.location.reload();
+                      }, 100);
+                    }}
+                    className="block w-full px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                  >
+                    Continue as Guest
+                  </button>
+                )}
                 <Link
                   to="/app"
                   className="block w-full px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
