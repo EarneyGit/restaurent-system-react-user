@@ -760,6 +760,7 @@ const CheckoutPage = () => {
     }
   }, [selectedAddressType]);
 
+  console.log("sessionId",sessionId);
   useEffect(() => {
     const fetchCartSummary = async () => {
       try {
@@ -773,6 +774,7 @@ const CheckoutPage = () => {
               "Content-Type": "application/json",
             };
 
+            console.log("headers",headers);
         const cartResponse = await axios.get(
           isAuthenticated
             ? CART_ENDPOINTS.USER_CART

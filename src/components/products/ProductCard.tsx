@@ -262,19 +262,19 @@ const ProductCard: React.FC<ProductCardProps> = ({
 
   // Get delivery method from localStorage
   const deliveryMethod = localStorage.getItem("deliveryMethod");
-  
+
   // Check if product supports the selected delivery method
   const isDeliverySupported = (() => {
     if (!deliveryMethod) return true; // If no delivery method selected, assume supported
-    
+
     switch (deliveryMethod.toLowerCase()) {
-      case 'deliver':
+      case "deliver":
         return product.delivery === true;
-      case 'pickup':
-      case 'collect':
+      case "pickup":
+      case "collect":
         return product.collection === true;
-      case 'dine_in':
-      case 'table_ordering':
+      case "dine_in":
+      case "table_ordering":
         return product.dineIn === true;
       default:
         return true;
@@ -283,19 +283,21 @@ const ProductCard: React.FC<ProductCardProps> = ({
 
   // Get delivery method message
   const getDeliveryMethodMessage = () => {
-    if (!deliveryMethod) return '';
-    
+    if (!deliveryMethod) return "";
+
     switch (deliveryMethod.toLowerCase()) {
-      case 'deliver':
-        return product.delivery === false ? 'Not available for delivery' : '';
-      case 'pickup':
-      case 'collect':
-        return product.collection === false ? 'Not available for collection' : '';
-      case 'dine_in':
-      case 'table_ordering':
-        return product.dineIn === false ? 'Not available for dine-in' : '';
+      case "deliver":
+        return product.delivery === false ? "Not available for delivery" : "";
+      case "pickup":
+      case "collect":
+        return product.collection === false
+          ? "Not available for collection"
+          : "";
+      case "dine_in":
+      case "table_ordering":
+        return product.dineIn === false ? "Not available for dine-in" : "";
       default:
-        return '';
+        return "";
     }
   };
 
@@ -334,7 +336,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
 
   // Overall availability - product must be available AND support the selected delivery method
   const isOverallAvailable = isAvailable && isDeliverySupported;
-  
+
   // Combined message for both availability and delivery method
   const combinedMessage = availabilityMessage || deliveryMethodMessage;
 
@@ -400,7 +402,8 @@ const ProductCard: React.FC<ProductCardProps> = ({
 
     // Check overall availability (time + delivery method)
     if (!isOverallAvailable) {
-      const errorMessage = combinedMessage || `${product.name} is not available`;
+      const errorMessage =
+        combinedMessage || `${product.name} is not available`;
       toast.error(errorMessage);
       return;
     }
@@ -453,8 +456,9 @@ const ProductCard: React.FC<ProductCardProps> = ({
       };
 
       // Get delivery method from localStorage
-      const deliveryMethod = localStorage.getItem("deliveryMethod") || "delivery";
-      
+      const deliveryMethod =
+        localStorage.getItem("deliveryMethod") || "delivery";
+
       await addToCart({
         ...product,
         productId: product.id,
@@ -490,7 +494,8 @@ const ProductCard: React.FC<ProductCardProps> = ({
 
     // Check overall availability (time + delivery method)
     if (!isOverallAvailable) {
-      const errorMessage = combinedMessage || `${product.name} is not available`;
+      const errorMessage =
+        combinedMessage || `${product.name} is not available`;
       toast.error(errorMessage);
       return;
     }
@@ -545,8 +550,9 @@ const ProductCard: React.FC<ProductCardProps> = ({
       };
 
       // Get delivery method from localStorage
-      const deliveryMethod = localStorage.getItem("deliveryMethod") || "delivery";
-      
+      const deliveryMethod =
+        localStorage.getItem("deliveryMethod") || "delivery";
+
       await addToCart({
         ...product,
         productId: product.id,
@@ -583,19 +589,57 @@ const ProductCard: React.FC<ProductCardProps> = ({
     toast.success("Removed from cart");
   };
 
+  function MenuDisplay({
+    description,
+    isOverallAvailable,
+  }: {
+    description?: string;
+    isOverallAvailable?: boolean;
+  }) {
+    if (!description) return null;
+
+    const normalized = description
+      .replace(/\\r\\n/g, "|")
+      .replace(/\r\n/g, "|")
+      .replace(/\n/g, "|")
+      .replace(/\+/g, "|")
+      .replace(/,/g, "|")
+      .replace(/\s*\|\s*/g, "|")
+      .replace(/\|{2,}/g, "|");
+
+    const parts = normalized
+      .split("|")
+      .map((s) => s.trim())
+      .filter(Boolean);
+
+    return (
+      <div
+        className={`text-left text-sm mt-1 break-words ${
+          !isOverallAvailable ? "text-gray-400" : "text-neutral-500"
+        }`}
+      >
+        {parts.map((line, idx) => (
+          <p key={idx} className="mb-1 flex items-start">
+            <span className="mr-2">•</span> {line}
+          </p>
+        ))}
+      </div>
+    );
+  }
+
   return (
     <>
-        <div
-          className={`bg-white rounded-3xl overflow-hidden border border-gray-200 shadow-sm hover:shadow-md transition-all duration-300 relative flex flex-col h-full ${
-            !isOverallAvailable ? "opacity-60" : ""
-          }`}
-        >
-          {/* Category Badge */}
-          <div className="absolute top-5 left-4 z-10">
-            <span className="px-3 py-1 bg-green-900 text-white rounded-full text-xs font-medium">
-              {category}
-            </span>
-          </div>
+      <div
+        className={`bg-white rounded-3xl overflow-hidden border border-gray-200 shadow-sm hover:shadow-md transition-all duration-300 relative flex flex-col h-full ${
+          !isOverallAvailable ? "opacity-60" : ""
+        }`}
+      >
+        {/* Category Badge */}
+        <div className="absolute top-5 left-4 z-10">
+          <span className="px-3 py-1 bg-green-900 text-white rounded-full text-xs font-medium">
+            {category}
+          </span>
+        </div>
 
         {/* Main Image */}
         <div className="relative h-[200px] rounded-lg bg-gray-50">
@@ -681,13 +725,17 @@ const ProductCard: React.FC<ProductCardProps> = ({
           >
             {product.name}
           </h3>
-          <p
+          {/* <p
             className={`text-left text-sm mt-1 break-words ${
               !isOverallAvailable ? "text-gray-400" : "text-neutral-500"
             }`}
           >
-            {product?.description}
-          </p>
+            {MenuDisplay(product?.description)}
+          </p> */}
+          <MenuDisplay
+            description={product?.description}
+            isOverallAvailable={isOverallAvailable}
+          />
 
           {/* Availability Status */}
           {combinedMessage && (
@@ -782,7 +830,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
               if (!isOverallAvailable) {
                 return (
                   <div className="text-center text-sm text-red-600 bg-red-50 py-2.5 rounded-xl">
-                    {combinedMessage || 'Not Available'}
+                    {combinedMessage || "Not Available"}
                   </div>
                 );
               }
