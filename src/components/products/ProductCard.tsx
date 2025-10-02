@@ -597,12 +597,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
 
     const normalized = description
       .replace(/\\r\\n/g, "|")
-      .replace(/\r\n/g, "|")
-      .replace(/\n/g, "|")
-      .replace(/\+/g, "|")
-      .replace(/,/g, "|")
-      .replace(/\s*\|\s*/g, "|")
-      .replace(/\|{2,}/g, "|");
+      .replace(/\r\n/g, "|");
 
     const parts = normalized
       .split("|")
