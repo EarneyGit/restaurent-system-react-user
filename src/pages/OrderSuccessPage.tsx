@@ -124,6 +124,8 @@ interface OrderDetails {
   };
   status: OrderStatusType;
   createdAt: string;
+  customerNotes?: string;
+  serviceCharge?: number;
 }
 
 const statusSteps = ORDER_STATUS_STEPS;
@@ -189,29 +191,30 @@ const OrderSuccessPage = () => {
       error.message ||
       "Failed to fetch order details";
     const requiresAuth = error.response?.data?.requiresAuth || false;
-    
+
     // Check if user is in guest mode
     const isGuest = localStorage.getItem("isGuest") === "true";
 
     // If authentication is required but user is in guest mode, try to handle it
     if (requiresAuth && isGuest) {
       // We'll still show the error but with modified handling for guests
-      setError({ 
-        message: "Please ensure you have the correct order ID and branch selected. For guest users, you can only view orders placed in the current session.", 
-        requiresAuth: false // Don't show login requirement for guests
+      setError({
+        message:
+          "Please ensure you have the correct order ID and branch selected. For guest users, you can only view orders placed in the current session.",
+        requiresAuth: false, // Don't show login requirement for guests
       });
-      
+
       // Log detailed info for debugging
       console.log("Guest order access error:", {
         orderId,
         sessionId: localStorage.getItem("sessionId"),
         customerId: localStorage.getItem("customerId"),
-        error: errorMessage
+        error: errorMessage,
       });
     } else {
       setError({ message: errorMessage, requiresAuth });
     }
-    
+
     toast.error(errorMessage);
 
     // Handle specific error cases
@@ -261,7 +264,7 @@ const OrderSuccessPage = () => {
       } else if (sessionId) {
         headers["x-session-id"] = sessionId;
       }
-      
+
       // Add session ID header if guest
       if (!isAuthenticated && isGuest) {
         const sessionId = localStorage.getItem("sessionId");
@@ -285,9 +288,9 @@ const OrderSuccessPage = () => {
         headers,
         branchId,
         isGuest,
-        isAuthenticated
+        isAuthenticated,
       });
-      
+
       // Make API call with branchId in query params
       const response = await axios.get(`/api/orders/${orderId}`, {
         headers,
@@ -392,14 +395,18 @@ const OrderSuccessPage = () => {
     if (!isAuthenticated) {
       const isGuest = localStorage.getItem("isGuest") === "true";
       console.log("Guest user status:", isGuest);
-      
+
       if (isGuest) {
         // Ensure we have a customerId or sessionId for guest users
-        let guestId = localStorage.getItem("customerId") || localStorage.getItem("sessionId");
-        
+        let guestId =
+          localStorage.getItem("customerId") ||
+          localStorage.getItem("sessionId");
+
         if (!guestId) {
           // Generate a temporary guest ID if needed
-          guestId = `guest_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+          guestId = `guest_${Date.now()}_${Math.random()
+            .toString(36)
+            .substring(2, 9)}`;
           localStorage.setItem("customerId", guestId);
           console.log("Generated new guest ID:", guestId);
         }
@@ -454,10 +461,17 @@ const OrderSuccessPage = () => {
 
   // Helper function to get step status class
   const getStepStatusClass = (stepStatus: OrderStatusType) => {
-    if (currentStatus === stepStatus)
+    if (currentStatus === stepStatus) {
+      // Don't animate if order is completed or cancelled
+      if (currentStatus === OrderStatus.COMPLETED || isCancelled) {
+        return isCancelled
+          ? "bg-red-600 text-white"
+          : "bg-green-600 text-white";
+      }
       return isCancelled
         ? "bg-red-600 text-white animate-pulse"
         : "bg-green-600 text-white animate-pulse";
+    }
     if (isStepActive(stepStatus))
       return isCancelled ? "bg-red-600 text-white" : "bg-green-600 text-white";
     return "bg-gray-100 text-gray-400";
@@ -465,13 +479,15 @@ const OrderSuccessPage = () => {
 
   if (error) {
     const isGuest = localStorage.getItem("isGuest") === "true";
-    
+
     return (
       <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4">
         <div className="bg-white rounded-lg shadow-sm p-6 max-w-md w-full text-center">
           <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
           <h2 className="text-xl font-semibold text-gray-900 mb-2">
-            {error.requiresAuth && !isGuest ? "Authentication Required" : "Access Denied"}
+            {error.requiresAuth && !isGuest
+              ? "Authentication Required"
+              : "Access Denied"}
           </h2>
           <p className="text-gray-600 mb-6">{error.message}</p>
           <div className="space-y-3">
@@ -491,13 +507,18 @@ const OrderSuccessPage = () => {
                     onClick={() => {
                       // Set up guest mode
                       localStorage.setItem("isGuest", "true");
-                      
+
                       // Generate a temporary guest ID if needed
-                      if (!localStorage.getItem("sessionId") && !localStorage.getItem("customerId")) {
-                        const tempGuestId = `guest_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+                      if (
+                        !localStorage.getItem("sessionId") &&
+                        !localStorage.getItem("customerId")
+                      ) {
+                        const tempGuestId = `guest_${Date.now()}_${Math.random()
+                          .toString(36)
+                          .substring(2, 9)}`;
                         localStorage.setItem("customerId", tempGuestId);
                       }
-                      
+
                       // Prevent immediate redirect by adding a delay
                       setTimeout(() => {
                         window.location.reload();
@@ -914,6 +935,26 @@ const OrderSuccessPage = () => {
                 </div>
 
                 <div className="space-y-3">
+                  {/* Customer Notes */}
+                  {orderDetails.customerNotes && (
+                    <div className="flex justify-between items-center py-2">
+                      <span className="text-gray-700">Customer Notes</span>
+                      <span className="font-medium text-gray-900">
+                        {orderDetails.customerNotes}
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Service Charge */}
+                  {orderDetails.serviceCharge && (
+                    <div className="flex justify-between items-center py-2">
+                      <span className="text-gray-700">Service Charge</span>
+                      <span className="font-medium text-gray-900">
+                        {safeFormatCurrency(orderDetails.serviceCharge)}
+                      </span>
+                    </div>
+                  )}
+
                   {/* Subtotal */}
                   <div className="flex justify-between items-center py-2">
                     <span className="text-gray-700">Subtotal</span>

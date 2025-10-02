@@ -557,6 +557,7 @@ interface OrderConfirmationModalProps {
     discountAmount?: number;
     address: string;
     deliveryTime: string;
+    serviceCharge?: number;
   };
 }
 
@@ -624,6 +625,12 @@ const OrderConfirmationModal: React.FC<OrderConfirmationModalProps> = ({
                   <span>-{formatCurrency(orderDetails.discountAmount)}</span>
                 </div>
               </>
+            )}
+            {orderDetails.serviceCharge && (
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-600">Service Charge:</span>
+                <span>{formatCurrency(orderDetails.serviceCharge)}</span>
+              </div>
             )}
             <div className="flex justify-between font-medium">
               <span>Total Amount:</span>
@@ -2424,6 +2431,7 @@ const CheckoutPage = () => {
             : "-",
 
           deliveryTime: selectedTimeSlot,
+          serviceCharge: cartSummary.serviceCharges.totalMandatory,
         }}
       />
 
