@@ -617,7 +617,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
       >
         {parts.map((line, idx) => (
           <p key={idx} className="mb-1 flex items-start">
-            <span className="mr-2">•</span> {line}
+           {line}
           </p>
         ))}
       </div>
