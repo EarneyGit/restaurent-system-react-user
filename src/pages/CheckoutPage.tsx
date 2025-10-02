@@ -1383,7 +1383,7 @@ const CheckoutPage = () => {
         contactNumber: personalDetails.phone,
         paymentMethod:
           paymentMethod === "cash" ? "cash_on_delivery" : paymentMethod,
-        specialInstructions: orderNotes,
+        customerNotes: orderNotes,
         selectedTimeSlot,
         personalDetails: {
           firstName: personalDetails.firstName,
