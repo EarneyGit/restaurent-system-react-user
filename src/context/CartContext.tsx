@@ -375,7 +375,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       setBranchCarts({});
-      toast.success('Cart cleared');
+      // toast.success('Cart cleared');
     } catch (error) {
       console.error('Error clearing cart:', error);
       toast.error('Failed to clear cart');
@@ -404,7 +404,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
         delete newCarts[branchId];
         return newCarts;
       });
-      toast.success('Branch cart cleared');
+      // toast.success('Branch cart cleared');
     } catch (error) {
       console.error('Error clearing branch cart:', error);
       toast.error('Failed to clear branch cart');

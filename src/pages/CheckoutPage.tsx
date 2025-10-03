@@ -50,13 +50,66 @@ if (stripeKey && !stripeKey.startsWith("pk_")) {
   );
 }
 
+// Define order data interface
+interface OrderData {
+  branchId: string;
+  products: Array<{
+    product: string;
+    quantity: number;
+    price: PriceObject | number;
+    notes: string;
+    selectedAttributes: Array<{
+      attributeId: string;
+      selectedItems: Array<{
+        itemId: string;
+        quantity: number;
+      }>;
+    }>;
+  }>;
+  deliveryMethod: string;
+  deliveryAddress?: {
+    street: string;
+    city: string;
+    postalCode: string;
+    country: string;
+  };
+  contactNumber: string;
+  paymentMethod: string;
+  customerNotes: string;
+  selectedTimeSlot: string;
+  personalDetails: {
+    firstName: string;
+    lastName: string;
+    phone: string;
+    email: string;
+  };
+  isGuest?: boolean;
+  guestUserInfo?: {
+    firstName: string;
+    lastName: string;
+    email: string;
+    phone: string;
+    address: string;
+  };
+  couponCode?: string;
+  subtotal: number;
+  deliveryFee: number;
+  tax: number;
+  discount: number;
+  totalAmount: number;
+  finalTotal: number;
+  status: string;
+  acceptedOptionalServiceCharges: string[];
+  createdOrderId?: string; // Add this for when order is already created
+}
+
 // Stripe Form Component
 const StripeForm: React.FC<{
   clientSecret: string;
-  orderId: string;
-  onSuccess: () => void;
+  orderData: OrderData;
+  onSuccess: (orderId: string) => void;
   onCancel: () => void;
-}> = ({ clientSecret, orderId, onSuccess, onCancel }) => {
+}> = ({ clientSecret, orderData, onSuccess, onCancel }) => {
   const stripe = useStripe();
   const elements = useElements();
   const navigate = useNavigate();
@@ -73,6 +126,14 @@ const StripeForm: React.FC<{
     setError(null);
 
     try {
+      // The order is already created, we just need to process the payment
+      const orderId = orderData.createdOrderId;
+      
+      if (!orderId) {
+        throw new Error("Order ID not found");
+      }
+
+      // Process the payment using the provided clientSecret
       const { error: stripeError, paymentIntent } = await stripe.confirmPayment(
         {
           elements,
@@ -85,20 +146,23 @@ const StripeForm: React.FC<{
 
       if (stripeError) {
         setError(stripeError.message || "Payment failed");
+        // Optionally cancel the order here if needed
       } else if (paymentIntent && paymentIntent.status === "succeeded") {
         // Payment succeeded, check payment status with our API
-        await checkPaymentStatus(orderId, onSuccess);
+        await checkPaymentStatus(orderId, () => onSuccess(orderId));
       } else if (
         paymentIntent &&
         paymentIntent.status === "requires_payment_method"
       ) {
-        // Payment requires additional action or was not confirmed
         setError("Payment was not completed. Please try again.");
       } else {
         setError("Payment failed. Please try again.");
       }
-    } catch (err) {
-      setError("Payment failed. Please try again.");
+    } catch (err: unknown) {
+      console.error("Payment error:", err);
+      const error = err as { response?: { data?: { message?: string } }; message?: string };
+      const errorMessage = error.response?.data?.message || error.message || "Payment failed. Please try again.";
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -182,14 +246,14 @@ const StripeForm: React.FC<{
 const StripeModal: React.FC<{
   isOpen: boolean;
   onClose: () => void;
-  orderId: string | null;
+  orderData: OrderData | null;
   clientSecret: string | null;
   onPaymentSuccess: (orderId: string) => void;
-  onPaymentCancel: (orderId: string) => void;
+  onPaymentCancel: () => void;
 }> = ({
   isOpen,
   onClose,
-  orderId,
+  orderData,
   clientSecret,
   onPaymentSuccess,
   onPaymentCancel,
@@ -205,21 +269,12 @@ const StripeModal: React.FC<{
     }
   }, [isOpen]);
 
-  const handleCancel = async () => {
-    // Just close the modal without calling cancel order API
+  const handleCancel = () => {
     onClose();
   };
 
-  const handlePaymentSuccess = () => {
-    if (orderId) {
-      onPaymentSuccess(orderId);
-    }
-  };
-
-  const handlePaymentCancel = () => {
-    if (orderId) {
-      onPaymentCancel(orderId);
-    }
+  const handlePaymentSuccess = (orderId: string) => {
+    onPaymentSuccess(orderId);
   };
 
   if (!isOpen) {
@@ -237,11 +292,11 @@ const StripeModal: React.FC<{
             />
             <p>Processing...</p>
           </div>
-        ) : clientSecret ? (
+        ) : orderData && clientSecret ? (
           <Elements stripe={stripePromise} options={{ clientSecret }}>
             <StripeForm
               clientSecret={clientSecret}
-              orderId={orderId!}
+              orderData={orderData}
               onSuccess={handlePaymentSuccess}
               onCancel={onClose}
             />
@@ -249,7 +304,7 @@ const StripeModal: React.FC<{
         ) : (
           <div className="text-center">
             <div className="text-red-600 text-sm mb-4 p-3 bg-red-50 rounded-lg">
-              Invalid payment configuration. Please try again.
+              {error || "Invalid payment configuration. Please try again."}
             </div>
             <div className="flex gap-4">
               <button
@@ -614,7 +669,7 @@ const OrderConfirmationModal: React.FC<OrderConfirmationModalProps> = ({
 
           {/* Total */}
           <div className="border-t pt-2 space-y-2">
-            {orderDetails.originalTotal && orderDetails.discountAmount && (
+            {orderDetails.originalTotal && orderDetails.discountAmount ? (
               <>
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-600">Subtotal:</span>
@@ -625,13 +680,13 @@ const OrderConfirmationModal: React.FC<OrderConfirmationModalProps> = ({
                   <span>-{formatCurrency(orderDetails.discountAmount)}</span>
                 </div>
               </>
-            )}
-            {orderDetails.serviceCharge && (
+            ) : null}
+            {orderDetails.serviceCharge ? (
               <div className="flex justify-between text-sm">
                 <span className="text-gray-600">Service Charge:</span>
                 <span>{formatCurrency(orderDetails.serviceCharge)}</span>
               </div>
-            )}
+            ) : null}
             <div className="flex justify-between font-medium">
               <span>Total Amount:</span>
               <span className="text-green-600">
@@ -737,10 +792,8 @@ const CheckoutPage = () => {
 
   // Stripe modal state
   const [showStripeModal, setShowStripeModal] = useState(false);
-  const [createdOrderId, setCreatedOrderId] = useState<string | null>(null);
-  const [stripeClientSecret, setStripeClientSecret] = useState<string | null>(
-    null
-  );
+  const [orderDataForPayment, setOrderDataForPayment] = useState<OrderData | null>(null);
+  const [stripeClientSecret, setStripeClientSecret] = useState<string | null>(null);
 
 
   const [creditCardDetails, setCreditCardDetails] = useState<CreditCardDetails>(
@@ -766,9 +819,8 @@ const CheckoutPage = () => {
     if (selectedAddressType === "user" && user?.address) {
       setAddressError("");
     }
-  }, [selectedAddressType]);
+  }, [selectedAddressType, user?.address]);
 
-  console.log("sessionId",sessionId);
   useEffect(() => {
     const fetchCartSummary = async () => {
       try {
@@ -1309,6 +1361,7 @@ const CheckoutPage = () => {
         setIsProcessing(false);
         return;
       }
+      
       // Format products data according to backend requirements
       const formattedProducts = cartItems.map((item) => {
         const productId = item.productId || item.id;
@@ -1420,53 +1473,99 @@ const CheckoutPage = () => {
         acceptedOptionalServiceCharges: acceptedOptionalServiceCharges,
       };
 
-      // Set up headers based on authentication status
-      const headers: Record<string, string> = {
-        "Content-Type": "application/json",
-      };
+      // If payment method is card, create order with payment intent, then show Stripe modal
+      if (paymentMethod === "card") {
+        try {
+          const headers: Record<string, string> = {
+            "Content-Type": "application/json",
+          };
 
-      if (isAuthenticated && token) {
-        headers.Authorization = `Bearer ${token}`;
-      } else if (sessionId) {
-        headers["x-session-id"] = sessionId;
-      }
+          if (isAuthenticated && token) {
+            headers.Authorization = `Bearer ${token}`;
+          } else if (sessionId) {
+            headers["x-session-id"] = sessionId;
+          }
 
-      // Make the API call with branchId in query params
-      const response = await axios.post(
-        `${ORDER_ENDPOINTS.CREATE}?branchId=${selectedBranch.id}`,
-        orderData,
-        { headers }
-      );
+          // Create order with payment intent
+          const response = await axios.post(
+            `${ORDER_ENDPOINTS.CREATE}?branchId=${selectedBranch.id}`,
+            orderData,
+            { headers }
+          );
 
-      if (response.data?.success && response.data?.data) {
-        const createdOrder = response.data.data;
+          if (!response.data?.success || !response.data?.data) {
+            throw new Error(response.data?.message || "Failed to create order");
+          }
 
-        // If payment method is card, show Stripe modal
-        if (paymentMethod === "card") {
-          // Extract clientSecret from the order creation response
+          const createdOrder = response.data.data;
           const clientSecret = response.data.payment?.clientSecret;
 
           if (!clientSecret) {
-            toast.error("Failed to create payment intent. Please try again.");
-            setIsProcessing(false);
-            return;
+            throw new Error("Failed to create payment intent");
           }
 
           // Validate client secret format
           if (!clientSecret.includes("_secret_")) {
-            toast.error("Invalid payment configuration. Please try again.");
-            setIsProcessing(false);
-            return;
+            throw new Error("Invalid payment configuration");
           }
 
-          setCreatedOrderId(createdOrder._id);
+          // Store the created order ID and client secret for the Stripe modal
+          setOrderDataForPayment({ ...orderData, createdOrderId: createdOrder._id });
           setStripeClientSecret(clientSecret);
           setShowStripeModal(true);
           setShowConfirmation(false);
           setIsProcessing(false);
           return;
-        } else {
-          // For cash payments, proceed normally
+        } catch (error: unknown) {
+          const err = error as {
+            response?: { data?: { message?: string }; status?: number };
+            message?: string;
+          };
+          console.error("Order creation error:", error);
+          
+          // Handle specific error cases
+          if (err.response?.status === 401) {
+            localStorage.setItem("returnUrl", "/checkout");
+            toast.error("Please login or continue as guest to place your order");
+            navigate("/login", { state: { returnUrl: "/checkout" } });
+          } else if (err.response?.status === 400) {
+            toast.error(
+              err.response.data?.message || "Please check your order details"
+            );
+          } else if (err.response?.status === 500) {
+            toast.error("Server error. Please try again later.");
+          } else {
+            toast.error(
+              err.response?.data?.message ||
+              err.message ||
+              "Failed to create order. Please try again."
+            );
+          }
+          setIsProcessing(false);
+          setShowConfirmation(false);
+          return;
+        }
+      } else {
+        // For cash payments, create order directly
+        const headers: Record<string, string> = {
+          "Content-Type": "application/json",
+        };
+
+        if (isAuthenticated && token) {
+          headers.Authorization = `Bearer ${token}`;
+        } else if (sessionId) {
+          headers["x-session-id"] = sessionId;
+        }
+
+        const response = await axios.post(
+          `${ORDER_ENDPOINTS.CREATE}?branchId=${selectedBranch.id}`,
+          orderData,
+          { headers }
+        );
+
+        if (response.data?.success && response.data?.data) {
+          const createdOrder = response.data.data;
+          
           // Clear cart
           await clearCart();
 
@@ -1489,15 +1588,16 @@ const CheckoutPage = () => {
 
           setShowConfirmation(false);
           toast.success("Order placed successfully!");
+        } else {
+          throw new Error(response.data?.message || "Failed to create order");
         }
-      } else {
-        throw new Error(response.data?.message || "Failed to create order");
       }
     } catch (error: unknown) {
       const err = error as {
         response?: { data?: { message?: string }; status?: number };
+        message?: string;
       };
-      console.error("Order placement error:", error);
+      console.error("Order confirmation error:", error);
 
       // Handle specific error cases
       if (err.response?.status === 401) {
@@ -1505,17 +1605,16 @@ const CheckoutPage = () => {
         toast.error("Please login or continue as guest to place your order");
         navigate("/login", { state: { returnUrl: "/checkout" } });
       } else if (err.response?.status === 400) {
-        // Handle validation errors
         toast.error(
           err.response.data?.message || "Please check your order details"
         );
       } else if (err.response?.status === 500) {
-        // Handle server errors
         toast.error("Server error. Please try again later.");
       } else {
         toast.error(
           err.response?.data?.message ||
-            "Failed to place order. Please try again."
+          err.message ||
+          "Failed to process order. Please try again."
         );
       }
     } finally {
@@ -1597,10 +1696,16 @@ const CheckoutPage = () => {
   // Payment success handler
   const handlePaymentSuccess = (orderId: string) => {
     setShowStripeModal(false);
+    setOrderDataForPayment(null);
     setStripeClientSecret(null);
-    setCreatedOrderId(null);
     // Clear cart
     clearCart();
+    
+    // Store necessary data for order tracking
+    if (selectedBranch?.id) {
+      localStorage.setItem("selectedBranchId", selectedBranch.id);
+    }
+    
     // Navigate to order status
     navigate(`/order-status/${orderId}`, {
       state: {
@@ -1613,14 +1718,17 @@ const CheckoutPage = () => {
           },
         },
       },
+      replace: true, // Prevent back navigation to checkout
     });
+    
+    toast.success("Payment successful! Your order has been placed.");
   };
 
   // Payment cancel handler
-  const handlePaymentCancel = (orderId: string) => {
+  const handlePaymentCancel = () => {
     setShowStripeModal(false);
+    setOrderDataForPayment(null);
     setStripeClientSecret(null);
-    setCreatedOrderId(null);
     // Just close the modal, don't redirect to failure page
     toast.info("Payment cancelled. You can try again later.");
   };
@@ -2440,18 +2548,13 @@ const CheckoutPage = () => {
         isOpen={showStripeModal}
         onClose={() => {
           setShowStripeModal(false);
+          setOrderDataForPayment(null);
           setStripeClientSecret(null);
-          setCreatedOrderId(null);
         }}
-        orderId={createdOrderId}
+        orderData={orderDataForPayment}
         clientSecret={stripeClientSecret}
         onPaymentSuccess={handlePaymentSuccess}
-        onPaymentCancel={() => {
-          setShowStripeModal(false);
-          setStripeClientSecret(null);
-          setCreatedOrderId(null);
-          toast.info("Payment cancelled. You can try again later.");
-        }}
+        onPaymentCancel={handlePaymentCancel}
       />
     </div>
   );
