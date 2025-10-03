@@ -214,7 +214,7 @@ export const GuestCartProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         }
       );
       setCartData(null);
-      toast.success('Cart cleared');
+      // toast.success('Cart cleared');
     } catch (error) {
       console.error('Error clearing guest cart:', error);
       toast.error('Failed to clear cart');

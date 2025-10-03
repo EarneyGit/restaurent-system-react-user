@@ -725,7 +725,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
             {MenuDisplay(product?.description)}
           </p> */}
           <MenuDisplay
-            description={product?.description}
+            description={product?.description ? product?.description : "No description available"}
             isOverallAvailable={isOverallAvailable}
           />
 
