@@ -15,7 +15,8 @@ export const initializeSocket = () => {
   if (!socket) {
     socket = io(SOCKET_URL, {
       transports: ['websocket', 'polling'],
-      withCredentials: true
+      withCredentials: true,
+      path: "/api/socket"
     });
 
     socket.on('connect', () => {
