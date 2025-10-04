@@ -606,13 +606,13 @@ const ProductCard: React.FC<ProductCardProps> = ({
 
     return (
       <div
-        className={`text-left text-sm mt-1 break-words ${
+        className={`text-left text-sm mt-1 max-h-[30vh] scrollbar-hide overflow-y-auto break-words ${
           !isOverallAvailable ? "text-gray-400" : "text-neutral-500"
         }`}
       >
         {parts.map((line, idx) => (
           <p key={idx} className="mb-1 flex items-start">
-           {line}
+            {line}
           </p>
         ))}
       </div>
@@ -628,7 +628,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
       >
         {/* Category Badge */}
         <div className="absolute top-5 left-4 z-10">
-          <span className="px-3 py-1 bg-green-900 text-white rounded-full text-xs font-medium">
+          <span className="px-3 py-1 bg-yellow-800 text-white rounded-full text-xs font-medium">
             {category}
           </span>
         </div>
@@ -735,7 +735,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
               className={`text-xs mt-2 px-2 py-1 rounded ${
                 !isOverallAvailable
                   ? "bg-red-100 text-red-700"
-                  : "bg-green-100 text-green-700"
+                  : "bg-yellow-100 text-yellow-700"
               }`}
             >
               {combinedMessage}
@@ -768,7 +768,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
 
               return (
                 <div className="flex items-center gap-2">
-                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 w-fit">
+                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 w-fit">
                     In Stock
                   </span>
                   {/* {availableQuantity !== Infinity && (
@@ -794,7 +794,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
                 <span className="text-sm text-gray-400 line-through">
                   {formatPrice(activePriceChange.originalPrice)}
                 </span>
-                <span className="text-xs text-green-600 font-medium">
+                <span className="text-xs text-yellow-700 font-medium">
                   {daysLeft} {daysLeft === 1 ? "day" : "days"} left
                 </span>
               </>

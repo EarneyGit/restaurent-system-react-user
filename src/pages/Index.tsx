@@ -3,6 +3,7 @@ import FoodCategories from "@/components/home/FoodCategories";
 import PromotionalBanners from "@/components/home/PromotionalBanners";
 import RecommendedItems from "@/components/home/RecommendedItems";
 import RestaurantBanner from "@/components/home/RestaurantBanner";
+import RasoieFoodSection from "@/components/home/VietnamFoodSection";
 
 const Index = () => {
   return (
@@ -22,6 +23,10 @@ const Index = () => {
         {/* <section className="mb-20">
           <RecommendedItems />
         </section> */}
+
+        <section className="mb-20">
+          <RasoieFoodSection />
+        </section>
 
         {/* Restaurant Banner Section */}
         <section className="mb-20">

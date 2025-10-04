@@ -62,7 +62,7 @@ import { toast } from 'sonner';
     if (isLoading) {
       return (
         <div className="min-h-screen flex items-center justify-center bg-black">
-          <Loader2 size={40} className="text-green-500 animate-spin" />
+          <Loader2 size={40} className="text-yellow-600 animate-spin" />
         </div>
       );
     }
@@ -101,17 +101,17 @@ import { toast } from 'sonner';
             {offers.map((offer) => (
               <div
                 key={offer.id}
-                className="bg-white/10 backdrop-blur-sm rounded-2xl overflow-hidden border border-white/20 hover:bg-white/20 transition-colors group"
+                className="bg-white/10 backdrop-blur-sm rounded-2xl overflow-hidden border border-white/20 hover:bg-white/10 transition-colors group"
               >
                 <div className="p-6">
                   <div className="flex items-start gap-4">
-                    <div className="p-3 rounded-xl bg-green-600/20">
-                      <Gift size={24} className="text-green-500" />
+                    <div className="p-3 rounded-xl bg-yellow-200/80">
+                      <Gift size={24} className="text-yellow-700" />
                     </div>
                     <div className="flex-1">
                       <h3 className="text-xl font-semibold text-white mb-2">{offer.title}</h3>
                       <p className="text-white/70 mb-3">{offer.description}</p>
-                      {/* <p className="text-sm text-green-500 font-medium mb-3">
+                      {/* <p className="text-sm text-yellow-600 font-medium mb-3">
                         {offer.discount}% OFF • Valid till {offer.validTill}
                       </p> */}
                       <p className="text-white/90 font-mono bg-white/10 inline-block px-2 py-1 rounded select-all mb-4">
@@ -121,7 +121,7 @@ import { toast } from 'sonner';
                   </div>
                   <button
                     onClick={() => copyToClipboard(offer.code)}
-                    className="mt-6 w-full py-3 bg-green-600 text-white font-medium rounded-xl hover:bg-green-700 transition-colors uppercase tracking-wide flex items-center justify-center gap-2"
+                    className="mt-6 w-full py-3 bg-yellow-600 text-white font-bold rounded-xl hover:bg-yellow-600/90 transition-colors uppercase tracking-wide flex items-center justify-center gap-2"
                     aria-label={`Copy offer code ${offer.code}`}
                   >
                     <Clipboard size={20} /> Copy Offer Code

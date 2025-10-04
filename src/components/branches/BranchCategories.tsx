@@ -29,7 +29,7 @@ const BranchCategories: React.FC<BranchCategoriesProps> = ({
             <div className={`
               w-[100px] h-[100px] rounded-full border-2 overflow-hidden
               ${category.id === activeCategoryId 
-                ? 'border-foodyman-lime' 
+                ? 'border-yellow-600' 
                 : 'border-gray-200'}
             `}>
               <img 

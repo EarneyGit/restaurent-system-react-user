@@ -58,7 +58,7 @@ const CurrencyModal = ({ isOpen, onClose }: CurrencyModalProps) => {
                 <span>{currency.name} ({currency.code})</span>
               </div>
               {selectedCurrency === currency.code && (
-                <Check size={18} className="text-foodyman-lime" />
+                <Check size={18} className="text-yellow-700" />
               )}
             </button>
           ))}
@@ -67,7 +67,7 @@ const CurrencyModal = ({ isOpen, onClose }: CurrencyModalProps) => {
         {/* Footer */}
         <div className="p-4 border-t flex justify-end">
           <button 
-            className="px-6 py-2 bg-foodyman-lime text-white rounded-md"
+            className="px-6 py-2 bg-brand-yellow text-white rounded-md"
             onClick={() => {
               // Here would go the logic to change the app's currency
               onClose();

@@ -120,7 +120,7 @@ const LoginPage = () => {
         {/* Logo */}
         <div className="flex md:px-6 md:py-6 pt-6">
           <Link to="/" className="flex items-center">
-            <div className="h-8 w-8 bg-gradient-to-r from-foodyman-lime to-foodyman-green rounded-full flex items-center justify-center">
+            <div className="h-8 w-8 bg-gradient-to-r from-brand-yellow to-yellow-700 rounded-full flex items-center justify-center">
               <span className="text-white font-bold text-sm">R</span>
             </div>
             <span className="ml-2 uppercase font-mono font-semibold text-2xl text-gray-800">
@@ -138,7 +138,7 @@ const LoginPage = () => {
             Don't have an account?{" "}
             <Link
               to="/register"
-              className="text-foodyman-lime hover:text-foodyman-lime/70 transition-colors"
+              className="text-yellow-700 hover:text-yellow-700/70 transition-colors"
             >
               Sign up
             </Link>
@@ -160,7 +160,7 @@ const LoginPage = () => {
                   formik.touched.email && formik.errors.email
                     ? "border-red-500"
                     : "border-gray-300"
-                } rounded-md p-3 focus:outline-none focus:ring-2 focus:ring-foodyman-lime focus:border-transparent`}
+                } rounded-md p-3 focus:outline-none focus:ring-2 focus:ring-yellow-600 focus:border-transparent`}
                 placeholder="Type here"
               />
               {formik.touched.email && formik.errors.email && (
@@ -186,7 +186,7 @@ const LoginPage = () => {
                     formik.touched.password && formik.errors.password
                       ? "border-red-500"
                       : "border-gray-300"
-                  } rounded-md p-3 pr-10 focus:outline-none focus:ring-2 focus:ring-foodyman-lime focus:border-transparent`}
+                  } rounded-md p-3 pr-10 focus:outline-none focus:ring-2 focus:ring-yellow-600 focus:border-transparent`}
                   placeholder="Type here"
                 />
                 <button
@@ -204,20 +204,20 @@ const LoginPage = () => {
               )}
             </div>
 
-            <div className="flex items-center justify-between">
-              <label className="flex items-center">
+            <div className="flex items-center justify-end">
+              {/* <label className="flex items-center">
                 <input
                   type="checkbox"
                   {...formik.getFieldProps("rememberMe")}
-                  className="w-4 h-4 border-gray-300 rounded bg-green-600 text-white"
+                  className="w-4 h-4 border-gray-300 rounded bg-yellow-700 text-white"
                 />
                 <span className="ml-2 text-sm text-gray-600">
                   Keep me logged in
                 </span>
-              </label>
+              </label> */}
               <Link
                 to="/forgot-password"
-                className="text-sm text-gray-600 hover:text-foodyman-lime transition-colors"
+                className="text-sm text-gray-600 hover:text-yellow-700 transition-colors"
               >
                 Forgot password
               </Link>
@@ -227,7 +227,7 @@ const LoginPage = () => {
               <button
                 type="submit"
                 disabled={formik.isSubmitting}
-                className="w-full bg-foodyman-lime text-white font-medium py-3 rounded-md hover:bg-foodyman-lime/70 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                className="w-full bg-yellow-600 text-white font-medium py-3 rounded-md hover:bg-yellow-600/90 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
               >
                 {formik.isSubmitting ? "Logging in..." : "Login"}
               </button>

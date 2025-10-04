@@ -143,7 +143,7 @@ const SpecialAboutPage = () => {
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-black">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-green-500"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-yellow-600"></div>
       </div>
     );
   }
@@ -156,7 +156,7 @@ const SpecialAboutPage = () => {
           <button
             onClick={() => navigate('/select-outlet')}
             // onClick={() => navigate('/outlet-selection')}
-            className="mt-4 px-6 py-2 bg-green-600 rounded-lg hover:bg-green-700 transition-colors"
+            className="mt-4 px-6 py-2 bg-yellow-700 rounded-lg hover:bg-yellow-700 transition-colors"
           >
             Back to Outlets
           </button>
@@ -202,8 +202,8 @@ const SpecialAboutPage = () => {
           <div className="p-8">
             {/* Header */}
             <div className="flex items-start gap-6 mb-8">
-              <div className="p-4 rounded-xl bg-green-600/20">
-                <MapPin size={32} className="text-green-500" />
+              <div className="p-4 rounded-xl bg-yellow-700/20">
+                <MapPin size={32} className="text-yellow-600" />
               </div>
               <div>
                 <h1 className="text-3xl font-bold text-white mb-2">{branchDetails.name}</h1>
@@ -262,7 +262,7 @@ const SpecialAboutPage = () => {
                           'Closed'}
                       </span>
                       {times.open && times.close && (
-                        <Clock size={16} className="text-green-500" />
+                        <Clock size={16} className="text-yellow-600" />
                       )}
                     </div>
                   </div>
@@ -289,7 +289,7 @@ const SpecialAboutPage = () => {
                         <div className="text-white/70">
                           <p className="text-sm font-medium mb-1 flex items-center gap-2">
                             Break Time
-                            <span className="text-xs bg-yellow-500/20 text-yellow-500 px-2 py-0.5 rounded">
+                            <span className="text-xs bg-yellow-600/20 text-yellow-600 px-2 py-0.5 rounded">
                               {formatTime(schedule.breakTime.start)} - {formatTime(schedule.breakTime.end)}
                             </span>
                           </p>
@@ -301,7 +301,7 @@ const SpecialAboutPage = () => {
                         <p className="text-sm font-medium mb-2 flex items-center gap-2">
                           Collection
                           {schedule.isCollectionAllowed ? (
-                            <span className="text-xs bg-green-600/20 text-green-500 px-2 py-0.5 rounded">
+                            <span className="text-xs bg-yellow-700/20 text-yellow-600 px-2 py-0.5 rounded">
                               Available
                             </span>
                           ) : (
@@ -321,13 +321,13 @@ const SpecialAboutPage = () => {
                             {schedule.collection.leadTime > 0 && (
                               <p className="flex items-center gap-2 text-sm">
                                 <span>Lead Time:</span>
-                                <span className="text-green-500">{schedule.collection.leadTime} minutes</span>
+                                <span className="text-yellow-600">{schedule.collection.leadTime} minutes</span>
                               </p>
                             )}
                             {schedule.collection.displayedTime && (
                               <p className="flex items-center gap-2 text-sm">
                                 <span>First Available:</span>
-                                <span className="text-green-500">{formatTime(schedule.collection.displayedTime)}</span>
+                                <span className="text-yellow-600">{formatTime(schedule.collection.displayedTime)}</span>
                               </p>
                             )}
                           </div>
@@ -339,7 +339,7 @@ const SpecialAboutPage = () => {
                         <p className="text-sm font-medium mb-2 flex items-center gap-2">
                           Delivery
                           {schedule.isDeliveryAllowed ? (
-                            <span className="text-xs bg-green-600/20 text-green-500 px-2 py-0.5 rounded">
+                            <span className="text-xs bg-yellow-700/20 text-yellow-600 px-2 py-0.5 rounded">
                               Available
                             </span>
                           ) : (
@@ -368,13 +368,13 @@ const SpecialAboutPage = () => {
                             {schedule.delivery.leadTime > 0 && (
                               <p className="flex items-center gap-2 text-sm">
                                 <span>Lead Time:</span>
-                                <span className="text-green-500">{schedule.delivery.leadTime} minutes</span>
+                                <span className="text-yellow-600">{schedule.delivery.leadTime} minutes</span>
                               </p>
                             )}
                             {schedule.delivery.displayedTime && (
                               <p className="flex items-center gap-2 text-sm">
                                 <span>First Available:</span>
-                                <span className="text-green-500">{formatTime(schedule.delivery.displayedTime)}</span>
+                                <span className="text-yellow-600">{formatTime(schedule.delivery.displayedTime)}</span>
                               </p>
                             )}
                           </div>
@@ -386,7 +386,7 @@ const SpecialAboutPage = () => {
                         <p className="text-sm font-medium mb-2 flex items-center gap-2">
                           Table Ordering
                           {schedule.isTableOrderingAllowed ? (
-                            <span className="text-xs bg-green-600/20 text-green-500 px-2 py-0.5 rounded">
+                            <span className="text-xs bg-yellow-700/20 text-yellow-600 px-2 py-0.5 rounded">
                               Available
                             </span>
                           ) : (

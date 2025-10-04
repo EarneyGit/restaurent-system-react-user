@@ -131,7 +131,7 @@ const ProductPage = () => {
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-green-500"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-yellow-600"></div>
       </div>
     );
   }
@@ -181,7 +181,7 @@ const ProductPage = () => {
                   </span>
                   <button
                     onClick={() => handleAddToCart(product)}
-                    className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 transition-colors"
+                    className="bg-yellow-700 text-white px-4 py-2 rounded-md hover:bg-yellow-700 transition-colors"
                   >
                     Add to Cart
                   </button>

@@ -346,7 +346,7 @@ const OrderFailurePage = () => {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="bg-white rounded-lg shadow-sm p-6 max-w-md w-full text-center">
-          <AlertCircle className="w-12 h-12 text-yellow-500 mx-auto mb-4" />
+          <AlertCircle className="w-12 h-12 text-yellow-600 mx-auto mb-4" />
           <h2 className="text-xl font-semibold text-gray-900 mb-2">Order Not Found</h2>
           <p className="text-gray-600 mb-4">Could not find order details.</p>
           <Link

@@ -225,7 +225,7 @@ const CartItem: React.FC<CartItemProps> = ({
 
           return (
             <div className="flex items-center gap-2">
-              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 w-fit">
+              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 w-fit">
                 In Stock
               </span>
               {availableQuantity !== Infinity && (
@@ -342,7 +342,7 @@ const CartItem: React.FC<CartItemProps> = ({
                   </span>
                 </div>
                 {activePriceChange && (
-                  <div className="flex justify-between text-green-600">
+                  <div className="flex justify-between text-yellow-700">
                     <span>Original Price:</span>
                     <span className="font-medium line-through">
                       {formatCurrency(activePriceChange.originalPrice)}
@@ -529,7 +529,7 @@ const CartPage = () => {
 
   if (cartItems.length === 0) {
     return (
-      <div className="min-h-[70vh] flex items-center justify-center px-4 pb-10 bg-gradient-to-br from-green-50 via-white to-green-50">
+      <div className="min-h-[70vh] flex items-center justify-center px-4 pb-10 bg-gradient-to-br from-yellow-50 via-white to-yellow-50">
         <div className="max-w-md w-full text-center">
           <div className="relative w-64 h-64 mx-auto bg-white">
             <img
@@ -588,7 +588,7 @@ const CartPage = () => {
             <div className="lg:col-span-2">
               <div className="bg-white rounded-3xl shadow-md border p-8 space-y-6">
                 <h2 className="text-2xl font-semibold mb-6 flex items-center">
-                  <span className="w-8 h-8 rounded-full bg-green-100 text-green-600 flex items-center justify-center text-lg mr-3">
+                  <span className="w-8 h-8 rounded-full bg-yellow-100 text-yellow-700 flex items-center justify-center text-lg mr-3">
                     1
                   </span>
                   Cart Items ({getCartItemCount()})
@@ -666,7 +666,7 @@ const CartPage = () => {
                       <div className="flex justify-between text-sm items-center">
                         <span className="text-gray-600">Delivery Fee</span>
                         {cartSummary.deliveryFee === 0 ? (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
                             Free
                           </span>
                         ) : (
@@ -699,7 +699,7 @@ const CartPage = () => {
                                     id={`optional-charge-${charge.id}`}
                                     checked={isOptionalServiceChargeAccepted(charge.id)}
                                     onChange={() => toggleOptionalServiceCharge(charge.id)}
-                                    className="w-4 h-4 text-green-600 bg-gray-100 border-gray-300 rounded focus:ring-green-500 focus:ring-2"
+                                    className="w-4 h-4 text-yellow-700 bg-gray-100 border-gray-300 rounded focus:ring-yellow-600 focus:ring-2"
                                   />
                                   <label 
                                     htmlFor={`optional-charge-${charge.id}`}
@@ -721,7 +721,7 @@ const CartPage = () => {
                         (item) =>
                           item.price.base > item.price.currentEffectivePrice
                       ) && (
-                        <div className="flex justify-between text-sm text-green-600">
+                        <div className="flex justify-between text-sm text-yellow-700">
                           <span>Total Savings</span>
                           <span className="font-medium">
                             {formatCurrency(
@@ -761,7 +761,7 @@ const CartPage = () => {
                             (item) =>
                               item.price.base > item.price.currentEffectivePrice
                           ) && (
-                            <div className="text-xs text-green-600 font-medium">
+                            <div className="text-xs text-yellow-700 font-medium">
                               You saved{" "}
                               {formatCurrency(
                                 cartItems.reduce(

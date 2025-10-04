@@ -130,7 +130,7 @@ const ForgotPasswordPage = () => {
             <span>Back to {mode === 'changePassword' ? 'Account' : 'Login'}</span>
           </Link>
           <Link to="/" className="flex items-center">
-            <div className="h-8 w-8 bg-gradient-to-r from-foodyman-lime to-foodyman-green rounded-full flex items-center justify-center">
+            <div className="h-8 w-8 bg-gradient-to-r from-brand-yellow to-yellow-700 rounded-full flex items-center justify-center">
               <span className="text-white font-bold text-sm">R</span>
             </div>
           </Link>
@@ -164,7 +164,7 @@ const ForgotPasswordPage = () => {
                   {...emailFormik.getFieldProps("email")}
                   className={`w-full border ${
                     emailFormik.touched.email && emailFormik.errors.email ? "border-red-500" : "border-gray-300"
-                  } rounded-md p-3 focus:outline-none focus:ring-2 focus:ring-foodyman-lime focus:border-transparent`}
+                  } rounded-md p-3 focus:outline-none focus:ring-2 focus:ring-yellow-600 focus:border-transparent`}
                   placeholder="Enter your email"
                 />
                 {emailFormik.touched.email && emailFormik.errors.email && (
@@ -174,7 +174,7 @@ const ForgotPasswordPage = () => {
               <button
                 type="submit"
                 disabled={emailFormik.isSubmitting}
-                className="w-full bg-foodyman-lime text-white font-medium py-3 rounded-md hover:bg-foodyman-lime/70 transition-colors disabled:opacity-50"
+                className="w-full bg-yellow-600 text-white font-medium py-3 rounded-md hover:bg-yellow-600/90 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
               >
                 {emailFormik.isSubmitting ? "Sending..." : "Send OTP"}
               </button>
@@ -196,7 +196,7 @@ const ForgotPasswordPage = () => {
                   {...otpFormik.getFieldProps("otp")}
                   className={`w-full border ${
                     otpFormik.touched.otp && otpFormik.errors.otp ? "border-red-500" : "border-gray-300"
-                  } rounded-md p-3 focus:outline-none text-sm focus:ring-2 focus:ring-foodyman-lime focus:border-transparent`}
+                  } rounded-md p-3 focus:outline-none text-sm focus:ring-2 focus:ring-yellow-600 focus:border-transparent`}
                   placeholder="Enter 6-digit OTP"
                 />
                 {otpFormik.touched.otp && otpFormik.errors.otp && (
@@ -206,7 +206,7 @@ const ForgotPasswordPage = () => {
               <button
                 type="submit"
                 disabled={otpFormik.isSubmitting}
-                className="w-full bg-foodyman-lime text-white font-medium py-3 rounded-md hover:bg-foodyman-lime/70 transition-colors disabled:opacity-50"
+                className="w-full bg-brand-yellow text-white font-medium py-3 rounded-md hover:bg-brand-yellow/70 transition-colors disabled:opacity-50"
               >
                 {otpFormik.isSubmitting ? "Verifying..." : "Verify OTP"}
               </button>
@@ -230,7 +230,7 @@ const ForgotPasswordPage = () => {
                     resetPasswordFormik.touched.newPassword && resetPasswordFormik.errors.newPassword
                       ? "border-red-500"
                       : "border-gray-300"
-                  } rounded-md p-3 focus:outline-none focus:ring-2 focus:ring-foodyman-lime focus:border-transparent`}
+                  } rounded-md p-3 focus:outline-none focus:ring-2 focus:ring-yellow-600 focus:border-transparent`}
                   placeholder="Enter new password"
                 />
                 {resetPasswordFormik.touched.newPassword && resetPasswordFormik.errors.newPassword && (
@@ -253,7 +253,7 @@ const ForgotPasswordPage = () => {
                     resetPasswordFormik.touched.confirmPassword && resetPasswordFormik.errors.confirmPassword
                       ? "border-red-500"
                       : "border-gray-300"
-                  } rounded-md p-3 focus:outline-none focus:ring-2 focus:ring-foodyman-lime focus:border-transparent`}
+                  } rounded-md p-3 focus:outline-none focus:ring-2 focus:ring-yellow-600 focus:border-transparent`}
                   placeholder="Confirm new password"
                 />
                 {resetPasswordFormik.touched.confirmPassword && resetPasswordFormik.errors.confirmPassword && (
@@ -264,7 +264,7 @@ const ForgotPasswordPage = () => {
               <button
                 type="submit"
                 disabled={resetPasswordFormik.isSubmitting}
-                className="w-full bg-foodyman-lime text-white font-medium py-3 rounded-md hover:bg-foodyman-lime/70 transition-colors disabled:opacity-50"
+                className="w-full bg-yellow-600 text-white font-medium py-3 rounded-md hover:bg-yellow-600/90 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
               >
                 {resetPasswordFormik.isSubmitting ? "Resetting..." : "Reset Password"}
               </button>
@@ -295,19 +295,19 @@ const ForgotPasswordPage = () => {
             </p>
             <ul className="space-y-4 text-white/90">
               <li className="flex items-center">
-                <span className="w-6 h-6 bg-foodyman-lime rounded-full flex items-center justify-center mr-3">1</span>
+                <span className="w-6 h-6 bg-yellow-700 rounded-full flex items-center justify-center mr-3">1</span>
                 <span>Enter your registered email address</span>
               </li>
               <li className="flex items-center">
-                <span className="w-6 h-6 bg-foodyman-lime rounded-full flex items-center justify-center mr-3">2</span>
+                <span className="w-6 h-6 bg-yellow-700 rounded-full flex items-center justify-center mr-3">2</span>
                 <span>Check your email for the verification code</span>
               </li>
               <li className="flex items-center">
-                <span className="w-6 h-6 bg-foodyman-lime rounded-full flex items-center justify-center mr-3">3</span>
+                <span className="w-6 h-6 bg-yellow-700 rounded-full flex items-center justify-center mr-3">3</span>
                 <span>Enter the code to verify your identity</span>
               </li>
               <li className="flex items-center">
-                <span className="w-6 h-6 bg-foodyman-lime rounded-full flex items-center justify-center mr-3">4</span>
+                <span className="w-6 h-6 bg-yellow-700 rounded-full flex items-center justify-center mr-3">4</span>
                 <span>Create a new secure password</span>
               </li>
             </ul>

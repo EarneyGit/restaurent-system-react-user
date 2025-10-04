@@ -152,7 +152,7 @@ const ScheduleModal: React.FC<ScheduleModalProps> = ({
                     value={timeSlot}
                     checked={selectedTimeSlot === timeSlot}
                     onChange={() => setSelectedTimeSlot(timeSlot)}
-                    className="w-5 h-5 border-gray-300 accent-foodyman-lime focus:ring-foodyman-lime"
+                    className="w-5 h-5 border-gray-300 accent-yellow-600 focus:ring-yellow-600"
                   />
                   <span className="ml-3 text-base">{timeSlot}</span>
                 </label>
@@ -167,7 +167,7 @@ const ScheduleModal: React.FC<ScheduleModalProps> = ({
             onClick={handleSave}
             className={`py-3 px-4 rounded-lg font-medium text-center ${
               selectedTimeSlot
-                ? "bg-foodyman-lime hover:bg-foodyman-lime/70 text-white transition-colors"
+                ? "bg-brand-yellow hover:bg-brand-yellow/70 text-white transition-colors"
                 : "bg-gray-200 text-gray-400 cursor-not-allowed"
             }`}
             disabled={!selectedTimeSlot}

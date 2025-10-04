@@ -31,7 +31,7 @@ const ProductBoxes = () => {
     { name: "Cookies", color: "bg-gradient-to-r from-orange-100 to-orange-200", count: 4 },
     { name: "Macarons", color: "bg-gradient-to-r from-blue-100 to-blue-200", count: 12 },
     { name: "Mini pies", color: "bg-gradient-to-r from-purple-100 to-purple-200", count: 28 },
-    { name: "Assorted bread", color: "bg-gradient-to-r from-green-100 to-green-200", count: 8 },
+    { name: "Assorted bread", color: "bg-gradient-to-r from-yellow-100 to-yellow-200", count: 8 },
   ];
 
   return (

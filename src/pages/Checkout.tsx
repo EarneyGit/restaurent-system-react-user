@@ -46,7 +46,7 @@ const Checkout = () => {
   const total = subtotal + deliveryFee;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-green-50">
+    <div className="min-h-screen bg-gradient-to-br from-yellow-50 via-white to-yellow-50">
       {/* Header */}
       <div className="bg-white shadow-sm">
         <div className="container mx-auto px-4 py-4">
@@ -70,7 +70,7 @@ const Checkout = () => {
             <div className="lg:col-span-2 space-y-6">
               <div className="bg-white rounded-3xl shadow-lg p-8 transform transition-all duration-300 hover:shadow-xl">
                 <h2 className="text-2xl font-semibold text-gray-900 mb-6 flex items-center">
-                  <span className="w-8 h-8 rounded-full bg-green-100 text-green-600 flex items-center justify-center text-lg mr-3">1</span>
+                  <span className="w-8 h-8 rounded-full bg-yellow-100 text-yellow-700 flex items-center justify-center text-lg mr-3">1</span>
                   Order Summary
                 </h2>
                 <div className="divide-y divide-gray-100">
@@ -90,7 +90,7 @@ const Checkout = () => {
                         )}
                       </div>
                       <div className="flex-1">
-                        <h3 className="font-medium text-lg text-gray-900 group-hover:text-green-600 transition-colors">
+                        <h3 className="font-medium text-lg text-gray-900 group-hover:text-yellow-700 transition-colors">
                           {item.name}
                         </h3>
                         <div className="text-sm text-gray-500 mt-1 space-y-1">
@@ -113,7 +113,7 @@ const Checkout = () => {
               {/* Delivery Details */}
               <div className="bg-white rounded-3xl shadow-lg p-8 transform transition-all duration-300 hover:shadow-xl">
                 <h2 className="text-2xl font-semibold text-gray-900 mb-6 flex items-center">
-                  <span className="w-8 h-8 rounded-full bg-green-100 text-green-600 flex items-center justify-center text-lg mr-3">2</span>
+                  <span className="w-8 h-8 rounded-full bg-yellow-100 text-yellow-700 flex items-center justify-center text-lg mr-3">2</span>
                   Delivery Details
                 </h2>
                 <div className="space-y-6">
@@ -127,7 +127,7 @@ const Checkout = () => {
                         type="text"
                         value={address}
                         onChange={(e) => setAddress(e.target.value)}
-                        className="w-full pl-12 pr-4 py-4 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
+                        className="w-full pl-12 pr-4 py-4 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-yellow-600 focus:border-transparent transition-all"
                         placeholder="Enter your delivery address"
                       />
                     </div>
@@ -141,7 +141,7 @@ const Checkout = () => {
                       <select
                         value={deliveryTime}
                         onChange={(e) => setDeliveryTime(e.target.value)}
-                        className="w-full pl-12 pr-4 py-4 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent appearance-none bg-white"
+                        className="w-full pl-12 pr-4 py-4 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-yellow-600 focus:border-transparent appearance-none bg-white"
                       >
                         <option value="">Select delivery time</option>
                         <option value="asap">As soon as possible</option>
@@ -160,7 +160,7 @@ const Checkout = () => {
             <div className="lg:col-span-1">
               <div className="bg-white rounded-3xl shadow-lg p-8 sticky top-8 transform transition-all duration-300 hover:shadow-xl">
                 <h2 className="text-2xl font-semibold text-gray-900 mb-6 flex items-center">
-                  <span className="w-8 h-8 rounded-full bg-green-100 text-green-600 flex items-center justify-center text-lg mr-3">3</span>
+                  <span className="w-8 h-8 rounded-full bg-yellow-100 text-yellow-700 flex items-center justify-center text-lg mr-3">3</span>
                   Payment
                 </h2>
                 
@@ -170,15 +170,15 @@ const Checkout = () => {
                     onClick={() => setPaymentMethod('card')}
                     className={`w-full flex items-center gap-4 p-4 rounded-xl border-2 transition-all ${
                       paymentMethod === 'card'
-                        ? 'border-green-500 bg-green-50 shadow-md'
-                        : 'border-gray-200 hover:border-green-200 hover:bg-green-50/50'
+                        ? 'border-yellow-600 bg-yellow-50 shadow-md'
+                        : 'border-gray-200 hover:border-yellow-200 hover:bg-yellow-50/50'
                     }`}
                   >
                     <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                      paymentMethod === 'card' ? 'bg-green-100' : 'bg-gray-100'
+                      paymentMethod === 'card' ? 'bg-yellow-100' : 'bg-gray-100'
                     }`}>
                       <CreditCard className={`w-5 h-5 ${
-                        paymentMethod === 'card' ? 'text-green-600' : 'text-gray-400'
+                        paymentMethod === 'card' ? 'text-yellow-700' : 'text-gray-400'
                       }`} />
                     </div>
                     <span className="font-medium">Credit/Debit Card</span>
@@ -188,15 +188,15 @@ const Checkout = () => {
                     onClick={() => setPaymentMethod('cash')}
                     className={`w-full flex items-center gap-4 p-4 rounded-xl border-2 transition-all ${
                       paymentMethod === 'cash'
-                        ? 'border-green-500 bg-green-50 shadow-md'
-                        : 'border-gray-200 hover:border-green-200 hover:bg-green-50/50'
+                        ? 'border-yellow-600 bg-yellow-50 shadow-md'
+                        : 'border-gray-200 hover:border-yellow-200 hover:bg-yellow-50/50'
                     }`}
                   >
                     <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                      paymentMethod === 'cash' ? 'bg-green-100' : 'bg-gray-100'
+                      paymentMethod === 'cash' ? 'bg-yellow-100' : 'bg-gray-100'
                     }`}>
                       <Truck className={`w-5 h-5 ${
-                        paymentMethod === 'cash' ? 'text-green-600' : 'text-gray-400'
+                        paymentMethod === 'cash' ? 'text-yellow-700' : 'text-gray-400'
                       }`} />
                     </div>
                     <span className="font-medium">Cash on Delivery</span>
@@ -214,7 +214,7 @@ const Checkout = () => {
                         value={cardNumber}
                         onChange={(e) => setCardNumber(formatCardNumber(e.target.value))}
                         maxLength={19}
-                        className="w-full px-4 py-4 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
+                        className="w-full px-4 py-4 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-yellow-600 focus:border-transparent transition-all"
                         placeholder="1234 5678 9012 3456"
                       />
                     </div>
@@ -228,7 +228,7 @@ const Checkout = () => {
                           value={expiryDate}
                           onChange={(e) => setExpiryDate(formatExpiryDate(e.target.value))}
                           maxLength={5}
-                          className="w-full px-4 py-4 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
+                          className="w-full px-4 py-4 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-yellow-600 focus:border-transparent transition-all"
                           placeholder="MM/YY"
                         />
                       </div>
@@ -241,7 +241,7 @@ const Checkout = () => {
                           value={cvc}
                           onChange={(e) => setCvc(e.target.value.replace(/\D/g, ''))}
                           maxLength={3}
-                          className="w-full px-4 py-4 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
+                          className="w-full px-4 py-4 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-yellow-600 focus:border-transparent transition-all"
                           placeholder="123"
                         />
                       </div>
@@ -261,14 +261,14 @@ const Checkout = () => {
                   </div>
                   <div className="flex justify-between text-lg font-semibold pt-4 border-t-2 border-gray-100">
                     <span className="text-gray-900">Total</span>
-                    <span className="text-green-600">${total.toFixed(2)}</span>
+                    <span className="text-yellow-700">${total.toFixed(2)}</span>
                   </div>
                 </div>
 
                 {/* Place Order Button */}
                 <button
                   onClick={handleSubmit}
-                  className="w-full mt-8 bg-gradient-to-r from-green-600 to-green-500 text-white py-4 px-6 rounded-xl font-medium hover:from-green-700 hover:to-green-600 transition-all transform hover:scale-[1.02] focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+                  className="w-full mt-8 bg-gradient-to-r from-yellow-700 to-yellow-600 text-white py-4 px-6 rounded-xl font-medium hover:from-yellow-700 hover:to-yellow-700 transition-all transform hover:scale-[1.02] focus:outline-none focus:ring-2 focus:ring-yellow-600 focus:ring-offset-2 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
                 >
                   Place Order
                 </button>

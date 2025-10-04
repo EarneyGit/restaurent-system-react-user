@@ -28,13 +28,47 @@ export default {
 				ring: 'hsl(var(--ring))',
 				background: 'hsl(var(--background))',
 				foreground: 'hsl(var(--foreground))',
+				// Brand Colors - Yellow + Black + White + Grey Theme
+				brand: {
+					yellow: {
+						DEFAULT: '#febc06',
+						50: '#fffbeb',
+						100: '#fff6d6',
+						200: '#ffedad',
+						300: '#fee485',
+						400: '#fedb5c',
+						500: '#febc06',
+						600: '#e5a905',
+						700: '#cc9604',
+						800: '#996f03',
+						900: '#664a02',
+					},
+					black: {
+						DEFAULT: '#000000',
+						soft: '#1a1a1a',
+						light: '#2d2d2d',
+					},
+					grey: {
+						50: '#f9fafb',
+						100: '#f3f4f6',
+						200: '#e5e7eb',
+						300: '#d1d5db',
+						400: '#9ca3af',
+						500: '#6b7280',
+						600: '#4b5563',
+						700: '#374151',
+						800: '#1f2937',
+						900: '#111827',
+					}
+				},
+				// Legacy foodyman colors (for backward compatibility)
 				foodyman: {
-					green: '#006633',
-					lime: '#82c341',
+					green: '#febc06',
+					lime: '#a6ce39',
 				},
 				primary: {
-					DEFAULT: 'hsl(var(--primary))',
-					foreground: 'hsl(var(--primary-foreground))'
+					DEFAULT: '#febc06',
+					foreground: '#000000'
 				},
 				secondary: {
 					DEFAULT: 'hsl(var(--secondary))',
@@ -95,10 +129,10 @@ export default {
 				},
 				'pulse-glow': {
 					'0%, 100%': { 
-						boxShadow: '0 0 6px 2px rgba(130, 195, 65, 0.5)'
+						boxShadow: '0 0 6px 2px rgba(254, 188, 6, 0.5)'
 					},
 					'50%': { 
-						boxShadow: '0 0 10px 4px rgba(130, 195, 65, 0.7)'
+						boxShadow: '0 0 10px 4px rgba(254, 188, 6, 0.7)'
 					}
 				}
 			},
@@ -124,7 +158,7 @@ export default {
 					}
 				},
 				'.glow-effect': {
-					boxShadow: '0 0 8px 2px rgba(130, 195, 65, 0.5)',
+					boxShadow: '0 0 8px 2px rgba(254, 188, 6, 0.3)',
 				}
 			}
 			addUtilities(newUtilities)

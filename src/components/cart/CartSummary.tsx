@@ -21,7 +21,7 @@ export const CartSummary: React.FC<CartSummaryProps> = ({ className = '' }) => {
       <div className="relative">
         <ShoppingCart size={20} className="text-gray-700" />
         {itemCount > 0 && (
-          <div className="absolute -top-2 -right-2 bg-green-700 text-white text-xs min-w-[18px] h-[18px] flex items-center justify-center rounded-full px-1 font-medium">
+          <div className="absolute -top-2 -right-2 bg-yellow-700 text-white text-xs min-w-[18px] h-[18px] flex items-center justify-center rounded-full px-1 font-medium">
             {itemCount}
           </div>
         )}

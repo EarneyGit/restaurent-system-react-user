@@ -180,7 +180,7 @@ const Header = () => {
                 ) : (
                   <button
                     onClick={handleLoginClick}
-                    className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-foodyman-green hover:bg-foodyman-green/90 text-white font-medium transition-colors"
+                    className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-yellow-600 hover:bg-yellow-600/90 text-white font-medium transition-colors"
                   >
                     <UserCircle size={18} />
                     <span className="hidden md:inline">Sign in</span>

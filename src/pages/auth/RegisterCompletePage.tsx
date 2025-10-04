@@ -199,7 +199,7 @@ const RegisterCompletePage = () => {
         {/* Logo and Back Button */}
         <div className="flex justify-between items-center md:px-6 py-6">
           <Link to="/" className="flex items-center">
-            <div className="h-8 w-8 bg-gradient-to-r from-foodyman-lime to-foodyman-green rounded-full flex items-center justify-center">
+            <div className="h-8 w-8 bg-gradient-to-r from-brand-yellow to-yellow-700 rounded-full flex items-center justify-center">
               <span className="text-white font-bold text-sm">R</span>
             </div>
             <span className="ml-2 uppercase font-mono font-semibold text-2xl text-gray-800">
@@ -239,7 +239,7 @@ const RegisterCompletePage = () => {
                   formik.touched.password && formik.errors.password
                     ? 'border-red-500'
                     : 'border-gray-300'
-                } rounded-md shadow-sm py-3 px-3 focus:outline-none focus:ring-foodyman-lime focus:border-foodyman-lime sm:text-sm`}
+                } rounded-md shadow-sm py-3 px-3 focus:outline-none focus:ring-yellow-600 focus:border-yellow-600 sm:text-sm`}
                 placeholder="Create a strong password"
               />
               {formik.touched.password && formik.errors.password && (
@@ -264,7 +264,7 @@ const RegisterCompletePage = () => {
                   formik.touched.confirmPassword && formik.errors.confirmPassword
                     ? 'border-red-500'
                     : 'border-gray-300'
-                } rounded-md shadow-sm py-3 px-3 focus:outline-none focus:ring-foodyman-lime focus:border-foodyman-lime sm:text-sm`}
+                } rounded-md shadow-sm py-3 px-3 focus:outline-none focus:ring-yellow-600 focus:border-yellow-600 sm:text-sm`}
                 placeholder="Confirm your password"
               />
               {formik.touched.confirmPassword && formik.errors.confirmPassword && (
@@ -289,7 +289,7 @@ const RegisterCompletePage = () => {
                   formik.touched.phone && formik.errors.phone
                     ? 'border-red-500'
                     : 'border-gray-300'
-                } rounded-md shadow-sm py-3 px-3 focus:outline-none focus:ring-foodyman-lime focus:border-foodyman-lime sm:text-sm`}
+                } rounded-md shadow-sm py-3 px-3 focus:outline-none focus:ring-yellow-600 focus:border-yellow-600 sm:text-sm`}
                 placeholder="Enter your phone number"
               />
               {formik.touched.phone && formik.errors.phone && (
@@ -321,7 +321,7 @@ const RegisterCompletePage = () => {
                     formik.touched.address && formik.errors.address
                       ? 'border-red-500'
                       : 'border-gray-300'
-                  } rounded-md shadow-sm py-3 px-3 pl-10 focus:outline-none focus:ring-foodyman-lime focus:border-foodyman-lime sm:text-sm`}
+                  } rounded-md shadow-sm py-3 px-3 pl-10 focus:outline-none focus:ring-yellow-600 focus:border-yellow-600 sm:text-sm`}
                   placeholder="Search by postcode or address..."
                 />
                 <div className="absolute left-3 top-1/2 transform -translate-y-1/2">
@@ -350,7 +350,7 @@ const RegisterCompletePage = () => {
 
               {selectedAddress && (
                 <div className="mt-3 p-3 bg-gray-50 border border-gray-300 rounded-md flex items-start gap-3">
-                  <MapPin size={18} className="text-green-600 mt-1 flex-shrink-0" />
+                  <MapPin size={18} className="text-yellow-700 mt-1 flex-shrink-0" />
                   <div className="flex-1">
                     <p className="text-sm font-bold text-neutral-900">
                       {selectedAddress.line_1 || `${selectedAddress.building_number} ${selectedAddress.thoroughfare}`.trim()}
@@ -375,7 +375,7 @@ const RegisterCompletePage = () => {
                       className="w-full px-4 py-3 hover:bg-gray-50 cursor-pointer text-left border-b border-gray-100 last:border-b-0"
                     >
                       <div className="flex items-start gap-3">
-                        <MapPin size={16} className="text-green-500 mt-1 flex-shrink-0" />
+                        <MapPin size={16} className="text-yellow-600 mt-1 flex-shrink-0" />
                         <div className="flex-1 min-w-0">
                           <div className="font-medium text-gray-900 truncate">
                             {result.line_1 || `${result.building_number} ${result.thoroughfare}`.trim()}
@@ -397,7 +397,7 @@ const RegisterCompletePage = () => {
               <button
                 type="submit"
                 disabled={formik.isSubmitting}
-                className="w-full bg-foodyman-lime text-white font-medium py-3 rounded-md hover:bg-foodyman-lime/70 transition-colors disabled:opacity-50"
+                  className="w-full bg-yellow-600 text-white font-medium py-3 rounded-md hover:bg-yellow-600/90 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
               >
                 {formik.isSubmitting ? 'Creating Account...' : 'Complete Registration'}
               </button>
@@ -425,7 +425,7 @@ const RegisterCompletePage = () => {
               smooth delivery of your orders.
             </p>
             <div className="bg-black/30 backdrop-blur-sm p-6 rounded-lg">
-              <h3 className="text-foodyman-lime font-bold text-xl mb-4">
+              <h3 className="text-yellow-700 font-bold text-xl mb-4">
                 Why we need this information
               </h3>
               <ul className="space-y-3 text-white/80">

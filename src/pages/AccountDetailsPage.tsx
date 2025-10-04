@@ -121,7 +121,7 @@ const AccountDetailsPage = () => {
             {/* Profile Card */}
             <div className="lg:col-span-1">
               <div className="bg-white rounded-2xl shadow-sm border border-neutral-200 overflow-hidden">
-                <div className="p-6 bg-gradient-to-br from-green-600 to-green-700 text-white">
+                <div className="p-6 bg-gradient-to-br from-yellow-700 to-yellow-700 text-white">
                   <div className="w-20 h-20 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center mb-4">
                     <span className="text-3xl font-bold">
                       {formData.firstName?.[0]?.toUpperCase() ||
@@ -135,7 +135,7 @@ const AccountDetailsPage = () => {
                         formData.firstName.slice(1)
                       : "User"}
                   </h2>
-                  <p className="text-green-100">{formData.email}</p>
+                  <p className="text-yellow-100">{formData.email}</p>
                 </div>
 
                 <div className="p-6">
@@ -144,7 +144,7 @@ const AccountDetailsPage = () => {
                       Account Status
                     </h3>
                     <div className="flex items-center gap-2 text-neutral-600">
-                      <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                      <div className="w-2 h-2 rounded-full bg-yellow-600"></div>
                       <span>Active Member</span>
                     </div>
                   </div>
@@ -175,7 +175,7 @@ const AccountDetailsPage = () => {
                           name="firstName"
                           value={formData.firstName}
                           onChange={handleChange}
-                          className="w-full px-4 py-2.5 bg-neutral-50 border border-neutral-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                          className="w-full px-4 py-2.5 bg-neutral-50 border border-neutral-200 rounded-xl focus:ring-2 focus:ring-yellow-600 focus:border-transparent"
                         />
                       </div>
                       <div>
@@ -187,7 +187,7 @@ const AccountDetailsPage = () => {
                           name="lastName"
                           value={formData.lastName}
                           onChange={handleChange}
-                          className="w-full px-4 py-2.5 bg-neutral-50 border border-neutral-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                          className="w-full px-4 py-2.5 bg-neutral-50 border border-neutral-200 rounded-xl focus:ring-2 focus:ring-yellow-600 focus:border-transparent"
                         />
                       </div>
                     </div>
@@ -214,7 +214,7 @@ const AccountDetailsPage = () => {
                           name="email"
                           value={formData.email}
                           onChange={handleChange}
-                          className="w-full px-4 py-2.5 bg-neutral-50 border border-neutral-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                          className="w-full px-4 py-2.5 bg-neutral-50 border border-neutral-200 rounded-xl focus:ring-2 focus:ring-yellow-600 focus:border-transparent"
                         />
                       </div>
                       <div>
@@ -226,7 +226,7 @@ const AccountDetailsPage = () => {
                           name="phone"
                           value={formData.phone}
                           onChange={handleChange}
-                          className="w-full px-4 py-2.5 bg-neutral-50 border border-neutral-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                          className="w-full px-4 py-2.5 bg-neutral-50 border border-neutral-200 rounded-xl focus:ring-2 focus:ring-yellow-600 focus:border-transparent"
                         />
                       </div>
                     </div>
@@ -280,7 +280,7 @@ const AccountDetailsPage = () => {
                           value={formData.addressLine2}
                           onChange={handleChange}
                           placeholder="Apartment, suite, etc."
-                          className="w-full px-4 py-2.5 bg-neutral-50 border border-neutral-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                          className="w-full px-4 py-2.5 bg-neutral-50 border border-neutral-200 rounded-xl focus:ring-2 focus:ring-yellow-600 focus:border-transparent"
                         />
                       </div>
 
@@ -288,7 +288,7 @@ const AccountDetailsPage = () => {
                         <div className="mt-3 p-3 bg-gray-50 border border-gray-300 rounded-md flex items-start gap-3">
                           <MapPin
                             size={18}
-                            className="text-green-600 mt-1 flex-shrink-0"
+                            className="text-yellow-700 mt-1 flex-shrink-0"
                           />
                           <div className="flex-1">
                             <p className="text-sm font-semibold text-neutral-900">
@@ -309,7 +309,7 @@ const AccountDetailsPage = () => {
                             name="city"
                             value={formData.city}
                             onChange={handleChange}
-                            className="w-full px-4 py-2.5 bg-neutral-50 border border-neutral-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                            className="w-full px-4 py-2.5 bg-neutral-50 border border-neutral-200 rounded-xl focus:ring-2 focus:ring-yellow-600 focus:border-transparent"
                           />
                         </div>
                         <div>
@@ -319,7 +319,7 @@ const AccountDetailsPage = () => {
                             name="postcode"
                             value={formData.postcode}
                             onChange={handleChange}
-                            className="w-full px-4 py-2.5 bg-neutral-50 border border-neutral-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                            className="w-full px-4 py-2.5 bg-neutral-50 border border-neutral-200 rounded-xl focus:ring-2 focus:ring-yellow-600 focus:border-transparent"
                           />
                         </div>
                       </div> */}
@@ -370,7 +370,7 @@ const AccountDetailsPage = () => {
                           name="emailNotifications"
                           checked={formData.emailNotifications}
                           onChange={handleChange}
-                          className="h-4 w-4 text-green-600 focus:ring-green-500 border-neutral-300 rounded"
+                          className="h-4 w-4 text-yellow-700 focus:ring-yellow-600 border-neutral-300 rounded"
                         />
                         <label className="ml-2 text-sm text-neutral-700">
                           Email notifications and offers
@@ -383,7 +383,7 @@ const AccountDetailsPage = () => {
                           name="smsNotifications"
                           checked={formData.smsNotifications}
                           onChange={handleChange}
-                          className="h-4 w-4 text-green-600 focus:ring-green-500 border-neutral-300 rounded"
+                          className="h-4 w-4 text-yellow-700 focus:ring-yellow-600 border-neutral-300 rounded"
                         />
                         <label className="ml-2 text-sm text-neutral-700">
                           SMS notifications and offers
@@ -402,7 +402,7 @@ const AccountDetailsPage = () => {
                               preferSMS: false,
                             }))
                           }
-                          className="h-4 w-4 text-green-600 focus:ring-green-500 border-neutral-300"
+                          className="h-4 w-4 text-yellow-700 focus:ring-yellow-600 border-neutral-300"
                         />
                         <label className="ml-2 text-sm text-neutral-700">
                           Prefer email communication
@@ -421,7 +421,7 @@ const AccountDetailsPage = () => {
                               preferSMS: true,
                             }))
                           }
-                          className="h-4 w-4 text-green-600 focus:ring-green-500 border-neutral-300"
+                          className="h-4 w-4 text-yellow-700 focus:ring-yellow-600 border-neutral-300"
                         />
                         <label className="ml-2 text-sm text-neutral-700">
                           Prefer SMS communication
@@ -436,7 +436,7 @@ const AccountDetailsPage = () => {
                   <button
                     type="submit"
                     disabled={isLoading}
-                    className="flex-1 py-3 bg-green-600 text-white font-semibold rounded-xl hover:bg-green-700 transition-colors flex items-center justify-center gap-2"
+                    className="flex-1 py-3 bg-yellow-700 text-white font-semibold rounded-xl hover:bg-yellow-700 transition-colors flex items-center justify-center gap-2"
                   >
                     {isLoading ? (
                       <>

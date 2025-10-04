@@ -18,7 +18,7 @@ const CartIndicator = () => {
       <div className="relative">
         <ShoppingCart size={18} />
         {cartCount > 0 && (
-          <div className="absolute -top-2 -right-2 w-4 h-4 bg-foodyman-lime text-white rounded-full flex items-center justify-center text-[10px] font-bold">
+          <div className="absolute -top-2 -right-2 w-4 h-4 bg-brand-yellow text-white rounded-full flex items-center justify-center text-[10px] font-bold">
             {cartCount}
           </div>
         )}

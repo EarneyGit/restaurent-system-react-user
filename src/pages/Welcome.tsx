@@ -38,7 +38,7 @@ const Welcome = () => {
       <div className="relative flex flex-col items-center justify-center min-h-[80vh] p-6 animate-fade-in">
         {/* Logo */}
         <div className="md:w-48 md:h-48 w-40 h-40 mb-8 relative">
-          <div className="absolute inset-0 bg-green-700/20 rounded-full blur-xl"></div>
+          <div className="absolute inset-0 bg-yellow-100/20 rounded-full blur-xl"></div>
           <svg viewBox="0 0 200 200" className="w-full h-full relative">
             <defs>
               <linearGradient
@@ -48,8 +48,8 @@ const Welcome = () => {
                 x2="100%"
                 y2="100%"
               >
-                <stop offset="0%" stopColor="#2e7d32" />
-                <stop offset="100%" stopColor="#4caf50" />
+                <stop offset="0%" stopColor="#fffbd06" />
+                <stop offset="100%" stopColor="#e5a905" />
               </linearGradient>
             </defs>
             <circle
@@ -88,8 +88,8 @@ const Welcome = () => {
         </div>
 
         {/* Info Card */}
-        <div className="text-center bg-white/90 backdrop-blur-lg glow-effect p-8 rounded-3xl shadow-2xl border border-green-800/90 max-w-xl mb-6">
-          <h1 className="text-4xl font-mono font-bold bg-gradient-to-r from-foodyman-green via-foodyman-green to-[#4caf50] bg-clip-text text-transparent tracking-tight mb-4">
+        <div className="text-center bg-white/90 backdrop-blur-none glow-effect p-8 rounded-3xl   max-w-xl mb-6">
+          <h1 className="text-4xl font-mono font-bold bg-gradient-to-r from-neutral-800 via-neutral-700 to-neutral-700 bg-clip-text text-transparent tracking-tight mb-4">
             Rasoie - Indian Restaurent
           </h1>
           <p className="text-black/70 font-semibold text-lg mb-8">
@@ -98,17 +98,17 @@ const Welcome = () => {
           </p>
           <button
             onClick={() => navigate("/select-outlet")}
-            className="px-8 py-3 rounded-xl text-lg font-semibold bg-gradient-to-r from-[#2e7d32] to-[#4caf50] text-white shadow-md relative overflow-hidden border border-white/10 transition hover:scale-x-95"
+            className="px-8 py-3 rounded-xl text-lg font-semibold bg-yellow-700/90 text-white shadow-md relative overflow-hidden border border-black/10 transition hover:scale-x-100  "
           >
-            <span className="relative z-10 uppercase">Start Over</span>
-            <div className="absolute inset-0 bg-white opacity-0 hover:opacity-10 transition duration-300"></div>
+            <span className="relative z-10 uppercase text-white font-bold">Start Over</span>
+            <div className="absolute inset-0 bg-black opacity-0 hover:opacity-10 transition duration-300"></div>
           </button>
         </div>
 
         {/* Bottom Nav - Below the Card */}
         <div className="w-full max-w-md rounded-xl border border-white/20 backdrop-blur-lg p-4 grid grid-cols-4 gap-2">
           <Link to="/offers" className="flex flex-col items-center text-white">
-            <div className="p-2 rounded-xl bg-green-800/60">
+            <div className="p-2 rounded-xl bg-yellow-700/60">
               <Store size={24} stroke="white" />
             </div>
             <span className="text-sm mt-1 font-medium">Offers</span>
@@ -117,7 +117,7 @@ const Welcome = () => {
             to="/about"
             className="flex flex-col items-center text-white"
           >
-            <div className="p-2 rounded-xl bg-green-800/30">
+            <div className="p-2 rounded-xl bg-yellow-700/30">
               <Info size={24} stroke="white" />
             </div>
             <span className="text-sm mt-1 font-medium">About</span>
@@ -126,7 +126,7 @@ const Welcome = () => {
             to="/select-outlet"
             className="flex flex-col items-center text-white"
           >
-            <div className="p-2 rounded-xl bg-green-800/60">
+            <div className="p-2 rounded-xl bg-yellow-700/60">
               <MapPin size={24} stroke="white" />
             </div>
             <span className="text-sm mt-1 font-medium">Outlet</span>
@@ -135,7 +135,7 @@ const Welcome = () => {
             onClick={handleAccountClick}
             className="flex flex-col items-center text-white relative"
           >
-            <div className="p-2 rounded-xl bg-green-800/30">
+            <div className="p-2 rounded-xl bg-yellow-700/30">
               <User size={24} stroke="white" />
             </div>
             <span className="text-sm mt-1 font-medium">Account</span>
@@ -154,11 +154,11 @@ const Welcome = () => {
             {/* Modal */}
             <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 max-w-2xl w-full bg-white rounded-xl shadow-2xl border border-gray-100 overflow-hidden z-50 animate-fade-in-up">
               {/* User Info */}
-              <div className="p-8 bg-gradient-to-r from-green-900 to-green-600 text-white relative">
+              <div className="p-8 bg-gradient-to-r from-yellow-700 to-yellow-800 text-black relative">
                 <div className="absolute inset-0 bg-[url('/pattern.svg')] opacity-10" />
                 <div className="relative">
-                  <h2 className="text-3xl font-bold mb-2">{user?.name}</h2>
-                  <p className="text-lg opacity-90">{user?.email}</p>
+                  <h2 className="text-3xl font-bold text-white mb-2">{user?.name}</h2>
+                  <p className="text-lg opacity-90 text-white">{user?.email}</p>
                 </div>
               </div>
               

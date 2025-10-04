@@ -70,7 +70,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ product }) => {
             </div>
           </div>
           
-          <button className="w-full py-3 bg-foodyman-lime text-white rounded-md font-medium">
+          <button className="w-full py-3 bg-brand-yellow text-white rounded-md font-medium">
             Add to Cart - ${(product.price * quantity).toFixed(2)}
           </button>
         </div>

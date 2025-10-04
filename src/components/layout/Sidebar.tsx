@@ -32,7 +32,7 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
           {/* Header with close button */}
           <div className="flex items-center justify-between p-5 border-b">
             <div className="flex items-center">
-              <div className="h-8 w-8 bg-gradient-to-r from-foodyman-lime to-foodyman-green rounded-full flex items-center justify-center">
+              <div className="h-8 w-8 bg-gradient-to-r from-brand-yellow to-yellow-700 rounded-full flex items-center justify-center">
                 <span className="text-white font-bold text-sm">R</span>
               </div>
               <span className="ml-2 font-semibold text-gray-800">Rasoie</span>

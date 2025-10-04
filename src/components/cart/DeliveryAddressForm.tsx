@@ -68,7 +68,7 @@ const DeliveryAddressForm: React.FC<DeliveryAddressFormProps> = ({
           type="text"
           value={address.street}
           onChange={(e) => onChange('street', e.target.value)}
-          className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
+          className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-yellow-600 focus:border-transparent transition-all"
           placeholder="Enter your street address"
         />
       </div>
@@ -81,7 +81,7 @@ const DeliveryAddressForm: React.FC<DeliveryAddressFormProps> = ({
           type="text"
           value={address.street2}
           onChange={(e) => onChange('street2', e.target.value)}
-          className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
+          className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-yellow-600 focus:border-transparent transition-all"
           placeholder="Apartment or suite number"
         />
       </div>
@@ -94,7 +94,7 @@ const DeliveryAddressForm: React.FC<DeliveryAddressFormProps> = ({
           type="text"
           value={address.city}
           onChange={(e) => onChange('city', e.target.value)}
-          className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
+          className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-yellow-600 focus:border-transparent transition-all"
           placeholder="Enter city"
         />
       </div>
@@ -107,7 +107,7 @@ const DeliveryAddressForm: React.FC<DeliveryAddressFormProps> = ({
           type="text"
           value={address.state}
           onChange={(e) => onChange('state', e.target.value)}
-          className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
+          className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-yellow-600 focus:border-transparent transition-all"
           placeholder="Enter state"
         />
       </div>
@@ -120,7 +120,7 @@ const DeliveryAddressForm: React.FC<DeliveryAddressFormProps> = ({
           type="text"
           value={address.postalCode}
           onChange={(e) => onChange('postalCode', e.target.value)}
-          className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
+          className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-yellow-600 focus:border-transparent transition-all"
           placeholder="Enter postal code"
         />
       </div>
@@ -133,7 +133,7 @@ const DeliveryAddressForm: React.FC<DeliveryAddressFormProps> = ({
           type="text"
           value={address.country}
           onChange={(e) => onChange('country', e.target.value)}
-          className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
+          className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-yellow-600 focus:border-transparent transition-all"
           placeholder="Enter country"
         />
       </div>
@@ -142,7 +142,7 @@ const DeliveryAddressForm: React.FC<DeliveryAddressFormProps> = ({
         <div className="md:col-span-2">
           <button
             onClick={() => setIsEditing(false)}
-            className="text-green-600 hover:text-green-700 text-sm font-medium"
+            className="text-yellow-700 hover:text-yellow-700 text-sm font-medium"
           >
             Cancel Editing
           </button>

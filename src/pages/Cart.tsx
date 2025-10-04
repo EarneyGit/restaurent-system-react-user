@@ -27,7 +27,7 @@ export default function CartPage() {
         <div className="mt-8 flex justify-end">
           <button
             onClick={handleProceedToCheckout}
-            className="bg-green-600 text-white px-6 py-3 rounded-xl hover:bg-green-700 transition-colors"
+            className="bg-yellow-700 text-white px-6 py-3 rounded-xl hover:bg-yellow-700 transition-colors"
           >
             Proceed to Checkout
           </button>

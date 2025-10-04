@@ -7,8 +7,8 @@ const bannerData = [
     description: "Get fresh, healthy meals delivered to your doorstep. Perfect for busy professionals.",
     // buttonText: "View menu",
     icon: <Salad className="w-12 h-12 text-white" />,
-    bgColor: "bg-gradient-to-br from-green-500 to-green-600",
-    iconBg: "bg-green-600/50 backdrop-blur-md",
+    bgColor: "bg-gradient-to-br from-yellow-600 to-yellow-700",
+    iconBg: "bg-yellow-700/50 backdrop-blur-md",
     pattern: (id) => (
       <svg width="100%" height="100%" className="text-white/[0.1]">
         <defs>
@@ -53,8 +53,8 @@ const bannerData = [
     description: "Exclusive restaurants and special offers for premium members.",
     // buttonText: "Join now",
     icon: <ChefHat className="w-12 h-12 text-white" />,
-    bgColor: "bg-gradient-to-br from-green-700 to-green-800",
-    iconBg: "bg-green-800/50 backdrop-blur-md",
+    bgColor: "bg-gradient-to-br from-yellow-700 to-yellow-800",
+    iconBg: "bg-yellow-800/50 backdrop-blur-md",
     pattern: (id) => (
       <svg width="100%" height="100%" className="text-white/[0.05]">
         <defs>

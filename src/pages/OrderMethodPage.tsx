@@ -201,8 +201,8 @@ const OrderMethodPage = () => {
             }`}
             >
               <div className="flex items-center">
-                <div className="bg-green-600/20 p-4 rounded-xl">
-                  <ShoppingBag className="text-green-500 w-8 h-8" />
+                <div className="bg-yellow-200/80 p-4 rounded-xl">
+                  <ShoppingBag className="text-yellow-700 w-8 h-8" />
                 </div>
                 <div className="ml-5 text-left">
                   <h3 className="font-bold text-xl text-white">I'll collect</h3>
@@ -212,7 +212,7 @@ const OrderMethodPage = () => {
                   <div className="flex items-center mt-3">
                     <div
                       className={`h-2.5 w-2.5 rounded-full mr-2.5 ${
-                        isCollectionAllowed ? "bg-green-500" : "bg-red-500"
+                        isCollectionAllowed ? "bg-yellow-600" : "bg-red-500"
                       }`}
                     ></div>
                     <span className="text-sm text-white/70">
@@ -237,8 +237,8 @@ const OrderMethodPage = () => {
             }`}
             >
               <div className="flex items-center">
-                <div className="bg-green-600/20 p-4 rounded-xl">
-                  <Truck className="text-green-500 w-8 h-8" />
+                <div className="bg-yellow-200/80 p-4 rounded-xl">
+                  <Truck className="text-yellow-700 w-8 h-8" />
                 </div>
                 <div className="ml-5 text-left">
                   <h3 className="font-bold text-xl text-white">
@@ -250,7 +250,7 @@ const OrderMethodPage = () => {
                   <div className="flex items-center mt-3">
                     <div
                       className={`h-2.5 w-2.5 rounded-full mr-2.5 ${
-                        isDeliveryAllowed ? "bg-green-500" : "bg-red-500"
+                        isDeliveryAllowed ? "bg-yellow-600" : "bg-red-500"
                       }`}
                     ></div>
                     <span className="text-sm text-white/70">

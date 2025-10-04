@@ -220,14 +220,14 @@ const AboutPage = () => {
   }) => (
     <div className="bg-white/5 rounded-xl p-4 backdrop-blur-sm border border-white/10">
       <div className="flex items-center gap-3 mb-3">
-        <div className="p-2 rounded-lg bg-green-500/10">
-          <Icon className="w-5 h-5 text-green-400" />
+        <div className="p-2 rounded-lg bg-yellow-600/10">
+          <Icon className="w-5 h-5 text-yellow-400" />
         </div>
         <div>
           <h4 className="text-white font-medium">{title}</h4>
           <p
             className={`text-sm ${
-              isEnabled ? "text-green-400" : "text-red-400"
+              isEnabled ? "text-yellow-400" : "text-red-400"
             }`}
           >
             {isEnabled ? "Available" : "Not Available"}
@@ -247,13 +247,13 @@ const AboutPage = () => {
           {leadTime && leadTime > 0 && (
             <div className="flex items-center justify-between text-sm">
               <span className="text-white/60">Lead Time:</span>
-              <span className="text-green-400">{leadTime} minutes</span>
+              <span className="text-yellow-400">{leadTime} minutes</span>
             </div>
           )}
           {displayedTime && (
             <div className="flex items-center justify-between text-sm">
               <span className="text-white/60">First Available:</span>
-              <span className="text-green-400">
+              <span className="text-yellow-400">
                 {formatTime(displayedTime)}
               </span>
             </div>
@@ -282,15 +282,15 @@ const AboutPage = () => {
         {/* Delivery Card */}
         <div className="bg-white/0 rounded-xl p-4 backdrop-blur-sm border border-white/10 transition-all duration-300 hover:bg-white/10">
           <div className="flex items-center gap-3 mb-3">
-            <div className="p-2 rounded-lg bg-green-500/10">
-              <Truck className="w-5 h-5 text-green-400" />
+            <div className="p-2 rounded-lg bg-yellow-200/10">
+              <Truck className="w-5 h-5 text-gray-200" />
             </div>
             <div>
               <h4 className="text-white font-medium">Delivery</h4>
               <p
                 className={`text-sm ${
                   branch.orderingOptions.delivery.isEnabled
-                    ? "text-green-400"
+                    ? "text-yellow-400"
                     : "text-red-400"
                 }`}
               >
@@ -304,14 +304,14 @@ const AboutPage = () => {
             <div className="space-y-2 mt-3 border-t border-white/10 pt-3">
               <div className="flex items-center justify-between text-sm">
                 <span className="text-white/60">Time Slots:</span>
-                <span className="text-green-400">
+                <span className="text-yellow-400">
                   {branch.orderingOptions.delivery.timeslotLength}min
                 </span>
               </div>
               {branch.preOrdering?.allowDeliveryPreOrders && (
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-white/60">Pre-ordering:</span>
-                  <span className="text-green-400">Available</span>
+                  <span className="text-yellow-400">Available</span>
                 </div>
               )}
             </div>
@@ -321,15 +321,15 @@ const AboutPage = () => {
         {/* Collection Card */}
         <div className="bg-white/0 rounded-xl p-4 backdrop-blur-sm border border-white/10 transition-all duration-300 hover:bg-white/10">
           <div className="flex items-center gap-3 mb-3">
-            <div className="p-2 rounded-lg bg-green-500/10">
-              <ShoppingBag className="w-5 h-5 text-green-400" />
+            <div className="p-2 rounded-lg bg-yellow-200/10">
+              <ShoppingBag className="w-5 h-5 text-gray-200" />
             </div>
             <div>
               <h4 className="text-white font-medium">Collection</h4>
               <p
                 className={`text-sm ${
                   branch.orderingOptions.collection.isEnabled
-                    ? "text-green-400"
+                    ? "text-gray-400"
                     : "text-red-400"
                 }`}
               >
@@ -343,14 +343,14 @@ const AboutPage = () => {
             <div className="space-y-2 mt-3 border-t border-white/10 pt-3">
               <div className="flex items-center justify-between text-sm">
                 <span className="text-white/60">Time Slots:</span>
-                <span className="text-green-400">
+                <span className="text-yellow-600">
                   {branch.orderingOptions.collection.timeslotLength}min
                 </span>
               </div>
               {branch.preOrdering?.allowCollectionPreOrders && (
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-white/60">Pre-ordering:</span>
-                  <span className="text-green-400">Available</span>
+                  <span className="text-yellow-600">Available</span>
                 </div>
               )}
             </div>
@@ -360,15 +360,15 @@ const AboutPage = () => {
         {/* Table Service Card */}
         <div className="bg-white/0 rounded-xl p-4 backdrop-blur-sm border border-white/10 transition-all duration-300 hover:bg-white/10">
           <div className="flex items-center gap-3 mb-3">
-            <div className="p-2 rounded-lg bg-green-500/10">
-              <Users className="w-5 h-5 text-green-400" />
+            <div className="p-2 rounded-lg bg-yellow-200/10">
+              <Users className="w-5 h-5 text-gray-200" />
             </div>
             <div>
               <h4 className="text-white font-medium">Table Service</h4>
               <p
                 className={`text-sm ${
                   branch.orderingOptions.tableOrdering.isEnabled
-                    ? "text-green-400"
+                    ? "text-gray-400"
                     : "text-red-400"
                 }`}
               >
@@ -382,7 +382,7 @@ const AboutPage = () => {
             <div className="space-y-2 mt-3 border-t border-white/10 pt-3">
               <div className="flex items-center justify-between text-sm">
                 <span className="text-white/60">Status:</span>
-                <span className="text-green-400">Active</span>
+                <span className="text-yellow-600">Active</span>
               </div>
             </div>
           )}
@@ -394,7 +394,7 @@ const AboutPage = () => {
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-black">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-green-500"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-yellow-600"></div>
       </div>
     );
   }
@@ -448,7 +448,7 @@ const AboutPage = () => {
                   onClick={() => handleTabChange(branch.id, "info")}
                   className={`flex-1 px-4 py-3 text-sm font-medium ${
                     currentTab === "info"
-                      ? "text-green-400 border-b-2 border-green-400"
+                      ? "text-yellow-600 border-b-2 border-yellow-700"
                       : "text-white/60 hover:text-white"
                   }`}
                 >
@@ -461,7 +461,7 @@ const AboutPage = () => {
                   onClick={() => handleTabChange(branch.id, "hours")}
                   className={`flex-1 px-4 py-3 text-sm font-medium ${
                     currentTab === "hours"
-                      ? "text-green-400 border-b-2 border-green-400"
+                      ? "text-yellow-600 border-b-2 border-yellow-700"
                       : "text-white/60 hover:text-white"
                   }`}
                 >
@@ -474,7 +474,7 @@ const AboutPage = () => {
                   onClick={() => handleTabChange(branch.id, "closed")}
                   className={`flex-1 px-4 py-3 text-sm font-medium ${
                     currentTab === "closed"
-                      ? "text-green-400 border-b-2 border-green-400"
+                      ? "text-yellow-600 border-b-2 border-yellow-700"
                       : "text-white/60 hover:text-white"
                   }`}
                 >
@@ -488,12 +488,12 @@ const AboutPage = () => {
               {/* Tab Content */}
               <div className="p-6">
                 {currentTab === "info" && (
-                  <div className="space-y-6 p-6">
+                  <div className="space-y-6 px-6">
                     {/* Contact Info */}
                     <div className="space-y-4">
                       <div className="flex items-start gap-4">
-                        <div className="p-3 rounded-xl bg-green-600/20">
-                          <MapPin className="text-green-400" />
+                        <div className="p-2 rounded-xl bg-yellow-200/80">
+                          <MapPin className="text-yellow-700" />
                         </div>
                         <div>
                           <h3 className="text-white font-medium mb-1">
@@ -512,8 +512,8 @@ const AboutPage = () => {
                       </div>
 
                       <div className="flex items-start gap-4">
-                        <div className="p-3 rounded-xl bg-green-600/20">
-                          <Phone className="text-green-400" />
+                        <div className="p-2 rounded-xl bg-yellow-200/80">
+                          <Phone className="text-yellow-700" />
                         </div>
                         <div>
                           <h3 className="text-white font-medium mb-1">
@@ -532,8 +532,8 @@ const AboutPage = () => {
                       </div>
 
                       <div className="flex items-start gap-4">
-                        <div className="p-3 rounded-xl bg-green-600/20">
-                          <Mail className="text-green-400" />
+                        <div className="p-2 rounded-xl bg-yellow-200/80">
+                          <Mail className="text-yellow-700" />
                         </div>
                         <div>
                           <h3 className="text-white font-medium mb-1">Email</h3>
@@ -618,7 +618,7 @@ const AboutPage = () => {
                                       <p className="text-sm font-medium text-white">
                                         Delivery Hours
                                       </p>
-                                      <span className="text-xs bg-green-500/20 text-green-400 px-2 py-1 rounded">
+                                      <span className="text-xs bg-yellow-700/80 text-white px-2 py-1 rounded">
                                         Available
                                       </span>
                                     </div>
@@ -648,7 +648,7 @@ const AboutPage = () => {
                                           <span className="text-white/60">
                                             Lead Time:
                                           </span>
-                                          <span className="text-green-400">
+                                          <span className="text-yellow-400">
                                             {daySchedule.delivery.leadTime}{" "}
                                             minutes
                                           </span>
@@ -671,7 +671,7 @@ const AboutPage = () => {
                                       <p className="text-sm font-medium text-white">
                                         Collection Hours
                                       </p>
-                                      <span className="text-xs bg-green-500/20 text-green-400 px-2 py-1 rounded">
+                                      <span className="text-xs bg-yellow-700/80 text-white px-2 py-1 rounded">
                                         Available
                                       </span>
                                     </div>
@@ -701,7 +701,7 @@ const AboutPage = () => {
                                           <span className="text-white/60">
                                             Lead Time:
                                           </span>
-                                          <span className="text-green-400">
+                                          <span className="text-yellow-400">
                                             {daySchedule.collection.leadTime}{" "}
                                             minutes
                                           </span>

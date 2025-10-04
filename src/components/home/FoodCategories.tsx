@@ -88,14 +88,14 @@ const getCategoryAvailabilityMessage = (category: Category): string => {
 const CATEGORY_ICONS: { [key: string]: { icon: LucideIcon; color: string } } = {
   Desserts: { icon: IceCream2, color: "text-pink-400" },
   Cakes: { icon: Coffee, color: "text-amber-500" },
-  Sandwiches: { icon: Sandwich, color: "text-yellow-600" },
+  Sandwiches: { icon: Sandwich, color: "text-yellow-700" },
   Chocolates: { icon: Candy, color: "text-rose-400" },
   "Chicken Wings": { icon: Drumstick, color: "text-red-500" },
   Drinks: { icon: CupSoda, color: "text-blue-500" },
-  Salads: { icon: Salad, color: "text-green-500" },
+  Salads: { icon: Salad, color: "text-yellow-600" },
   Breakfast: { icon: EggFried, color: "text-orange-400" },
   Smoothies: { icon: Shrub, color: "text-teal-500" },
-  // "Rice Bowls": { icon: BowlRice, color: "text-yellow-500" },
+  // "Rice Bowls": { icon: BowlRice, color: "text-yellow-600" },
   // "Cupcakes": { icon: Cupcake, color: "text-pink-500" },
   Pizza: { icon: Pizza, color: "text-red-500" },
   Fish: { icon: Fish, color: "text-cyan-600" },
@@ -194,7 +194,7 @@ const CategoryItem: React.FC<CategoryProps> = ({
         <div className={`text-xs mt-1 px-2 py-0.5 rounded ${
           !isAvailable 
             ? 'bg-red-100 text-red-700' 
-            : 'bg-green-100 text-green-700'
+            : 'bg-yellow-100 text-yellow-700'
         }`}>
           {availabilityMessage}
         </div>
