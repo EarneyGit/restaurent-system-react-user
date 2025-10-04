@@ -367,14 +367,14 @@ const AddressSelector = () => {
 
         {/* Address Selection UI */}
         {user?.address ? (
-          <div className={`border rounded-xl p-4 mb-4 shadow-sm transition-all ${selectedAddressType === 'user' ? 'border-green-600 bg-green-900/10' : 'border-white/20 bg-white/5'}`}>
+          <div className={`border rounded-xl p-4 mb-4 shadow-sm transition-all ${selectedAddressType === 'user' ? 'border-yellow-700 bg-yellow-900/10' : 'border-white/20 bg-white/5'}`}>
             <label className="flex items-center gap-3 cursor-pointer">
               <input
                 type="radio"
                 name="addressType"
                 checked={selectedAddressType === 'user'}
                 onChange={handleUserAddressSelect}
-                className="accent-green-600 h-5 w-5"
+                className="accent-yellow-700 h-5 w-5"
               />
               <div>
                 <div className="font-semibold text-white">Use my saved address</div>
@@ -386,16 +386,16 @@ const AddressSelector = () => {
             {selectedAddressType === 'user' && (
               <button
                 onClick={handleUserAddressGoToMenu}
-                className="mt-4 flex items-center gap-2 text-xs font-bold bg-green-600 text-white px-2.5 py-2 rounded-lg hover:bg-green-700 transition"
+                className="mt-4 flex items-center gap-2 text-xs font-bold bg-yellow-700 text-white px-2.5 py-2 rounded-lg hover:bg-yellow-700 transition"
               >
                 Go to Menu
               </button>
             )}
           </div>
         ) : selectedAddress && selectedAddressType === 'search' ? (
-          <div className={`border rounded-xl p-4 mb-4 shadow-sm transition-all border-green-600 bg-green-900/10`}>
+          <div className={`border rounded-xl p-4 mb-4 shadow-sm transition-all border-yellow-700 bg-yellow-900/10`}>
             <div className="flex items-start gap-3">
-              <MapPin size={18} className="text-green-500 mt-1 flex-shrink-0" />
+              <MapPin size={18} className="text-yellow-600 mt-1 flex-shrink-0" />
               <div className="flex-1">
                 <div className="font-semibold text-white">Previously used address</div>
                 <div className="text-white/80">
@@ -409,7 +409,7 @@ const AddressSelector = () => {
             <div className="flex justify-between mt-4">
               <button
                 onClick={handleGoToMenu}
-                className="flex items-center gap-2 text-xs font-bold bg-green-600 text-white px-2.5 py-2 rounded-lg hover:bg-green-700 transition"
+                className="flex items-center gap-2 text-xs font-bold bg-yellow-700 text-white px-2.5 py-2 rounded-lg hover:bg-yellow-700 transition"
               >
                 Use this address
               </button>
@@ -436,7 +436,7 @@ const AddressSelector = () => {
         <button
           type="button"
           onClick={handleSearchAddressSelect}
-          className="flex items-center gap-2 text-xs font-bold bg-green-600 text-white px-2.5 py-2 rounded-lg  hover:bg-green-700 transition"
+          className="flex items-center gap-2 text-xs font-bold bg-yellow-700 text-white px-2.5 py-2 rounded-lg  hover:bg-yellow-700 transition"
           >
           <Plus size={18} /> Search new address
         </button>
@@ -448,7 +448,7 @@ const AddressSelector = () => {
                 value={searchValue}
                 onChange={(e) => handleSearch(e.target.value)}
                 placeholder="Search by postcode or address..."
-                className="w-full px-4 py-3 pl-12 bg-white/10 backdrop-blur-sm rounded-xl border border-white/20 text-white placeholder-white/50 focus:outline-none focus:border-green-500"
+                className="w-full px-4 py-3 pl-12 bg-white/10 backdrop-blur-sm rounded-xl border border-white/20 text-white placeholder-white/50 focus:outline-none focus:border-yellow-600"
               />
               <div className="absolute left-4 top-1/2 transform -translate-y-1/2">
                 {isLoading ? (
@@ -483,7 +483,7 @@ const AddressSelector = () => {
                     onClick={() => handleSelect(address)}
                     className="w-full px-6 py-4 hover:bg-white/10 cursor-pointer text-white flex items-start gap-3 border-b border-white/10 last:border-b-0"
                   >
-                    <MapPin size={20} className="text-green-500 mt-1 flex-shrink-0" />
+                    <MapPin size={20} className="text-yellow-600 mt-1 flex-shrink-0" />
                     <div className="flex-1 min-w-0">
                       <div className="font-medium text-base truncate">
                         {address.line_1 || `${address.building_number} ${address.thoroughfare}`.trim()}
@@ -502,7 +502,7 @@ const AddressSelector = () => {
         {/* Only show the selected searched address card if a valid address is selected from search */}
         {selectedSearchedAddress && selectedAddressType === 'search' && showSearchInput && (
           <div className="mt-4 p-4 bg-white/10 rounded-xl flex items-start gap-2 border border-white/20 relative">
-            <MapPin size={18} className="text-green-500 mt-1 flex-shrink-0" />
+            <MapPin size={18} className="text-yellow-600 mt-1 flex-shrink-0" />
             <div className="flex-1">
               <p className="text-white font-medium">{selectedSearchedAddress.line_1 || `${selectedSearchedAddress.building_number} ${selectedSearchedAddress.thoroughfare}`.trim()}</p>
               <p className="text-white/80">{selectedSearchedAddress.post_town}, {selectedSearchedAddress.county}</p>
@@ -518,7 +518,7 @@ const AddressSelector = () => {
         )}
         {/* {selectedAddress && selectedAddressType === 'user' && (
           <div className="mt-4 p-4 bg-white/10 rounded-xl flex items-start gap-2 border border-white/20">
-            <MapPin size={18} className="text-green-500 mt-1 flex-shrink-0" />
+            <MapPin size={18} className="text-yellow-600 mt-1 flex-shrink-0" />
             <div>
               <p className="text-white font-medium">{formatAddress(user.address)}</p>
             </div>
@@ -527,7 +527,7 @@ const AddressSelector = () => {
         
         {selectedAddress && selectedAddressType === 'search' && !showSearchInput && (
           <div className="mt-4 p-4 bg-white/10 rounded-xl flex items-start gap-2 border border-white/20 relative">
-            <MapPin size={18} className="text-green-500 mt-1 flex-shrink-0" />
+            <MapPin size={18} className="text-yellow-600 mt-1 flex-shrink-0" />
             <div className="flex-1">
               <p className="text-white font-medium">{selectedAddress.line_1 || `${selectedAddress.building_number} ${selectedAddress.thoroughfare}`.trim()}</p>
               <p className="text-white/80">{selectedAddress.post_town}, {selectedAddress.county}</p>
@@ -535,7 +535,7 @@ const AddressSelector = () => {
             </div>
             <button
               onClick={handleGoToMenu}
-              className="mt-2 flex items-center gap-2 text-xs font-bold bg-green-600 text-white px-2.5 py-2 rounded-lg hover:bg-green-700 transition"
+              className="mt-2 flex items-center gap-2 text-xs font-bold bg-yellow-700 text-white px-2.5 py-2 rounded-lg hover:bg-yellow-700 transition"
             >
               Use this address
             </button>
@@ -546,7 +546,7 @@ const AddressSelector = () => {
           <div className="bg-white/10 backdrop-blur-sm p-4 rounded-xl border border-white/20">
             <h3 className="text-white font-semibold mb-2">Selected Address:</h3>
             <div className="flex items-start gap-2">
-              <MapPin size={18} className="text-green-500 mt-1 flex-shrink-0" />
+              <MapPin size={18} className="text-yellow-600 mt-1 flex-shrink-0" />
               <div>
                 <p className="text-white/90 font-medium">
                   {selectedAddress.line_1 || `${selectedAddress.building_number} ${selectedAddress.thoroughfare}`.trim()}
@@ -563,7 +563,7 @@ const AddressSelector = () => {
             <div className="mt-6 flex gap-4">
               <button
                 onClick={handleGoToMenu}
-                className="flex-1 px-4 py-3 bg-green-600 text-white font-semibold rounded-xl hover:bg-green-700 transition-colors"
+                className="flex-1 px-4 py-3 bg-yellow-700 text-white font-semibold rounded-xl hover:bg-yellow-700 transition-colors"
               >
                 Go to Menu
               </button>

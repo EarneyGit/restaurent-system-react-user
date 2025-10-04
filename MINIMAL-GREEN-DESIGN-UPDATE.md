@@ -40,7 +40,7 @@ Updated the OrderSuccessPage design to use a clean, minimal approach with green-
 - Dark gradient total sections
 
 **Retained Colors**:
-- Green primary: `green-600`, `green-500`, `green-50`
+- Green primary: `yellow-700`, `yellow-600`, `yellow-50`
 - Gray neutrals: `gray-50`, `gray-100`, `gray-200`, `gray-600`, `gray-700`, `gray-800`, `gray-900`
 - White backgrounds and text
 - Green accent colors for pricing and highlights

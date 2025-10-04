@@ -203,9 +203,9 @@ const ProductOptionsModal = ({
                       <label
                         key={choice.id}
                         className={`flex items-center justify-between px-4 py-3.5 border rounded-xl cursor-pointer
-                          transition-all duration-200 hover:border-green-500/50 hover:bg-green-50/30
+                          transition-all duration-200 hover:border-yellow-600/50 hover:bg-yellow-50/30
                           ${option.type === 'single' ? (selectedOptions[option.id] === choice.id) : (Array.isArray(selectedOptions[option.id]) && (selectedOptions[option.id] as string[]).includes(choice.id)) 
-                            ? 'border-green-500/50 bg-green-50/30 shadow-sm' 
+                            ? 'border-yellow-600/50 bg-yellow-50/30 shadow-sm' 
                             : 'border-gray-200'}`}
                       >
                         <div className="flex items-center gap-3">
@@ -216,7 +216,7 @@ const ProductOptionsModal = ({
                               value={choice.id}
                               checked={selectedOptions[option.id] === choice.id}
                               onChange={() => handleOptionSelect(option, choice.id)}
-                              className="w-4 h-4 text-green-500 border-gray-300 focus:ring-green-400 focus:ring-offset-1"
+                              className="w-4 h-4 text-yellow-600 border-gray-300 focus:ring-yellow-400 focus:ring-offset-1"
                             />
                           ) : (
                             <input
@@ -225,7 +225,7 @@ const ProductOptionsModal = ({
                               value={choice.id}
                               checked={Array.isArray(selectedOptions[option.id]) && (selectedOptions[option.id] as string[]).includes(choice.id)}
                               onChange={() => handleOptionSelect(option, choice.id)}
-                              className="w-4 h-4 text-green-500 border-gray-300 focus:ring-green-400 focus:ring-offset-1"
+                              className="w-4 h-4 text-yellow-600 border-gray-300 focus:ring-yellow-400 focus:ring-offset-1"
                             />
                           )}
                           <div className="flex items-center gap-2">
@@ -256,7 +256,7 @@ const ProductOptionsModal = ({
                   value={specialRequirements}
                   onChange={(e) => setSpecialRequirements(e.target.value)}
                   className="w-full px-4 py-3 text-sm border border-gray-200 rounded-xl resize-none
-                    placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500/50 
+                    placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-yellow-600/50 
                     focus:border-transparent transition-all duration-200 min-h-[90px]"
                 />
               </div>
@@ -265,11 +265,11 @@ const ProductOptionsModal = ({
         </div>
 
         {/* Footer with gradient background */}
-        <div className="px-8 py-6 bg-gradient-to-r from-green-50 to-green-100/50 border-t border-gray-100">
+        <div className="px-8 py-6 bg-gradient-to-r from-yellow-50 to-yellow-100/50 border-t border-gray-100">
           <button
             onClick={handleAddToCart}
-            className="w-full py-3 bg-green-600 text-white text-sm font-medium rounded-xl
-              hover:bg-green-700 transition-all duration-200 shadow-sm hover:shadow-md"
+            className="w-full py-3 bg-yellow-700 text-white text-sm font-medium rounded-xl
+              hover:bg-yellow-700 transition-all duration-200 shadow-sm hover:shadow-md"
           >
             Add to Basket
           </button>

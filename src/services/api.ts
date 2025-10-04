@@ -211,7 +211,7 @@ export const getCategoryColor = (categoryName: string): string => {
     "Discounts": "bg-orange-300",
     "Sets": "bg-yellow-300",
     "Cheesecakes": "bg-lime-300",
-    "Bread": "bg-green-300",
+    "Bread": "bg-yellow-300",
     "Cakes": "bg-teal-300",
     "Cookies": "bg-cyan-300",
     "Pies": "bg-sky-300",

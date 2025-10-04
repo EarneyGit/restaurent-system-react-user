@@ -35,7 +35,7 @@ const OrderSummary: React.FC<OrderSummaryProps> = ({ onCheckout }) => {
         <div className="border-t pt-4">
           <div className="flex justify-between text-xl font-semibold">
             <span>Total</span>
-            <span className="text-green-600">₹{total.toFixed(2)}</span>
+            <span className="text-yellow-700">₹{total.toFixed(2)}</span>
           </div>
         </div>
       </div>

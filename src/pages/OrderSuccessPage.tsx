@@ -466,14 +466,14 @@ const OrderSuccessPage = () => {
       if (currentStatus === OrderStatus.COMPLETED || isCancelled) {
         return isCancelled
           ? "bg-red-600 text-white"
-          : "bg-green-600 text-white";
+          : "bg-yellow-600 text-white";
       }
       return isCancelled
         ? "bg-red-600 text-white animate-pulse"
-        : "bg-green-600 text-white animate-pulse";
+        : "bg-yellow-600 text-white animate-pulse";
     }
     if (isStepActive(stepStatus))
-      return isCancelled ? "bg-red-600 text-white" : "bg-green-600 text-white";
+      return isCancelled ? "bg-red-600 text-white" : "bg-yellow-600 text-white";
     return "bg-gray-100 text-gray-400";
   };
 
@@ -498,7 +498,7 @@ const OrderSuccessPage = () => {
                   state={{
                     returnUrl: `${location.pathname}${location.search}`,
                   }}
-                  className="block w-full px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+                  className="block w-full px-4 py-2 text-sm font-medium text-white bg-yellow-600 rounded-md hover:bg-yellow-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500"
                 >
                   Login to View Order
                 </Link>
@@ -539,7 +539,7 @@ const OrderSuccessPage = () => {
             ) : (
               <Link
                 to="/app"
-                className="block w-full px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+                className="block w-full px-4 py-2 text-sm font-medium text-white bg-yellow-600 rounded-md hover:bg-yellow-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500"
               >
                 Go to Menu
               </Link>
@@ -554,7 +554,7 @@ const OrderSuccessPage = () => {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <Loader2 className="w-8 h-8 text-green-600 animate-spin mx-auto mb-4" />
+          <Loader2 className="w-8 h-8 text-yellow-600 animate-spin mx-auto mb-4" />
           <p className="text-sm text-gray-600">Loading order details...</p>
         </div>
       </div>
@@ -572,7 +572,7 @@ const OrderSuccessPage = () => {
           <p className="text-gray-600 mb-4">Could not find order details.</p>
           <Link
             to="/app"
-            className="inline-flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+            className="inline-flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-yellow-600 hover:bg-yellow-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500"
           >
             Return to Home
           </Link>
@@ -593,12 +593,12 @@ const OrderSuccessPage = () => {
             <div className="text-center mb-8">
               <div
                 className={`w-16 h-16 ${
-                  isCancelled ? "bg-red-50" : "bg-green-50"
+                  isCancelled ? "bg-red-50" : "bg-yellow-50"
                 } rounded-full flex items-center justify-center mx-auto mb-4`}
               >
                 <Bike
                   className={`w-8 h-8 ${
-                    isCancelled ? "text-red-600" : "text-green-600"
+                    isCancelled ? "text-red-600" : "text-yellow-600"
                   }`}
                 />
               </div>
@@ -615,7 +615,7 @@ const OrderSuccessPage = () => {
                 className={`mt-4 inline-flex items-center px-4 py-2 rounded-full ${
                   isCancelled
                     ? "bg-red-50 text-red-700"
-                    : "bg-green-50 text-green-700"
+                    : "bg-yellow-50 text-yellow-700"
                 }`}
               >
                 <span className="font-medium">Current Status: </span>
@@ -634,11 +634,11 @@ const OrderSuccessPage = () => {
               {orderDetails?.estimatedTimeToComplete && (
                 <div
                   className={`mt-4 flex justify-between items-center ${
-                    isCancelled ? "bg-red-50" : "bg-green-50"
+                    isCancelled ? "bg-red-50" : "bg-yellow-50"
                   } rounded-lg p-3`}
                 >
                   <p
-                    className={isCancelled ? "text-red-700" : "text-green-700"}
+                    className={isCancelled ? "text-red-700" : "text-yellow-700"}
                   >
                     Estimated Time: {orderDetails.estimatedTimeToComplete}{" "}
                     minutes
@@ -649,7 +649,7 @@ const OrderSuccessPage = () => {
                       className={`inline-flex  px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-black hover:bg-opacity-80 focus:outline-none focus:ring-2 focus:ring-offset-2 ${
                         isCancelled
                           ? "focus:ring-red-500"
-                          : "focus:ring-green-500"
+                          : "focus:ring-yellow-500"
                       }`}
                     >
                       <ChevronLeftIcon className="-mt-0.5" /> Return to Home
@@ -670,7 +670,7 @@ const OrderSuccessPage = () => {
                           isStepActive(status)
                             ? isCancelled
                               ? "bg-red-500"
-                              : "bg-green-500"
+                              : "bg-yellow-500"
                             : "bg-gray-200"
                         }`}
                       />
@@ -699,7 +699,7 @@ const OrderSuccessPage = () => {
                             className={`inline-flex items-center mt-2 px-2.5 py-0.5 rounded-full text-xs font-medium ${
                               isCancelled
                                 ? "bg-red-100 text-red-800"
-                                : "bg-green-100 text-green-800"
+                                : "bg-yellow-100 text-yellow-800"
                             }`}
                           >
                             Current Status
@@ -711,7 +711,7 @@ const OrderSuccessPage = () => {
                           initial={{ scale: 0 }}
                           animate={{ scale: 1 }}
                           className={
-                            isCancelled ? "text-red-600" : "text-green-600"
+                            isCancelled ? "text-red-600" : "text-yellow-600"
                           }
                         >
                           <Check size={20} />
@@ -726,14 +726,14 @@ const OrderSuccessPage = () => {
             {/* Order Items Section - Clean Minimal Design */}
             <div className="mt-8 pt-8 border-t border-gray-100">
               <div className="flex items-center gap-3 mb-6">
-                <div className="w-8 h-8 bg-green-600 rounded-lg flex items-center justify-center">
+                <div className="w-8 h-8 bg-yellow-600 rounded-lg flex items-center justify-center">
                   <ShoppingBag size={18} className="text-white" />
                 </div>
                 <h3 className="text-xl font-semibold text-gray-900">
                   Your Order
                 </h3>
                 <div className="flex-1 h-px bg-gray-200"></div>
-                <span className="text-sm text-gray-500 bg-green-50 px-3 py-1 rounded-full border border-green-200">
+                <span className="text-sm text-gray-500 bg-yellow-50 px-3 py-1 rounded-full border border-yellow-200">
                   {orderDetails?.products.length}{" "}
                   {orderDetails?.products.length === 1 ? "item" : "items"}
                 </span>
@@ -754,7 +754,7 @@ const OrderSuccessPage = () => {
                               {item.product.name}
                             </h4>
                             <div className="flex items-center gap-2 text-sm text-gray-600">
-                              <span className="bg-green-50 text-green-700 px-2 py-1 rounded font-medium border border-green-200">
+                              <span className="bg-yellow-50 text-yellow-700 px-2 py-1 rounded font-medium border border-yellow-200">
                                 Qty: {Math.max(1, item.quantity)}
                               </span>
                               <span className="text-gray-400">×</span>
@@ -772,7 +772,7 @@ const OrderSuccessPage = () => {
 
                           {/* Item Total */}
                           <div className="text-right">
-                            <span className="text-xl font-semibold text-green-600">
+                            <span className="text-xl font-semibold text-yellow-600">
                               {safeFormatCurrency(item.itemTotal)}
                             </span>
                           </div>
@@ -780,18 +780,18 @@ const OrderSuccessPage = () => {
 
                         {/* Notes */}
                         {item.notes && (
-                          <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg">
+                          <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
                             <div className="flex items-center gap-2 mb-1">
-                              <div className="w-4 h-4 bg-green-500 rounded-full flex items-center justify-center">
+                              <div className="w-4 h-4 bg-yellow-500 rounded-full flex items-center justify-center">
                                 <span className="text-xs text-white font-bold">
                                   !
                                 </span>
                               </div>
-                              <span className="text-sm font-medium text-green-800">
+                              <span className="text-sm font-medium text-yellow-800">
                                 Note:
                               </span>
                             </div>
-                            <p className="text-sm text-green-700 ml-6">
+                            <p className="text-sm text-yellow-700 ml-6">
                               {item.notes}
                             </p>
                           </div>
@@ -802,7 +802,7 @@ const OrderSuccessPage = () => {
                           item.selectedAttributes.length > 0 && (
                             <div className="space-y-3">
                               <div className="flex items-center gap-2">
-                                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                                <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
                                 <span className="text-sm font-medium text-gray-700">
                                   Add-ons
                                 </span>
@@ -924,7 +924,7 @@ const OrderSuccessPage = () => {
                 <div className="flex items-center gap-3 mb-6">
                   <div
                     className={`w-8 h-8 ${
-                      isCancelled ? "bg-red-600" : "bg-green-600"
+                      isCancelled ? "bg-red-600" : "bg-yellow-600"
                     } rounded-lg flex items-center justify-center`}
                   >
                     <Calculator size={18} className="text-white" />
@@ -970,7 +970,7 @@ const OrderSuccessPage = () => {
                     orderDetails.deliveryFee <= 0 ? (
                       <div
                         className={`${
-                          isCancelled ? "bg-red-600" : "bg-green-600"
+                          isCancelled ? "bg-red-600" : "bg-yellow-600"
                         } text-white px-3 py-1 rounded-full text-xs font-medium`}
                       >
                         FREE
@@ -1004,7 +1004,7 @@ const OrderSuccessPage = () => {
                       <div className="flex items-center gap-2">
                         <div
                           className={`w-5 h-5 ${
-                            isCancelled ? "bg-red-600" : "bg-green-600"
+                            isCancelled ? "bg-red-600" : "bg-yellow-600"
                           } rounded-full flex items-center justify-center`}
                         >
                           <Percent size={10} className="text-white" />
@@ -1018,7 +1018,7 @@ const OrderSuccessPage = () => {
                       </div>
                       <span
                         className={`font-medium ${
-                          isCancelled ? "text-red-600" : "text-green-600"
+                          isCancelled ? "text-red-600" : "text-yellow-600"
                         }`}
                       >
                         -
@@ -1036,7 +1036,7 @@ const OrderSuccessPage = () => {
                       orderDetails.discountApplied.discountAmount > 0)) && (
                     <div
                       className={`text-right text-sm ${
-                        isCancelled ? "text-red-600" : "text-green-600"
+                        isCancelled ? "text-red-600" : "text-yellow-600"
                       } font-medium`}
                     >
                       You saved{" "}
@@ -1055,7 +1055,7 @@ const OrderSuccessPage = () => {
                     className={`flex justify-between items-center py-2 ${
                       isCancelled
                         ? "bg-red-50 border-red-200"
-                        : "bg-green-50 border-green-200"
+                        : "bg-yellow-50 border-yellow-200"
                     } px-4 rounded-lg border`}
                   >
                     <span className="text-gray-900 font-semibold text-lg">

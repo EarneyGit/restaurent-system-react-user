@@ -58,7 +58,7 @@ const LanguageModal = ({ isOpen, onClose }: LanguageModalProps) => {
                 <span>{language.name}</span>
               </div>
               {selectedLanguage === language.code && (
-                <Check size={18} className="text-foodyman-lime" />
+                <Check size={18} className="text-yellow-700" />
               )}
             </button>
           ))}
@@ -67,7 +67,7 @@ const LanguageModal = ({ isOpen, onClose }: LanguageModalProps) => {
         {/* Footer */}
         <div className="p-4 border-t flex justify-end">
           <button 
-            className="px-6 py-2 bg-foodyman-lime text-white rounded-md"
+            className="px-6 py-2 bg-brand-yellow text-white rounded-md"
             onClick={() => {
               // Here would go the logic to change the app's language
               onClose();

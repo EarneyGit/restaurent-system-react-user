@@ -85,7 +85,7 @@ const OutletSelectionPage = () => {
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-black">
-        <Loader2 size={40} className="text-green-500 animate-spin" />
+        <Loader2 size={40} className="text-yellow-600 animate-spin" />
       </div>
     );
   }
@@ -142,8 +142,8 @@ const OutletSelectionPage = () => {
               >
                 <div className="p-6">
                   <div className="flex items-start gap-4">
-                    <div className="p-3 rounded-xl bg-green-600/20">
-                      <MapPin size={24} className="text-green-500" />
+                    <div className="p-3 rounded-xl bg-yellow-200/80">
+                      <MapPin size={24} className="text-yellow-700" />
                     </div>
                     <div className="flex-1">
                       <h3 className="text-xl font-semibold text-white mb-2">
@@ -173,12 +173,12 @@ const OutletSelectionPage = () => {
                     ) : (
                       <>
                         {!isCollectionAllowedToday && (
-                          <div className="p-2 bg-yellow-500/10 rounded-lg border border-yellow-500/20 text-yellow-200">
+                          <div className="p-2 bg-yellow-600/10 rounded-lg border border-yellow-600/20 text-yellow-200">
                             Collection option is not available today
                           </div>
                         )}
                         {!isDeliveryAllowedToday && (
-                          <div className="px-2 py-3 bg-yellow-500/10 rounded-lg border border-yellow-500/20 text-yellow-200">
+                          <div className="px-2 py-3 bg-yellow-600/10 rounded-lg border border-yellow-600/20 text-yellow-200">
                             Delivery option is not available today
                           </div>
                         )}
@@ -203,7 +203,7 @@ const OutletSelectionPage = () => {
                         </Link>
                         <Link
                           to={`/app/products/All?branchId=${branch.id}`}
-                          className="flex-1 py-3 bg-green-600/30 text-white/70 hover:text-white/90 font-medium rounded-xl hover:bg-green-600/60 transition-colors text-center flex items-center justify-center gap-2"
+                          className="flex-1 py-3 bg-yellow-700/30 text-white/70 hover:text-white/90 font-medium rounded-xl hover:bg-yellow-700/60 transition-colors text-center flex items-center justify-center gap-2"
                           onClick={() => {
                             setSelectedBranch(branch);
                             localStorage.setItem("selectedBranchId", branch.id);
@@ -217,7 +217,7 @@ const OutletSelectionPage = () => {
                       <button
                         onClick={() => handleOutletSelect(branch)}
                         disabled={isClosedToday}
-                        className="w-full py-3 bg-green-600 text-white font-medium rounded-xl hover:bg-green-700 transition-colors uppercase tracking-wide disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="w-full py-3 bg-yellow-600 text-white font-bold rounded-xl hover:bg-yellow-600/90 transition-colors uppercase tracking-wide disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         Select Outlet
                       </button>

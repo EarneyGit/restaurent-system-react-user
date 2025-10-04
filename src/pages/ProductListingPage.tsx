@@ -118,11 +118,11 @@ function ProductListingPage(): JSX.Element {
     return (
       <div className="container mx-auto px-4 py-6">
         <div className="animate-pulse">
-          <div className="h-8 bg-[#e8f5e9] rounded w-1/4 mb-6"></div>
-          <div className="h-12 bg-[#e8f5e9] rounded mb-6"></div>
+          <div className="h-8 bg-[#fef7c3]/30 rounded w-1/4 mb-6"></div>
+          <div className="h-12 bg-[#fef7c3]/30 rounded mb-6"></div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {[...Array(8)].map((_, index) => (
-              <div key={index} className="bg-[#e8f5e9] h-64 rounded"></div>
+              <div key={index} className="bg-[#fef7c3]/30 h-64 rounded"></div>
             ))}
           </div>
         </div>
@@ -145,7 +145,7 @@ function ProductListingPage(): JSX.Element {
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold text-gray-800">{getCategoryTitle()}</h1>
         <div className="flex items-center gap-2">
-          <span className="text-sm text-[#4caf50]">{totalItems} items</span>
+          <span className="text-sm text-yellow-600 font-semibold">{totalItems} items</span>
           {selectedBranch && (
             <span className="text-sm text-gray-600">• {selectedBranch.name}</span>
           )}

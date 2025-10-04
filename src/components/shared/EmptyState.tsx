@@ -31,7 +31,7 @@ const EmptyState: React.FC<EmptyStateProps> = ({ title, description, action }) =
             {action && (
               <Link 
                 to={action.to}
-                className="inline-block bg-foodyman-lime text-white px-8 py-3 rounded-md font-medium hover:bg-foodyman-green transition-colors"
+                className="inline-block bg-brand-yellow text-black px-8 py-3 rounded-md font-medium hover:bg-yellow-700 transition-colors"
               >
                 {action.label}
               </Link>

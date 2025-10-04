@@ -117,7 +117,7 @@ const ReservationPage = () => {
                   <button 
                     key={time} 
                     className={`py-2 px-1 text-center border rounded-md hover:bg-gray-50 ${
-                      index === 6 ? 'bg-green-100 border-green-300' : ''
+                      index === 6 ? 'bg-yellow-100 border-yellow-300' : ''
                     }`}
                     onClick={handleTimeClick}
                   >

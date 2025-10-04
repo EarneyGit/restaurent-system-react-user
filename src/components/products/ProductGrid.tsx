@@ -49,7 +49,9 @@ const ProductGrid: React.FC<ProductGridProps> = React.memo(
 
     // 🚨 Delivery method from localStorage
     const [deliveryMethod, setDeliveryMethod] = useState<string | null>(null);
-    const [availabilityMessage, setAvailabilityMessage] = useState<string | null>(null);
+    const [availabilityMessage, setAvailabilityMessage] = useState<
+      string | null
+    >(null);
     const [canOrder, setCanOrder] = useState(true);
 
     useEffect(() => {
@@ -202,11 +204,28 @@ const ProductGrid: React.FC<ProductGridProps> = React.memo(
     useEffect(() => {
       if (!deliveryMethod) return;
 
-      if (deliveryMethod === "deliver" && !branchAvailability.delivery.available) {
-        setAvailabilityMessage(branchAvailability.delivery.reason || "Delivery is not available right now.");
+      const deliveryUnavailable = !branchAvailability.delivery.available;
+      const collectionUnavailable = !branchAvailability.collection.available;
+
+      if (deliveryUnavailable && collectionUnavailable) {
+        setAvailabilityMessage(
+          "Sorry, neither delivery nor collection is available right now."
+        );
         setCanOrder(false);
-      } else if ((deliveryMethod === "collect" || deliveryMethod === "pickup") && !branchAvailability.collection.available) {
-        setAvailabilityMessage(branchAvailability.collection.reason || "Collection is not available right now.");
+      } else if (deliveryMethod === "deliver" && deliveryUnavailable) {
+        setAvailabilityMessage(
+          branchAvailability.delivery.reason ||
+            "Delivery is not available right now."
+        );
+        setCanOrder(false);
+      } else if (
+        (deliveryMethod === "collect" || deliveryMethod === "pickup") &&
+        collectionUnavailable
+      ) {
+        setAvailabilityMessage(
+          branchAvailability.collection.reason ||
+            "Collection is not available right now."
+        );
         setCanOrder(false);
       } else {
         setAvailabilityMessage(null);
@@ -287,8 +306,8 @@ const ProductGrid: React.FC<ProductGridProps> = React.memo(
 
     return (
       <>
-        {/* 🚨 Closed Today */}
-        {closedReason && (
+        {closedReason ? (
+          // ✅ Outlet closed
           <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
             <div className="flex items-center gap-3">
               <Clock className="text-red-500" />
@@ -300,10 +319,8 @@ const ProductGrid: React.FC<ProductGridProps> = React.memo(
               </div>
             </div>
           </div>
-        )}
-
-        {/* 🚨 Outlet unavailable */}
-        {!closedReason && !isBranchAvailable && (
+        ) : !isBranchAvailable ? (
+          // ✅ Outlet not available
           <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
             <div className="flex items-center gap-3">
               <Clock className="text-red-500" />
@@ -317,37 +334,37 @@ const ProductGrid: React.FC<ProductGridProps> = React.memo(
               </div>
             </div>
           </div>
-        )}
-
-        {/* 🚨 Method not available */}
-        {availabilityMessage && (
+        ) : availabilityMessage ? (
+          // ✅ Service unavailable
           <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
             <div className="flex items-center gap-3">
               <Clock className="text-red-500" />
               <div>
-                <h3 className="font-medium text-red-900">Service Unavailable</h3>
+                <h3 className="font-medium text-red-900">
+                  Service Unavailable
+                </h3>
                 <p className="text-red-700 text-sm">{availabilityMessage}</p>
               </div>
             </div>
           </div>
-        )}
+        ) : null}
 
         {/* 🛒 Products */}
         {filteredProducts.length === 0 ? (
           <div className="text-center py-12">
-            <div className="mx-auto w-24 h-24 bg-[#e8f5e9] rounded-full flex items-center justify-center mb-4">
-              <ShoppingBag className="w-12 h-12 text-[#4caf50]" />
+            <div className="mx-auto w-24 h-24 bg-yellow-50 rounded-full flex items-center justify-center mb-4">
+              <ShoppingBag className="w-12 h-12 text-yellow-600" />
             </div>
-            <h3 className="text-lg font-medium text-[#2e7d32] mb-2">
+            <h3 className="text-lg font-medium text-yellow-800 mb-2">
               No Products Available
             </h3>
-            <p className="text-[#4caf50]">
+            <p className="text-yellow-600">
               {category === "All"
                 ? "No products available at the moment"
                 : `No products found in ${category}`}
             </p>
             {filters.length > 0 && (
-              <p className="text-sm text-[#4caf50] mt-2">
+              <p className="text-sm text-yellow-600 mt-2">
                 Try adjusting your filters
               </p>
             )}

@@ -172,7 +172,7 @@ const ReservationModal = ({ isOpen, onClose }: ReservationModalProps) => {
                 max="20"
                 value={guests}
                 onChange={(e) => setGuests(parseInt(e.target.value))}
-                className="w-full p-3 border border-gray-300 rounded-lg hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                className="w-full p-3 border border-gray-300 rounded-lg hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-yellow-600 focus:border-transparent"
               />
             </div>
           </div>
@@ -188,7 +188,7 @@ const ReservationModal = ({ isOpen, onClose }: ReservationModalProps) => {
           </button>
           <button
             onClick={handleFindTable}
-            className="py-3 bg-green-500 text-white font-medium rounded-lg hover:bg-green-600 transition-colors"
+            className="py-3 bg-yellow-600 text-white font-medium rounded-lg hover:bg-yellow-700 transition-colors"
           >
             Find a table
           </button>

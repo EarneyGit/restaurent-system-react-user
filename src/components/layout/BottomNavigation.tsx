@@ -37,12 +37,12 @@ const BottomNavigation = () => {
                 activePath === 'foods' ? 'opacity-100' : 'opacity-80 hover:opacity-100'
               } transition-opacity duration-200`}
             >
-              <div className={`p-2 ${activePath === 'foods' ? 'bg-foodyman-lime/60 rounded-full' : ''}`}>
+              <div className={`p-2 ${activePath === 'foods' ? 'bg-brand-yellow/60 rounded-full' : ''}`}>
                 <Utensils size={20} className={activePath === 'foods' ? 'text-white' : ''} />
               </div>
               <span className="text-xs mt-1 font-medium">FOODS</span>
               {activePath === 'foods' && (
-                <div className="absolute -bottom-2 w-12 h-1 bg-foodyman-lime/80 rounded-full"></div>
+                <div className="absolute -bottom-2 w-12 h-1 bg-brand-yellow/80 rounded-full"></div>
               )}
             </Link>
             
@@ -52,12 +52,12 @@ const BottomNavigation = () => {
                 activePath === 'liked' ? 'opacity-100' : 'opacity-80 hover:opacity-100'
               } transition-opacity duration-200`}
             >
-              <div className={`p-2 ${activePath === 'liked' ? 'bg-foodyman-lime/60 rounded-full' : ''}`}>
+              <div className={`p-2 ${activePath === 'liked' ? 'bg-brand-yellow/60 rounded-full' : ''}`}>
                 <Heart size={20} className={activePath === 'liked' ? 'text-white' : ''} />
               </div>
               <span className="text-xs mt-1 font-medium">LIKED</span>
               {activePath === 'liked' && (
-                <div className="absolute -bottom-2 w-12 h-1 bg-foodyman-lime/80 rounded-full"></div>
+                <div className="absolute -bottom-2 w-12 h-1 bg-brand-yellow/80 rounded-full"></div>
               )}
             </Link>
             

@@ -226,7 +226,7 @@ const StripeForm: React.FC<{
           type="button"
           onClick={handlePayNow}
           disabled={isLoading}
-          className="flex-1 px-4 py-3 bg-green-600 text-white font-semibold rounded-xl hover:bg-green-700 transition-colors flex items-center justify-center gap-2"
+          className="flex-1 px-4 py-3 bg-yellow-700 text-white font-semibold rounded-xl hover:bg-yellow-700 transition-colors flex items-center justify-center gap-2"
         >
           {isLoading ? (
             <>
@@ -288,7 +288,7 @@ const StripeModal: React.FC<{
           <div className="text-center">
             <Loader2
               size={32}
-              className="animate-spin text-green-600 mx-auto mb-4"
+              className="animate-spin text-yellow-700 mx-auto mb-4"
             />
             <p>Processing...</p>
           </div>
@@ -317,7 +317,7 @@ const StripeModal: React.FC<{
               <button
                 type="button"
                 onClick={() => window.location.reload()}
-                className="flex-1 px-4 py-3 bg-green-600 text-white font-semibold rounded-xl hover:bg-green-700 transition-colors"
+                className="flex-1 px-4 py-3 bg-yellow-700 text-white font-semibold rounded-xl hover:bg-yellow-700 transition-colors"
               >
                 Refresh Page
               </button>
@@ -675,7 +675,7 @@ const OrderConfirmationModal: React.FC<OrderConfirmationModalProps> = ({
                   <span className="text-gray-600">Subtotal:</span>
                   <span>{formatCurrency(orderDetails.originalTotal)}</span>
                 </div>
-                <div className="flex justify-between text-sm text-green-600">
+                <div className="flex justify-between text-sm text-yellow-700">
                   <span>Discount:</span>
                   <span>-{formatCurrency(orderDetails.discountAmount)}</span>
                 </div>
@@ -689,7 +689,7 @@ const OrderConfirmationModal: React.FC<OrderConfirmationModalProps> = ({
             ) : null}
             <div className="flex justify-between font-medium">
               <span>Total Amount:</span>
-              <span className="text-green-600">
+              <span className="text-yellow-700">
                 {formatCurrency(orderDetails.total)}
               </span>
             </div>
@@ -707,7 +707,7 @@ const OrderConfirmationModal: React.FC<OrderConfirmationModalProps> = ({
           <button
             onClick={onConfirm}
             disabled={isLoading}
-            className="flex-1 px-4 py-3 bg-green-600 text-white font-semibold rounded-xl hover:bg-green-700 transition-colors flex items-center justify-center gap-2"
+            className="flex-1 px-4 py-3 bg-yellow-700 text-white font-semibold rounded-xl hover:bg-yellow-700 transition-colors flex items-center justify-center gap-2"
           >
             {isLoading ? (
               <>
@@ -1839,7 +1839,7 @@ const CheckoutPage = () => {
   // Handle empty cart
   if (cartItems.length === 0) {
     return (
-      <div className="min-h-[70vh] flex items-center justify-center px-4 pb-10 bg-gradient-to-br from-green-50 via-white to-green-50">
+      <div className="min-h-[70vh] flex items-center justify-center px-4 pb-10 bg-gradient-to-br from-yellow-50 via-white to-yellow-50">
         <div className="max-w-md w-full text-center">
           <div className="relative w-64 h-64 mx-auto bg-white">
             <img
@@ -2115,7 +2115,7 @@ const CheckoutPage = () => {
                       <button
                         type="button"
                         onClick={handleSearchAddressSelect}
-                        className="flex items-center gap-2 text-xs font-bold bg-green-600 text-white px-2.5 py-2 rounded-lg  hover:bg-green-700 transition"
+                        className="flex items-center gap-2 text-xs font-bold bg-yellow-700 text-white px-2.5 py-2 rounded-lg  hover:bg-yellow-700 transition"
                       >
                         <Plus size={16} /> Search new address
                       </button>
@@ -2159,7 +2159,7 @@ const CheckoutPage = () => {
                               handleAddressSearch(e.target.value)
                             }
                             placeholder="Search by postcode or address..."
-                            className="w-full px-4 py-3 pl-10 border border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                            className="w-full px-4 py-3 pl-10 border border-gray-200 rounded-xl  focus:border-transparent"
                           />
                           <div className="absolute left-3 top-1/2 transform -translate-y-1/2">
                             {isAddressLoading ? (
@@ -2194,7 +2194,7 @@ const CheckoutPage = () => {
                                     <div className="flex items-start gap-3">
                                       <MapPin
                                         size={16}
-                                        className="text-green-500 mt-1 flex-shrink-0"
+                                        className="text-yellow-600 mt-1 flex-shrink-0"
                                       />
                                       <div className="flex-1 min-w-0">
                                         <div className="font-medium text-gray-900 truncate">
@@ -2220,7 +2220,7 @@ const CheckoutPage = () => {
                         <div className="mt-4 p-4 bg-gray-50 rounded-xl flex items-start gap-2 relative">
                           <MapPin
                             size={18}
-                            className="text-green-500 mt-1 flex-shrink-0"
+                            className="text-yellow-600 mt-1 flex-shrink-0"
                           />
                           <div className="flex-1">
                             <p className="text-sm font-medium text-gray-900">
@@ -2347,8 +2347,8 @@ const CheckoutPage = () => {
                         onClick={() => setPaymentMethod(id)}
                         className={`p-3 rounded-xl border-2 transition-all ${
                           paymentMethod === id
-                            ? "border-green-500 bg-green-50 text-green-700"
-                            : "border-gray-200 hover:border-green-300 text-gray-600"
+                            ? "border-yellow-500/50 bg-yellow-50/80 text-yellow-700"
+                            : "border-gray-200 hover:border-yellow-500/50 text-gray-600"
                         }`}
                       >
                         <Icon size={20} className="mx-auto mb-1" />
@@ -2429,7 +2429,7 @@ const CheckoutPage = () => {
                     <button
                       onClick={handleApplyPromo}
                       disabled={isApplyingPromo || !promoCode.trim()}
-                      className="px-4 py-2 bg-green-600 text-white text-sm rounded-lg font-medium hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                      className="px-4 py-2 bg-yellow-700 text-white text-sm rounded-lg font-medium hover:bg-yellow-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                     >
                       {isApplyingPromo ? (
                         <>
@@ -2442,7 +2442,7 @@ const CheckoutPage = () => {
                     </button>
                   </div>
                   {appliedPromo && (
-                    <div className="mt-2 p-2 bg-green-50 text-green-700 rounded-lg text-xs">
+                    <div className="mt-2 p-2 bg-yellow-50 text-yellow-700 rounded-lg text-xs">
                       Promo code "{appliedPromo.code}" applied -{" "}
                       {appliedPromo.discountType === "percentage"
                         ? `${appliedPromo.discountValue}% off`
@@ -2505,7 +2505,7 @@ const CheckoutPage = () => {
                     <div className="flex justify-between text-sm items-center">
                       <span className="text-gray-600">Delivery Fee</span>
                       {cartSummary.deliveryFee === 0 ? (
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
                           Free
                         </span>
                       ) : (
@@ -2542,7 +2542,7 @@ const CheckoutPage = () => {
                                   id={`checkout-optional-charge-${charge.id}`}
                                   checked={isOptionalServiceChargeAccepted(charge.id)}
                                   onChange={() => toggleOptionalServiceCharge(charge.id)}
-                                  className="w-4 h-4 text-green-600 bg-gray-100 border-gray-300 rounded focus:ring-green-500 focus:ring-2"
+                                  className="w-4 h-4 text-yellow-700 bg-gray-100 border-gray-300 rounded focus:ring-yellow-600 focus:ring-2"
                                 />
                                 <label 
                                   htmlFor={`checkout-optional-charge-${charge.id}`}
@@ -2579,7 +2579,7 @@ const CheckoutPage = () => {
                         isPriceObject(item.price) &&
                         item.price.base > item.price.currentEffectivePrice
                     ) && (
-                      <div className="flex justify-between text-sm text-green-600">
+                      <div className="flex justify-between text-sm text-yellow-700">
                         <span>Total Savings</span>
                         <span className="font-medium">
                           {formatCurrency(
@@ -2600,7 +2600,7 @@ const CheckoutPage = () => {
 
                     {/* Promo Discount */}
                     {appliedPromo && (
-                      <div className="flex justify-between text-sm text-green-600">
+                      <div className="flex justify-between text-sm text-yellow-700">
                         <span>
                           Promo Discount (
                           {appliedPromo.discountType === "percentage"
@@ -2683,7 +2683,7 @@ const CheckoutPage = () => {
                         : ""
                     }
                     disabled={isProcessing || !acceptedTerms}
-                    className="w-full bg-green-600 text-white py-3 rounded-xl font-semibold hover:bg-green-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    className="w-full bg-yellow-700 text-white py-3 rounded-xl font-semibold hover:bg-yellow-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                   >
                     {isProcessing ? (
                       <>
@@ -2704,13 +2704,13 @@ const CheckoutPage = () => {
                         type="checkbox"
                         checked={acceptedTerms}
                         onChange={(e) => setAcceptedTerms(e.target.checked)}
-                        className="mt-1 h-4 w-4 text-green-600 focus:ring-green-500 hover:cursor-pointer border-gray-300 rounded"
+                        className="mt-1 h-4 w-4 text-yellow-700 focus:ring-yellow-600 hover:cursor-pointer border-gray-300 rounded"
                       />
                       <span className="text-xs text-gray-600 hover:cursor-pointer">
                         By placing this order you're agreeing to our{" "}
                         <Link
                           to="/terms"
-                          className="text-green-600 hover:text-green-700 underline"
+                          className="text-yellow-700 hover:text-yellow-700 underline"
                         >
                           Terms & Conditions
                         </Link>

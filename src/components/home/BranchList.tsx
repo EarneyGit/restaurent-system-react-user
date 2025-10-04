@@ -38,7 +38,7 @@ const BranchList = () => {
             onClick={() => setActiveBranch(branch.id)}
           >
             <div className={`w-[120px] h-[120px] rounded-full border-4 ${
-              branch.id === activeBranch ? 'border-foodyman-lime' : 'border-gray-200'
+              branch.id === activeBranch ? 'border-yellow-600' : 'border-gray-200'
             } overflow-hidden flex items-center justify-center`}>
               <img 
                 src={branch.image} 

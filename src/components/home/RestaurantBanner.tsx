@@ -41,7 +41,7 @@ const RestaurantBanner = () => {
       {/* Content */}
       <div className="relative container mx-auto px-4">
         <div className="max-w-4xl mx-auto text-center">
-          <div className="inline-block px-4 py-1.5 bg-green-600 rounded-lg text-sm font-medium tracking-wide uppercase text-white mb-4">
+          <div className="inline-block px-4 py-1.5 bg-gray-700 rounded-lg text-sm font-medium tracking-wide uppercase text-white mb-4">
             Limited Time Offer
           </div>
           <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
@@ -50,7 +50,7 @@ const RestaurantBanner = () => {
           <p className="text-gray-300 text-lg mb-8 max-w-2xl mx-auto">
             Use code{" "}
             <span 
-              className="text-green-500 font-semibold cursor-pointer" 
+              className="text-yellow-600 font-semibold cursor-pointer" 
               onClick={handleOrderNow}
               role="button"
               tabIndex={0}
@@ -63,7 +63,7 @@ const RestaurantBanner = () => {
             <button
               onClick={handleOrderNow}
               disabled={isOrdering}
-              className="bg-green-600 hover:bg-green-700 text-white px-8 py-3 rounded-lg font-medium transition-all transform  disabled:opacity-50 disabled:hover:scale-100 flex items-center gap-2"
+              className="bg-gray-600 text-white px-8 py-3 rounded-lg font-medium transition-all transform  disabled:opacity-50 disabled:hover:scale-100 flex items-center gap-2"
             >
               <Copy size={20} />
               Copy Promo Code

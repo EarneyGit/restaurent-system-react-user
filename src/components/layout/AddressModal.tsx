@@ -125,7 +125,7 @@ const AddressModal = ({ isOpen, onClose }: AddressModalProps) => {
             key={filter}
             className={`whitespace-nowrap px-4 py-2 rounded-full text-sm mr-2 ${
               activeFilter === filter
-                ? "bg-foodyman-lime text-white"
+                ? "bg-brand-yellow text-white"
                 : "bg-gray-100 text-gray-800"
             }`}
             onClick={() => setActiveFilter(filter)}
@@ -204,7 +204,7 @@ const AddressModal = ({ isOpen, onClose }: AddressModalProps) => {
           {/* View in list button */}
           <div className="absolute top-4 right-4">
             <button 
-              className="bg-foodyman-lime text-white px-4 py-2 rounded-md flex items-center"
+              className="bg-brand-yellow text-white px-4 py-2 rounded-md flex items-center"
               onClick={() => setViewAsList(!viewAsList)}
             >
               <div className="w-5 h-5 bg-white rounded mr-2 flex items-center justify-center">

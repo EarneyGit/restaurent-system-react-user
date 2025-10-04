@@ -193,7 +193,7 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
               
               <button
                 onClick={handleCheckout}
-                className="w-full bg-green-600 text-white py-3 px-4 rounded-lg font-medium hover:opacity-90 transition-opacity"
+                className="w-full bg-yellow-700 text-white py-3 px-4 rounded-lg font-medium hover:opacity-90 transition-opacity"
               >
                 {isAuthenticated ? 'Proceed to Checkout' : 'Proceed to Checkout'}
               </button>

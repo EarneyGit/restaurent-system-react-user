@@ -121,7 +121,7 @@ const OTPVerificationPage = () => {
         {/* Logo and Back Button */}
         <div className="flex justify-between items-center md:px-6 py-6">
           <Link to="/" className="flex items-center">
-            <div className="h-8 w-8 bg-gradient-to-r from-foodyman-lime to-foodyman-green rounded-full flex items-center justify-center">
+            <div className="h-8 w-8 bg-gradient-to-r from-brand-yellow to-yellow-700 rounded-full flex items-center justify-center">
               <span className="text-white font-bold text-sm">R</span>
             </div>
             <span className="ml-2 uppercase font-mono font-semibold text-2xl text-gray-800">
@@ -162,7 +162,7 @@ const OTPVerificationPage = () => {
                   formik.touched.otp && formik.errors.otp
                     ? 'border-red-500'
                     : 'border-gray-300'
-                } rounded-md shadow-sm py-3 px-3 focus:outline-none focus:ring-foodyman-lime focus:border-foodyman-lime sm:text-sm`}
+                } rounded-md shadow-sm py-3 px-3 focus:outline-none focus:ring-yellow-600 focus:border-yellow-600 sm:text-sm`}
                 placeholder="Enter 6-digit code"
               />
               {formik.touched.otp && formik.errors.otp && (
@@ -176,7 +176,7 @@ const OTPVerificationPage = () => {
               <button
                 type="submit"
                 disabled={formik.isSubmitting}
-                className="w-full bg-foodyman-lime text-white font-medium py-3 rounded-md hover:bg-foodyman-lime/70 transition-colors disabled:opacity-50"
+                className="w-full bg-yellow-600 text-white font-medium py-3 rounded-md hover:bg-yellow-600/90 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
               >
                 {formik.isSubmitting ? 'Verifying...' : 'Verify Code'}
               </button>
@@ -185,7 +185,7 @@ const OTPVerificationPage = () => {
                 type="button"
                 onClick={handleResendOTP}
                 disabled={resendDisabled}
-                className="w-full bg-transparent text-foodyman-lime font-medium py-3 rounded-md hover:bg-foodyman-lime/10 transition-colors disabled:opacity-50 disabled:hover:bg-transparent"
+                className="w-full bg-transparent text-yellow-700 font-medium py-3 rounded-md hover:bg-brand-yellow/10 transition-colors disabled:opacity-50 disabled:hover:bg-transparent"
               >
                 {resendDisabled
                   ? `Resend code in ${countdown}s`
@@ -215,7 +215,7 @@ const OTPVerificationPage = () => {
               This helps us keep your account secure and prevents unauthorized access.
             </p>
             <div className="bg-black/30 backdrop-blur-sm p-6 rounded-lg">
-              <h3 className="text-foodyman-lime font-bold text-xl mb-4">
+              <h3 className="text-yellow-700 font-bold text-xl mb-4">
                 Why verify your email?
               </h3>
               <ul className="space-y-3 text-white/80">

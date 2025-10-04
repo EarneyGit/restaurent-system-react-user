@@ -309,7 +309,7 @@ const OrdersPage = () => {
                 onChange={(e) =>
                   setStatusFilter(e.target.value as StatusFilter)
                 }
-                className="px-4 py-2 rounded-lg border border-gray-300 bg-white text-sm font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-green-500"
+                className="px-4 py-2 rounded-lg border border-gray-300 bg-white text-sm font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-yellow-600"
               >
                 {statusFilterOptions.map((opt) => (
                   <option key={opt.value} value={opt.value}>
@@ -322,7 +322,7 @@ const OrdersPage = () => {
               <select
                 value={selectedBranchFilter}
                 onChange={(e) => setSelectedBranchFilter(e.target.value)}
-                className="px-4 py-2 rounded-lg border border-gray-300 bg-white text-sm font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-green-500"
+                className="px-4 py-2 rounded-lg border border-gray-300 bg-white text-sm font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-yellow-600"
                 disabled={isLoadingBranches}
               >
                 <option value="">All Branches</option>
@@ -375,7 +375,7 @@ const OrdersPage = () => {
                   paginatedOrders.map((order) => (
                     <tr
                       key={order._id}
-                      className="hover:bg-green-50/30 transition"
+                      className="hover:bg-yellow-50/30 transition"
                     >
                       <td className="px-6 py-4 font-medium text-gray-900">
                         {order.orderNumber}
@@ -412,7 +412,7 @@ const OrdersPage = () => {
                       <td className="px-6 py-4">
                         <button
                           onClick={() => setModalOrder(order)}
-                          className="px-4 py-2 bg-green-600 md:text-base text-sm text-white rounded-lg font-medium hover:bg-green-700 transition"
+                          className="px-4 py-2 bg-yellow-700 md:text-base text-sm text-white rounded-lg font-medium hover:bg-yellow-700 transition"
                         >
                           Show Details
                         </button>
@@ -442,7 +442,7 @@ const OrdersPage = () => {
                     onClick={() => setCurrentPage(1)}
                     className={`px-3 py-1 rounded ${
                       currentPage === 1
-                        ? "bg-green-600 text-white"
+                        ? "bg-yellow-700 text-white"
                         : "bg-gray-100 text-gray-700"
                     }`}
                   >
@@ -463,7 +463,7 @@ const OrdersPage = () => {
                     onClick={() => setCurrentPage(page)}
                     className={`px-3 py-2 rounded ${
                       currentPage === page
-                        ? "bg-green-600 text-white"
+                        ? "bg-yellow-700 text-white"
                         : "bg-gray-100 text-gray-700"
                     }`}
                   >
@@ -481,7 +481,7 @@ const OrdersPage = () => {
                     onClick={() => setCurrentPage(totalPages)}
                     className={`px-3 py-2 rounded ${
                       currentPage === totalPages
-                        ? "bg-green-600 text-white"
+                        ? "bg-yellow-700 text-white"
                         : "bg-gray-100 text-gray-700"
                     }`}
                   >
@@ -552,7 +552,7 @@ const OrdersPage = () => {
                 <div className="mb-4">
                   <h3 className="font-semibold mb-2">Branch</h3>
                   <div className="text-sm text-gray-700 mb-1">
-                    <MapPin className="w-4 h-4 inline-block mb-0.5 text-green-700 mr-1" />
+                    <MapPin className="w-4 h-4 inline-block mb-0.5 text-yellow-700 mr-1" />
                     {modalOrder.branchId.name}
                   </div>
                   <div className="text-xs text-gray-500">
@@ -587,7 +587,7 @@ const OrdersPage = () => {
                                       <li key={j}>
                                         {sel.quantity}x {sel.itemName}
                                         {sel.itemPrice !== undefined && (
-                                          <span className="ml-2 text-green-600">
+                                          <span className="ml-2 text-yellow-700">
                                             £{Number(sel.itemPrice).toFixed(2)}
                                           </span>
                                         )}

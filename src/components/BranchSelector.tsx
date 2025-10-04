@@ -136,8 +136,8 @@ const BranchSelector = () => {
                   selectedBranch.id === branch.id ? 'bg-gray-50' : ''
                 }`}
               >
-                <div className="p-2 rounded-lg bg-green-100">
-                  <MapPin size={20} className="text-green-600" />
+                <div className="p-2 rounded-lg bg-yellow-100">
+                  <MapPin size={20} className="text-yellow-700" />
                 </div>
                 <div className="text-left">
                   <h4 className="font-medium text-gray-900">{branch.name}</h4>
@@ -152,7 +152,7 @@ const BranchSelector = () => {
           <div className="p-4 bg-gray-50 border-t">
             <button
               onClick={handleStartOver}
-              className="w-full py-2 text-center text-green-600 hover:text-green-700 font-medium"
+              className="w-full py-2 text-center text-yellow-700 hover:text-yellow-700 font-medium"
             >
               Start Over
             </button>

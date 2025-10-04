@@ -18,7 +18,7 @@ Completely redesigned the order items and summary sections with a modern, unique
 // Modern card with gradient accent
 <div className="group relative overflow-hidden bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all duration-300">
   {/* Gradient accent bar */}
-  <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-green-400 via-emerald-400 to-teal-400"></div>
+  <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-yellow-400 via-emerald-400 to-teal-400"></div>
 ```
 
 #### Key Features:
@@ -95,7 +95,7 @@ Completely redesigned the order items and summary sections with a modern, unique
 #### Delivery Fee Enhancement
 ```tsx
 // FREE delivery badge
-<div className="bg-gradient-to-r from-green-100 to-emerald-100 text-green-700 px-3 py-1 rounded-full text-sm font-bold">
+<div className="bg-gradient-to-r from-yellow-100 to-emerald-100 text-yellow-700 px-3 py-1 rounded-full text-sm font-bold">
   FREE
 </div>
 ```
@@ -105,7 +105,7 @@ Completely redesigned the order items and summary sections with a modern, unique
 #### Gradient Background
 ```tsx
 // Vibrant discount card
-<div className="relative overflow-hidden bg-gradient-to-r from-green-400 via-emerald-400 to-teal-400 rounded-xl p-4 text-white">
+<div className="relative overflow-hidden bg-gradient-to-r from-yellow-400 via-emerald-400 to-teal-400 rounded-xl p-4 text-white">
   <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-16 translate-x-16"></div>
 ```
 
@@ -127,13 +127,13 @@ Completely redesigned the order items and summary sections with a modern, unique
 #### Visual Elements:
 - **Decorative Circles**: Subtle white/5 opacity circles for depth
 - **Payment Status**: Green pulsing dot with "Payment Confirmed"
-- **Large Total**: 3xl font size in green-400 color
+- **Large Total**: 3xl font size in yellow-400 color
 - **Savings Badge**: Prominent centered badge with checkmark icon
 
 #### Savings Badge Design
 ```tsx
 // Celebratory savings display
-<div className="bg-green-400 text-gray-900 px-4 py-2 rounded-full font-bold text-sm flex items-center gap-2">
+<div className="bg-yellow-400 text-gray-900 px-4 py-2 rounded-full font-bold text-sm flex items-center gap-2">
   <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
     <path fillRule="evenodd" d="..." clipRule="evenodd" />
   </svg>

@@ -54,7 +54,7 @@ const CheckoutForm: React.FC<CheckoutFormProps> = ({ onSubmit }) => {
           value={formData.notes}
           onChange={handleChange}
           rows={4}
-          className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent resize-none"
+          className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-yellow-600 focus:border-transparent resize-none"
           placeholder="Special instructions or requests..."
         />
       </div>
@@ -70,7 +70,7 @@ const CheckoutForm: React.FC<CheckoutFormProps> = ({ onSubmit }) => {
               value={formData.firstName}
               onChange={handleChange}
               placeholder="First Name"
-              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent"
+              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-yellow-600 focus:border-transparent"
             />
           </div>
           <div>
@@ -80,7 +80,7 @@ const CheckoutForm: React.FC<CheckoutFormProps> = ({ onSubmit }) => {
               value={formData.lastName}
               onChange={handleChange}
               placeholder="Last Name"
-              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent"
+              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-yellow-600 focus:border-transparent"
             />
           </div>
           <div>
@@ -90,7 +90,7 @@ const CheckoutForm: React.FC<CheckoutFormProps> = ({ onSubmit }) => {
               value={formData.mobileNumber}
               onChange={handleChange}
               placeholder="Mobile Number"
-              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent"
+              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-yellow-600 focus:border-transparent"
             />
           </div>
           <div>
@@ -100,7 +100,7 @@ const CheckoutForm: React.FC<CheckoutFormProps> = ({ onSubmit }) => {
               value={formData.emailAddress}
               onChange={handleChange}
               placeholder="Email Address"
-              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent"
+              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-yellow-600 focus:border-transparent"
             />
           </div>
         </div>
@@ -114,7 +114,7 @@ const CheckoutForm: React.FC<CheckoutFormProps> = ({ onSubmit }) => {
           </label>
           <button
             type="button"
-            className="text-sm font-medium text-green-600 hover:text-green-700"
+            className="text-sm font-medium text-yellow-700 hover:text-yellow-700"
             onClick={() => {/* Handle address change */}}
           >
             CHANGE ADDRESS
@@ -134,7 +134,7 @@ const CheckoutForm: React.FC<CheckoutFormProps> = ({ onSubmit }) => {
             value={formData.couponCode}
             onChange={handleChange}
             placeholder="Coupon Code"
-            className="flex-1 px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent"
+            className="flex-1 px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-yellow-600 focus:border-transparent"
           />
           <button
             type="button"
@@ -152,7 +152,7 @@ const CheckoutForm: React.FC<CheckoutFormProps> = ({ onSubmit }) => {
           name="agreeToTerms"
           checked={formData.agreeToTerms}
           onChange={handleChange}
-          className="mt-1 h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
+          className="mt-1 h-4 w-4 text-yellow-700 focus:ring-yellow-600 border-gray-300 rounded"
         />
         <label className="ml-2 text-sm text-gray-600">
           By placing this order you're agreeing to d&c's{' '}

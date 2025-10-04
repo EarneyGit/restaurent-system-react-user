@@ -63,7 +63,7 @@ const RegisterPage = () => {
         {/* Logo */}
         <div className="flex md:px-6 py-6">
           <Link to="/" className="flex items-center">
-            <div className="h-8 w-8 bg-gradient-to-r from-foodyman-lime to-foodyman-green rounded-full flex items-center justify-center">
+            <div className="h-8 w-8 bg-gradient-to-r from-brand-yellow to-yellow-700 rounded-full flex items-center justify-center">
               <span className="text-white font-bold text-sm">R</span>
             </div>
             <span className="ml-2 uppercase font-mono font-semibold text-2xl text-gray-800">
@@ -81,7 +81,7 @@ const RegisterPage = () => {
             Already have an account?{" "}
             <Link
               to="/login"
-              className="text-foodyman-lime hover:text-foodyman-lime/70 transition-colors"
+              className="text-yellow-500 font-semibold hover:text-yellow-500/90 transition-colors"
             >
               Login
             </Link>
@@ -103,7 +103,7 @@ const RegisterPage = () => {
                   formik.touched.firstName && formik.errors.firstName
                     ? "border-red-500"
                     : "border-gray-300"
-                } rounded-md shadow-sm py-3 px-3 focus:outline-none focus:ring-foodyman-lime focus:border-foodyman-lime sm:text-sm`}
+                } rounded-md shadow-sm py-3 px-3 focus:outline-none focus:ring-yellow-600 focus:border-yellow-600 sm:text-sm`}
                 placeholder="Enter your first name"
               />
                 {formik.touched.firstName && formik.errors.firstName && (
@@ -128,7 +128,7 @@ const RegisterPage = () => {
                   formik.touched.lastName && formik.errors.lastName
                     ? "border-red-500"
                     : "border-gray-300"
-                } rounded-md shadow-sm py-3 px-3 focus:outline-none focus:ring-foodyman-lime focus:border-foodyman-lime sm:text-sm`}
+                } rounded-md shadow-sm py-3 px-3 focus:outline-none focus:ring-yellow-600 focus:border-yellow-600 sm:text-sm`}
                 placeholder="Enter your last name"
               />
               {formik.touched.lastName && formik.errors.lastName && (
@@ -153,7 +153,7 @@ const RegisterPage = () => {
                   formik.touched.email && formik.errors.email
                     ? "border-red-500"
                     : "border-gray-300"
-                } rounded-md shadow-sm py-3 px-3 focus:outline-none focus:ring-foodyman-lime focus:border-foodyman-lime sm:text-sm`}
+                } rounded-md shadow-sm py-3 px-3 focus:outline-none focus:ring-yellow-600 focus:border-yellow-600 sm:text-sm`}
                 placeholder="Enter your email address"
               />
               {formik.touched.email && formik.errors.email && (
@@ -167,7 +167,7 @@ const RegisterPage = () => {
               <button
                 type="submit"
                 disabled={formik.isSubmitting}
-                className="w-full bg-foodyman-lime text-white font-medium py-3 rounded-md hover:bg-foodyman-lime/70 transition-colors disabled:opacity-50"
+                className="w-full bg-yellow-600 text-white font-medium py-3 rounded-md hover:bg-yellow-600/90 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
               >
                 {formik.isSubmitting ? "Sending OTP..." : "Send OTP"}
               </button>
@@ -196,7 +196,7 @@ const RegisterPage = () => {
             </p>
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-8">
               <div className="bg-black/30 backdrop-blur-sm p-4 rounded-lg">
-                <h3 className="text-foodyman-lime font-bold text-xl mb-2">
+                <h3 className="text-yellow-500 font-bold text-xl mb-2">
                   Fast Delivery
                 </h3>
                 <p className="text-white/80">
@@ -204,7 +204,7 @@ const RegisterPage = () => {
                 </p>
               </div>
               <div className="bg-black/30 backdrop-blur-sm p-4 rounded-lg">
-                <h3 className="text-foodyman-lime font-bold text-xl mb-2">
+                <h3 className="text-yellow-500 font-bold text-xl mb-2">
                   Premium Selection
                 </h3>
                 <p className="text-white/80">
@@ -212,7 +212,7 @@ const RegisterPage = () => {
                 </p>
               </div>
               <div className="bg-black/30 backdrop-blur-sm p-4 rounded-lg">
-                <h3 className="text-foodyman-lime font-bold text-xl mb-2">
+                <h3 className="text-yellow-500 font-bold text-xl mb-2">
                   Loyalty Rewards
                 </h3>
                 <p className="text-white/80">
@@ -220,7 +220,7 @@ const RegisterPage = () => {
                 </p>
               </div>
               <div className="bg-black/30 backdrop-blur-sm p-4 rounded-lg">
-                <h3 className="text-foodyman-lime font-bold text-xl mb-2">
+                <h3 className="text-yellow-500 font-bold text-xl mb-2">
                   Exclusive Offers
                 </h3>
                 <p className="text-white/80">

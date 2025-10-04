@@ -34,7 +34,7 @@ const UserAvatar = () => {
     <div className="relative">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center justify-center w-9 h-9 rounded-full bg-gradient-to-br from-green-600 to-green-700 text-white font-semibold hover:opacity-90 transition-all duration-200 transform hover:scale-105"
+        className="flex items-center justify-center w-9 h-9 rounded-full bg-gradient-to-br from-yellow-700 to-yellow-700 text-white font-semibold hover:opacity-90 transition-all duration-200 transform hover:scale-105"
       >
         {getInitial(user?.firstName, user?.email)}
       </button>

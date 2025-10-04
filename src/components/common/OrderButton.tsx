@@ -5,7 +5,7 @@ import { ShoppingCart } from "lucide-react";
 const OrderButton = () => {
   return (
     <div className="fixed bottom-24 right-4 z-20">
-      <div className="bg-gradient-to-r from-green-400 to-green-500 rounded-full p-4 shadow-lg flex items-center gap-2">
+      <div className="bg-gradient-to-r from-yellow-400 to-yellow-600 rounded-full p-4 shadow-lg flex items-center gap-2">
         <div className="bg-black rounded-full p-2">
           <ShoppingCart className="text-white" size={20} />
         </div>
