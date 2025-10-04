@@ -775,7 +775,7 @@ const CheckoutPage = () => {
             "Content-Type": "application/json",
           };
 
-      console.log("headers", headers);
+        console.log("headers",headers);
       const cartResponse = await axios.get(
         isAuthenticated
           ? CART_ENDPOINTS.USER_CART
@@ -796,11 +796,9 @@ const CheckoutPage = () => {
         breakdown: cartData.serviceCharges?.breakdown || [],
       };
 
-      // Calculate delivery fee if we have an address and delivery method is "deliver"
+      // Calculate delivery fee if we have an address
       let calculatedDeliveryFee = 0;
-      const deliveryMethod = localStorage.getItem("deliveryMethod") || "";
-      
-      if (selectedBranch?.id && deliveryMethod === "deliver") {
+      if (selectedBranch?.id) {
         try {
           // Prepare the delivery address for calculation
           let addressForCalculation = null;
@@ -808,7 +806,6 @@ const CheckoutPage = () => {
           // Priority 1: Use the currently selected delivery address
           if (deliveryAddress && deliveryAddress.postcode) {
             addressForCalculation = deliveryAddress;
-            console.log("Using selected delivery address for calculation:", deliveryAddress);
           }
           // Priority 2: If using saved user address but it wasn't properly parsed
           else if (selectedAddressType === "user" && user?.address) {
@@ -824,7 +821,6 @@ const CheckoutPage = () => {
                 country: "GB",
                 fullAddress: userAddressStr
               };
-              console.log("Using parsed user address for calculation:", addressForCalculation);
             }
           }
           
@@ -847,26 +843,11 @@ const CheckoutPage = () => {
             }
           } else {
             console.log("No valid address with postcode for delivery calculation");
-            // If delivery method is "deliver" but no address, show a message
-            if (deliveryMethod === "deliver") {
-              console.warn("Delivery method is set but no valid address found");
-              toast.info("Please select a delivery address to calculate delivery fee");
-              
-              // IMPORTANT: Don't calculate delivery fee if no address is selected
-              calculatedDeliveryFee = 0;
-            }
           }
         } catch (deliveryError) {
           console.error("Error calculating delivery fee:", deliveryError);
           // Don't show error to user, just default to 0
-          calculatedDeliveryFee = 0;
         }
-      } else if (deliveryMethod !== "deliver") {
-        console.log("Delivery method is not 'deliver', no delivery fee calculated");
-        calculatedDeliveryFee = 0;
-      } else {
-        console.log("No conditions met for delivery fee calculation, setting to 0");
-        calculatedDeliveryFee = 0;
       }
 
       const totals = calculateOrderTotals(
@@ -955,84 +936,32 @@ const CheckoutPage = () => {
     return [street, city, postcode].filter(Boolean).join(", ");
   };
 
-  // ✅ useState based on user.address string and persisted selection
+  // ✅ useState based on user.address string
   const [deliveryAddress, setDeliveryAddress] = useState<Addresses>(() => {
-    // First check if we have a selected address type in localStorage
-    const savedAddressType = localStorage.getItem("selectedAddressType");
-    
-    // 1. If we have a saved address type, prioritize that selection
-    if (savedAddressType) {
-      console.log("Found saved address type:", savedAddressType);
-      setSelectedAddressType(savedAddressType as "user" | "delivery" | "search");
-      
-      // If user address was selected
-      if (savedAddressType === "user" && user?.address && typeof user.address === "string") {
-        const parsed = parseFullAddress(user.address);
-        
-        // Make sure the parsed address has a postcode
-        if (!parsed.postcode) {
-          const extractedPostcode = extractPostcodeFromAddress(user.address);
-          if (extractedPostcode) {
-            parsed.postcode = extractedPostcode;
-          }
-        }
-        
-        // Store the parsed address in localStorage to ensure consistency
-        localStorage.setItem("deliveryAddress", JSON.stringify(parsed));
-        console.log("Using user's saved address from localStorage:", parsed);
-        return parsed;
-      }
-      
-      // If delivery or search address was selected, get from localStorage
-      const storedAddress = localStorage.getItem("deliveryAddress");
-      if (storedAddress) {
-        try {
-          const parsedAddress = JSON.parse(storedAddress);
-          console.log("Using stored address from localStorage:", parsedAddress);
-          return parsedAddress;
-        } catch (e) {
-          console.error("Error parsing stored address:", e);
-        }
-      }
-    }
-    
-    // 2. If no saved address type, try user address first
+    // 1. If user has address (as string), parse it
     if (user?.address && typeof user.address === "string") {
       setSelectedAddressType("user");
       const parsed = parseFullAddress(user.address);
       
-      // Make sure the parsed address has a postcode
-      if (!parsed.postcode) {
-        const extractedPostcode = extractPostcodeFromAddress(user.address);
-        if (extractedPostcode) {
-          parsed.postcode = extractedPostcode;
-        }
-      }
-      
-      // Store the parsed address and selection type in localStorage
+      // Store the parsed address in localStorage to ensure consistency
       localStorage.setItem("deliveryAddress", JSON.stringify(parsed));
-      localStorage.setItem("selectedAddressType", "user");
       
-      console.log("Using user's address:", parsed);
       return parsed;
     }
 
-    // 3. Try from localStorage as fallback
+    // 2. Try from localStorage
     const storedAddress = localStorage.getItem("deliveryAddress");
     if (storedAddress) {
       try {
         const parsedAddress = JSON.parse(storedAddress);
         setSelectedAddressType("delivery");
-        localStorage.setItem("selectedAddressType", "delivery");
-        console.log("Using stored address:", parsedAddress);
         return parsedAddress;
       } catch (e) {
         console.error("Error parsing stored address:", e);
       }
     }
 
-    // 4. Fallback default
-    console.log("No address found, using empty default");
+    // 3. Fallback default
     return {
       street: "",
       city: "",
@@ -1125,67 +1054,15 @@ const CheckoutPage = () => {
     console.log("Component mounted, delivery method:", deliveryMethod);
     
     // If delivery method is "deliver", make sure we have an address selected
-    if (deliveryMethod === "deliver") {
-      // Check if we already have a valid address
-      if (deliveryAddress && deliveryAddress.postcode) {
-        console.log("Valid delivery address already selected:", deliveryAddress);
-        // Make sure delivery fee is calculated
-        fetchCartSummary();
-      } else {
-        console.log("No valid delivery address found, trying to select one");
-        
-        // Try to select user's saved address if available
-        if (user?.address && typeof user.address === 'string') {
-          console.log("Using user's saved address");
-          const parsed = parseFullAddress(user.address);
-          
-          // Make sure the parsed address has a postcode
-          if (!parsed.postcode) {
-            const extractedPostcode = extractPostcodeFromAddress(user.address);
-            if (extractedPostcode) {
-              parsed.postcode = extractedPostcode;
-            }
-          }
-          
-          // Update state and localStorage
-          setDeliveryAddress(parsed);
-          setSelectedAddressType("user");
-          localStorage.setItem("deliveryAddress", JSON.stringify(parsed));
-          
-          // Refresh cart summary to get updated delivery fee
-          fetchCartSummary();
-        } else {
-          // Try to use address from localStorage
-          const storedAddress = localStorage.getItem("deliveryAddress");
-          if (storedAddress) {
-            console.log("Using stored address from localStorage");
-            try {
-              const parsedAddress = JSON.parse(storedAddress);
-              // Ensure the address has proper formatting
-              if (parsedAddress.fullAddress) {
-                const parsedComponents = parseFullAddress(parsedAddress.fullAddress);
-                setDeliveryAddress({...parsedAddress, ...parsedComponents});
-              } else {
-                setDeliveryAddress(parsedAddress);
-              }
-              setSelectedAddressType("delivery");
-              
-              // Refresh cart summary to get updated delivery fee
-              fetchCartSummary();
-            } catch (e) {
-              console.error("Error parsing stored address:", e);
-            }
-          } else {
-            // No address available, user will need to select one
-            console.log("No address available, user must select one");
-            if (deliveryMethod === "deliver") {
-              toast.info("Please select a delivery address to continue");
-            }
-          }
-        }
-      }
+    if (deliveryMethod === "deliver" && (!deliveryAddress || !deliveryAddress.postcode)) {
+      // Force a re-check of the delivery method to trigger the other useEffect
+      const tempDeliveryMethod = localStorage.getItem("deliveryMethod");
+      localStorage.setItem("deliveryMethod", "");
+      setTimeout(() => {
+        localStorage.setItem("deliveryMethod", tempDeliveryMethod || "deliver");
+      }, 100);
     }
-  }, [user, fetchCartSummary, parseFullAddress, extractPostcodeFromAddress]); // Dependencies needed for address selection
+  }, []); // Empty dependency array means this runs once on mount
 
   // Auto-select address based on delivery method
   useEffect(() => {
@@ -1361,11 +1238,8 @@ const CheckoutPage = () => {
     setSelectedAddressType("search");
     setSelectedSearchedAddress(address);
     
-    // Update localStorage with the new address and selection type
+    // Update localStorage with the new address
     localStorage.setItem("deliveryAddress", JSON.stringify(formattedAddress));
-    localStorage.setItem("selectedAddressType", "search");
-    
-    console.log("Selected searched address:", formattedAddress);
     
     // Refresh cart summary to get updated delivery fee
     fetchCartSummary();
@@ -1382,20 +1256,7 @@ const CheckoutPage = () => {
       fullAddress: "",
     });
     setAddressSearchQuery("");
-    
-    // Clear the selected address from localStorage
-    localStorage.removeItem("deliveryAddress");
-    
-    // If user has address, select that instead
-    if (user?.address) {
-      setSelectedAddressType("user");
-      localStorage.setItem("selectedAddressType", "user");
-      handleUserAddressSelect();
-    } else {
-      // Otherwise, just clear the selection
-      localStorage.removeItem("selectedAddressType");
-      setSelectedAddressType("user");
-    }
+    setSelectedAddressType("user");
   };
 
   // Handle user address selection
@@ -1426,9 +1287,6 @@ const CheckoutPage = () => {
       setDeliveryAddress(parsed);
       setSelectedAddressType("user");
       localStorage.setItem("deliveryAddress", JSON.stringify(parsed));
-      localStorage.setItem("selectedAddressType", "user");
-      
-      console.log("Selected user address:", parsed);
       
       // Refresh cart summary to get updated delivery fee
       fetchCartSummary();
@@ -1453,9 +1311,6 @@ const CheckoutPage = () => {
           setDeliveryAddress(parsedAddress);
         }
         setSelectedAddressType("delivery");
-        localStorage.setItem("selectedAddressType", "delivery");
-        
-        console.log("Selected stored delivery address:", parsedAddress);
         
         // Refresh cart summary to get updated delivery fee
         fetchCartSummary();
@@ -1594,18 +1449,11 @@ const CheckoutPage = () => {
 
   const handlePlaceOrder = async () => {
     const isGuest = localStorage.getItem("isGuest") === "true";
-    const deliveryMethod = localStorage.getItem("deliveryMethod") || "";
-    
-    // Check if delivery method is "deliver" and we need an address
-    if (deliveryMethod === "deliver" && (!deliveryAddress || !deliveryAddress.postcode)) {
-      toast.error("Please provide a delivery address to continue");
-      return;
-    }
     
     // Basic validation for all users
     if (
       !selectedTimeSlot ||
-      (deliveryMethod === "deliver" && !deliveryAddress.fullAddress) ||
+      (checkDeliveryMethod !== "collect" && !deliveryAddress.fullAddress) ||
       !personalDetails.firstName
     ) {
       toast.error("Please fill in all required fields");
@@ -1656,21 +1504,11 @@ const CheckoutPage = () => {
         return;
       }
 
-      // Get delivery method from localStorage
-      const currentDeliveryMethod = localStorage.getItem("deliveryMethod") || "";
-      
-      // Check if delivery method is "deliver" and we need an address
-      if (currentDeliveryMethod === "deliver" && (!deliveryAddress || !deliveryAddress.postcode)) {
-        toast.error("Please provide a delivery address to continue");
-        setIsProcessing(false);
-        return;
-      }
-
       // Validate required fields
       if (
         !personalDetails.firstName ||
         !personalDetails.phone ||
-        (currentDeliveryMethod === "deliver" && !deliveryAddress.fullAddress)
+        (checkDeliveryMethod !== "collect" && !deliveryAddress.fullAddress)
       ) {
         toast.error("Please fill in all required fields");
         setIsProcessing(false);
@@ -1728,12 +1566,12 @@ const CheckoutPage = () => {
       }
 
       // Get deliveryMethod from localStorage and determine orderType
-      const orderDeliveryMethod = localStorage.getItem("deliveryMethod");
+      const deliveryMethod = localStorage.getItem("deliveryMethod");
       let orderType = "dine_in"; // default value
 
-      if (orderDeliveryMethod === "deliver") {
+      if (deliveryMethod === "deliver") {
         orderType = "delivery";
-      } else if (orderDeliveryMethod === "collect") {
+      } else if (deliveryMethod === "collect") {
         orderType = "pickup";
       }
 
