@@ -762,74 +762,123 @@ const CheckoutPage = () => {
   }, [selectedAddressType]);
 
   console.log("sessionId",sessionId);
-  useEffect(() => {
-    const fetchCartSummary = async () => {
-      try {
-        const headers = isAuthenticated
-          ? {
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "application/json",
-            }
-          : {
-              "x-session-id": sessionId,
-              "Content-Type": "application/json",
-            };
+  
+  const fetchCartSummary = async () => {
+    try {
+      const headers = isAuthenticated
+        ? {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          }
+        : {
+            "x-session-id": sessionId,
+            "Content-Type": "application/json",
+          };
 
-            console.log("headers",headers);
-        const cartResponse = await axios.get(
-          isAuthenticated
-            ? CART_ENDPOINTS.USER_CART
-            : CART_ENDPOINTS.GUEST_CART,
-          { headers }
-        );
+        console.log("headers",headers);
+      const cartResponse = await axios.get(
+        isAuthenticated
+          ? CART_ENDPOINTS.USER_CART
+          : CART_ENDPOINTS.GUEST_CART,
+        { headers }
+      );
 
-        if (!cartResponse.data?.data) {
-          throw new Error("Failed to fetch cart data");
-        }
-
-        const cartData: CartData = cartResponse.data.data;
-
-        const serviceCharges = {
-          totalMandatory: cartData.serviceCharges?.totalMandatory || 0,
-          totalOptional: cartData.serviceCharges?.totalOptional || 0,
-          totalAll: cartData.serviceCharges?.totalAll || 0,
-          breakdown: cartData.serviceCharges?.breakdown || [],
-        };
-
-        const totals = calculateOrderTotals(
-          cartData,
-          cartItems,
-          appliedPromo?.discountAmount,
-          acceptedOptionalServiceCharges
-        );
-
-        setCartSummary({
-          subtotal: totals.subtotal,
-          deliveryFee: totals.deliveryFee,
-          total: totals.total,
-          itemCount: cartData.itemCount || cartItems.length,
-          taxRate: totals.taxRate,
-          serviceCharges,
-        });
-      } catch (error) {
-        console.error("Error fetching cart summary:", error);
-        toast.error("Failed to fetch cart details. Please try again.");
-      } finally {
-        setIsLoading(false);
+      if (!cartResponse.data?.data) {
+        throw new Error("Failed to fetch cart data");
       }
-    };
 
-    fetchCartSummary();
-  }, [
-    isAuthenticated,
-    token,
-    sessionId,
-    cartItems,
-    selectedBranch?.id,
-    appliedPromo?.discountAmount,
-    acceptedOptionalServiceCharges,
-  ]);
+      const cartData: CartData = cartResponse.data.data;
 
+      const serviceCharges = {
+        totalMandatory: cartData.serviceCharges?.totalMandatory || 0,
+        totalOptional: cartData.serviceCharges?.totalOptional || 0,
+        totalAll: cartData.serviceCharges?.totalAll || 0,
+        breakdown: cartData.serviceCharges?.breakdown || [],
+      };
+
+      // Calculate delivery fee if we have an address
+      let calculatedDeliveryFee = 0;
+      if (selectedBranch?.id) {
+        try {
+          // Prepare the delivery address for calculation
+          let addressForCalculation = null;
+          
+          // Priority 1: Use the currently selected delivery address
+          if (deliveryAddress && deliveryAddress.postcode) {
+            addressForCalculation = deliveryAddress;
+          }
+          // Priority 2: If using saved user address but it wasn't properly parsed
+          else if (selectedAddressType === "user" && user?.address) {
+            // Try to extract postcode from user address
+            const userAddressStr = typeof user.address === 'string' ? user.address : '';
+            const extractedPostcode = extractPostcodeFromAddress(userAddressStr);
+            if (extractedPostcode) {
+              const addressParts = userAddressStr.split(',').map(part => part.trim());
+              addressForCalculation = {
+                postcode: extractedPostcode,
+                street: addressParts[0] || '',
+                city: addressParts[1] || '',
+                country: "GB",
+                fullAddress: userAddressStr
+              };
+            }
+          }
+          
+          // Only proceed if we have a valid address with postcode
+          if (addressForCalculation && addressForCalculation.postcode) {
+            console.log("Calculating delivery fee for address:", addressForCalculation);
+            
+            const deliveryResponse = await axios.post(
+              "/api/settings/delivery-charges/calculate-checkout",
+              {
+                branchId: selectedBranch.id,
+                orderTotal: cartData.subtotal,
+                searchedAddress: addressForCalculation
+              }
+            );
+            
+            if (deliveryResponse.data?.success) {
+              calculatedDeliveryFee = deliveryResponse.data.data.charge;
+              console.log("Delivery fee calculated:", calculatedDeliveryFee);
+            }
+          } else {
+            console.log("No valid address with postcode for delivery calculation");
+          }
+        } catch (deliveryError) {
+          console.error("Error calculating delivery fee:", deliveryError);
+          // Don't show error to user, just default to 0
+        }
+      }
+
+      const totals = calculateOrderTotals(
+        { ...cartData, deliveryFee: calculatedDeliveryFee },
+        cartItems,
+        appliedPromo?.discountAmount,
+        acceptedOptionalServiceCharges
+      );
+
+      setCartSummary({
+        subtotal: totals.subtotal,
+        deliveryFee: calculatedDeliveryFee,
+        total: totals.total,
+        itemCount: cartData.itemCount || cartItems.length,
+        taxRate: totals.taxRate,
+        serviceCharges,
+      });
+    } catch (error) {
+      console.error("Error fetching cart summary:", error);
+      toast.error("Failed to fetch cart details. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Helper function to extract postcode from address string
+  const extractPostcodeFromAddress = (address: string): string => {
+    const postcodeMatch = address.match(/([A-Z]{1,2}[0-9][A-Z0-9]?\s?[0-9][A-Z]{2})/i);
+    return postcodeMatch ? postcodeMatch[1].toUpperCase() : '';
+  };
+  
   React.useEffect(() => {
     const isGuest = localStorage.getItem("isGuest") === "true";
     if (!isAuthenticated && !isGuest) {
@@ -890,6 +939,10 @@ const CheckoutPage = () => {
     if (user?.address && typeof user.address === "string") {
       setSelectedAddressType("user");
       const parsed = parseFullAddress(user.address);
+      
+      // Store the parsed address in localStorage to ensure consistency
+      localStorage.setItem("deliveryAddress", JSON.stringify(parsed));
+      
       return parsed;
     }
 
@@ -957,6 +1010,39 @@ const CheckoutPage = () => {
     deliveryAddress.city,
     deliveryAddress.postcode,
   ]);
+
+  // Fetch cart summary with delivery fee calculation
+  useEffect(() => {
+    fetchCartSummary();
+  }, [
+    isAuthenticated,
+    token,
+    sessionId,
+    cartItems,
+    selectedBranch?.id,
+    appliedPromo?.discountAmount,
+    acceptedOptionalServiceCharges,
+    deliveryAddress?.postcode, // Add deliveryAddress dependency
+  ]);
+
+  // Trigger delivery fee calculation when component mounts if user has a saved address
+  useEffect(() => {
+    if (selectedAddressType === "user" && user?.address && deliveryAddress) {
+      // Ensure we have a valid postcode for the saved address
+      if (!deliveryAddress.postcode) {
+        const extractedPostcode = extractPostcodeFromAddress(typeof user.address === 'string' ? user.address : '');
+        if (extractedPostcode) {
+          setDeliveryAddress(prev => ({
+            ...prev,
+            postcode: extractedPostcode
+          }));
+        }
+      }
+      
+      // Trigger delivery fee calculation
+      fetchCartSummary();
+    }
+  }, [user, selectedAddressType]);
 
   // Add click outside handler and cleanup timeout
   useEffect(() => {
@@ -1032,7 +1118,7 @@ const CheckoutPage = () => {
   };
 
   // Handle address selection from API results
-  const handleAddressSelect = (address: AddressResult) => {
+  const handleAddressSelect = async (address: AddressResult) => {
     const street =
       address.line_1 ||
       `${address.building_number} ${address.thoroughfare}`.trim();
@@ -1056,8 +1142,12 @@ const CheckoutPage = () => {
     setShowSearchInput(false);
     setSelectedAddressType("search");
     setSelectedSearchedAddress(address);
+    
     // Update localStorage with the new address
     localStorage.setItem("deliveryAddress", JSON.stringify(formattedAddress));
+    
+    // Refresh cart summary to get updated delivery fee
+    fetchCartSummary();
   };
 
   const handleClearSearchedAddress = () => {
@@ -1075,17 +1165,41 @@ const CheckoutPage = () => {
   };
 
   // Handle user address selection
-  const handleUserAddressSelect = () => {
+  const handleUserAddressSelect = async () => {
     if (user?.address && typeof user.address === "string") {
+      // Parse the address string into structured format
       const parsed = parseFullAddress(user.address);
+      
+      // Make sure the parsed address has a postcode for delivery calculation
+      if (!parsed.postcode && user.address) {
+        // Try to extract postcode from the address string
+        const extractedPostcode = extractPostcodeFromAddress(user.address);
+        if (extractedPostcode) {
+          parsed.postcode = extractedPostcode;
+        }
+      }
+      
+      // If user has postalCode in profile, use that as a fallback
+      if (!parsed.postcode && user?.address) {
+        // Try to extract postcode from the address string
+        const extractedPostcode = extractPostcodeFromAddress(typeof user.address === 'string' ? user.address : '');
+        if (extractedPostcode) {
+          parsed.postcode = extractedPostcode;
+        }
+      }
+      
+      // Update state and localStorage
       setDeliveryAddress(parsed);
       setSelectedAddressType("user");
       localStorage.setItem("deliveryAddress", JSON.stringify(parsed));
+      
+      // Refresh cart summary to get updated delivery fee
+      fetchCartSummary();
     }
   };
 
   // Handle delivery address selection
-  const handleDeliveryAddressSelect = () => {
+  const handleDeliveryAddressSelect = async () => {
     const storedAddress = localStorage.getItem("deliveryAddress");
     if (storedAddress) {
       try {
@@ -1102,6 +1216,9 @@ const CheckoutPage = () => {
           setDeliveryAddress(parsedAddress);
         }
         setSelectedAddressType("delivery");
+        
+        // Refresh cart summary to get updated delivery fee
+        fetchCartSummary();
       } catch (e) {
         console.error("Error parsing stored address:", e);
       }
