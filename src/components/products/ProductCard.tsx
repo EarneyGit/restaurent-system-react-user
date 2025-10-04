@@ -597,12 +597,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
 
     const normalized = description
       .replace(/\\r\\n/g, "|")
-      .replace(/\r\n/g, "|")
-      .replace(/\n/g, "|")
-      .replace(/\+/g, "|")
-      .replace(/,/g, "|")
-      .replace(/\s*\|\s*/g, "|")
-      .replace(/\|{2,}/g, "|");
+      .replace(/\r\n/g, "|");
 
     const parts = normalized
       .split("|")
@@ -617,7 +612,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
       >
         {parts.map((line, idx) => (
           <p key={idx} className="mb-1 flex items-start">
-            <span className="mr-2">•</span> {line}
+           {line}
           </p>
         ))}
       </div>
@@ -730,7 +725,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
             {MenuDisplay(product?.description)}
           </p> */}
           <MenuDisplay
-            description={product?.description}
+            description={product?.description ? product?.description : "No description available"}
             isOverallAvailable={isOverallAvailable}
           />
 

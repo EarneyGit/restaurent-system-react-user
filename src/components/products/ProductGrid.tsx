@@ -230,8 +230,9 @@ const ProductGrid: React.FC<ProductGridProps> = React.memo(
     const totalPages = Math.ceil(filteredProducts.length / productsPerPage);
     const indexOfLast = currentPage * productsPerPage;
     const indexOfFirst = indexOfLast - productsPerPage;
-    const currentProducts = filteredProducts.slice(indexOfFirst, indexOfLast);
-
+    const currentProducts = filteredProducts.slice(indexOfFirst, indexOfLast)
+      .sort((a: any, b: any) => a.displayOrder - b.displayOrder);
+    console.log({ currentProducts });
     const handlePageChange = (page: number) => {
       if (page >= 1 && page <= totalPages) {
         setCurrentPage(page);
