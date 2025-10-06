@@ -1,5 +1,5 @@
 import React from "react";
-import { Phone, Mail, MapPin } from "lucide-react";
+import { Mail, MapPin, Smartphone, PhoneCall } from "lucide-react";
 import { Link } from "react-router-dom";
 
 const Footer = () => {
@@ -25,7 +25,7 @@ const Footer = () => {
             />
           </Link>
           <span className="text-2xl font-serif tracking-wide text-gray-900">
-           Rasoie Indian Restaurant
+            Rasoie Indian Restaurant
           </span>
         </div>
 
@@ -34,7 +34,7 @@ const Footer = () => {
           {/* Address */}
           <div className="flex items-center gap-2">
             <MapPin className="w-4 h-4" />
-            <span>17th Street, Manhattan, New York, 10011</span>
+            <span>1 Tryst Road Stenhousemuir Larbert FK5 4QQ Scotland</span>
           </div>
 
           {/* Divider */}
@@ -42,12 +42,23 @@ const Footer = () => {
 
           {/* Phone */}
           <div className="flex items-center gap-2">
-            <Phone className="w-4 h-4" />
+            <PhoneCall className="w-4 h-4" />
             <a
-              href="tel:123456789"
+              href="tel:+01324644646"
               className="hover:text-black transition-colors"
             >
-              +1 (234) 567-890
+              +01324644646
+            </a>
+          </div>
+
+          {/* Mobile */}
+          <div className="flex items-center gap-2">
+            <Smartphone className="w-4 h-4" />
+            <a
+              href="tel:07777438428"
+              className="hover:text-black transition-colors"
+            >
+              +07777438428
             </a>
           </div>
 
