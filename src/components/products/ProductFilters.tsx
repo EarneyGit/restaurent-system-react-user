@@ -25,7 +25,7 @@ const ProductFilters: React.FC<ProductFiltersProps> = ({
   return (
     <div className="mb-8">
       {/* Categories */}
-      <div className="flex overflow-x-auto gap-3 pb-4 no-scrollbar">
+      <div className="overflow-x-auto gap-3 pb-4 no-scrollbar">
         <button
           onClick={() => onCategoryChange("All")}
           className={`px-6 py-2 rounded-full border border-gray-300 whitespace-nowrap transition-all ${
@@ -40,7 +40,7 @@ const ProductFilters: React.FC<ProductFiltersProps> = ({
           <button
             key={category.id}
             onClick={() => onCategoryChange(String(category.name))}
-            className={`px-4 py-2 rounded-full border border-gray-300 text-sm whitespace-nowrap transition-all ${
+            className={`m-1 px-4 py-2 rounded-full border border-gray-300 text-sm whitespace-nowrap transition-all ${
               selectedCategory === String(category.name)
                 ? "bg-yellow-800 text-white font-semibold hover:opacity-80"
                 : "bg-white text-gray-700 hover:bg-gray-100"
