@@ -16,7 +16,7 @@ const Index = () => {
 
         {/* Promotional Banners Section */}
         <section className="">
-          <PromotionalBanners />
+          {/* <PromotionalBanners /> */}
         </section>
 
         {/* Recommended Items Section */}
@@ -30,7 +30,7 @@ const Index = () => {
 
         {/* Restaurant Banner Section */}
         <section className="mb-20">
-          <RestaurantBanner />
+          {/* <RestaurantBanner /> */}
         </section>
       </div>
     </div>
