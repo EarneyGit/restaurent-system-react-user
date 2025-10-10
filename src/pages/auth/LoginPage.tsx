@@ -35,7 +35,8 @@ const LoginPage = () => {
   const { mergeGuestCart, sessionId } = useGuestCart();
 
   // Get the redirect path from state or localStorage
-  const redirectPath = location.state?.from || localStorage.getItem("returnUrl") || "/";
+  const redirectPath =
+    location.state?.from || localStorage.getItem("returnUrl") || "/";
   const isCheckoutRedirect = redirectPath.includes("/checkout");
 
   // Clear returnUrl from localStorage after reading it
@@ -89,23 +90,21 @@ const LoginPage = () => {
   const handleGuestCheckout = (e: React.MouseEvent) => {
     e.preventDefault();
 
-    // Clear any existing auth data to ensure clean guest state
     localStorage.removeItem("token");
     localStorage.removeItem("user");
-    localStorage.removeItem('deliveryAddress');
-    localStorage.removeItem('orderDetails');
+    localStorage.removeItem("deliveryAddress");
+    localStorage.removeItem("orderDetails");
 
-    console.log("Guest cart cleared");
-    // Generate a new session ID for guest user if not exists
     const guestSessionId = uuidv4();
     localStorage.setItem("guestSessionId", guestSessionId);
     localStorage.setItem("isGuest", "true");
 
-    // Always redirect to /app for guest users
-    window.location.href = "/app";
+    const returnUrl = localStorage.getItem("returnUrl") || "/app";
+    localStorage.removeItem("returnUrl");
+
+    navigate(returnUrl);
   };
 
-  // Remove the guest redirect effect since we're always going to /app
   useEffect(() => {
     // Only handle returnUrl for logged-in users
     if (redirectPath !== "/" && !localStorage.getItem("isGuest")) {
