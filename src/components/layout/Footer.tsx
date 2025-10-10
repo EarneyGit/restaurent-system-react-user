@@ -25,7 +25,7 @@ const Footer = () => {
             />
           </Link>
           <span className="text-2xl font-serif tracking-wide text-gray-900">
-            Rasoie Indian Restaurant
+            Rasoie - Indian Restaurant
           </span>
         </div>
 
@@ -69,10 +69,10 @@ const Footer = () => {
           <div className="flex items-center gap-2">
             <Mail className="w-4 h-4" />
             <a
-              href="mailto:rasoierestaurent@gmail.com"
+              href="mailto:rasoie.co.uk@gmail.com"
               className="hover:text-black transition-colors"
             >
-              rasoierestaurent@gmail.com
+              rasoie.co.uk@gmail.com{" "}
             </a>
           </div>
         </div>

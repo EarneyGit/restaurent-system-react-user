@@ -1,6 +1,16 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Store, Info, MapPin, User, LogOut, ShoppingBag, KeyRound, Gift, Settings } from "lucide-react";
+import {
+  Store,
+  Info,
+  MapPin,
+  User,
+  LogOut,
+  ShoppingBag,
+  KeyRound,
+  Gift,
+  Settings,
+} from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 
 const Welcome = () => {
@@ -90,17 +100,19 @@ const Welcome = () => {
         {/* Info Card */}
         <div className="text-center bg-white/90 backdrop-blur-none glow-effect p-8 rounded-3xl   max-w-xl mb-6">
           <h1 className="text-4xl font-mono font-bold bg-gradient-to-r from-neutral-800 via-neutral-700 to-neutral-700 bg-clip-text text-transparent tracking-tight mb-4">
-            Rasoie - Indian Restaurent
+            Rasoie - Indian Restaurant
           </h1>
           <p className="text-black/70 font-semibold text-lg mb-8">
-            Experience the finest flavors, crafted with passion and served with
-            care.
+            Our flagship Stenhousemuir location with modern amenities and
+            excellent service.
           </p>
           <button
             onClick={() => navigate("/select-outlet")}
             className="px-8 py-3 rounded-xl text-lg font-semibold bg-yellow-700/90 text-white shadow-md relative overflow-hidden border border-black/10 transition hover:scale-x-100  "
           >
-            <span className="relative z-10 uppercase text-white font-bold">Start Over</span>
+            <span className="relative z-10 uppercase text-white font-bold">
+              Start Over
+            </span>
             <div className="absolute inset-0 bg-black opacity-0 hover:opacity-10 transition duration-300"></div>
           </button>
         </div>
@@ -113,10 +125,7 @@ const Welcome = () => {
             </div>
             <span className="text-sm mt-1 font-medium">Offers</span>
           </Link>
-          <Link
-            to="/about"
-            className="flex flex-col items-center text-white"
-          >
+          <Link to="/about" className="flex flex-col items-center text-white">
             <div className="p-2 rounded-xl bg-yellow-700/30">
               <Info size={24} stroke="white" />
             </div>
@@ -146,22 +155,24 @@ const Welcome = () => {
         {showAccountOptions && isAuthenticated && (
           <>
             {/* Backdrop */}
-            <div 
+            <div
               className="fixed inset-0 bg-black/60 backdrop-blur z-50"
               onClick={() => setShowAccountOptions(false)}
             />
-            
+
             {/* Modal */}
             <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 max-w-2xl w-full bg-white rounded-xl shadow-2xl border border-gray-100 overflow-hidden z-50 animate-fade-in-up">
               {/* User Info */}
               <div className="p-8 bg-gradient-to-r from-yellow-700 to-yellow-800 text-black relative">
                 <div className="absolute inset-0 bg-[url('/pattern.svg')] opacity-10" />
                 <div className="relative">
-                  <h2 className="text-3xl font-bold text-white mb-2">{user?.name}</h2>
+                  <h2 className="text-3xl font-bold text-white mb-2">
+                    {user?.name}
+                  </h2>
                   <p className="text-lg opacity-90 text-white">{user?.email}</p>
                 </div>
               </div>
-              
+
               {/* Options */}
               <div className="p-4">
                 <div className="space-y-3">
@@ -170,7 +181,10 @@ const Welcome = () => {
                     className="w-full p-4 text-left hover:bg-gray-50 text-gray-700 font-medium rounded-xl flex items-center space-x-3 transition-colors group"
                   >
                     <div className="w-12 h-12 rounded-2xl bg-gradient-to-br border border-gray-200 from-gray-50 to-gray-50 flex items-center justify-center group-hover:scale-95 transition-transform">
-                      <ShoppingBag className="w-6 h-6 text-gray-500" strokeWidth={1.5} />
+                      <ShoppingBag
+                        className="w-6 h-6 text-gray-500"
+                        strokeWidth={1.5}
+                      />
                     </div>
                     <span className="text-lg">My Orders</span>
                   </button>
@@ -180,7 +194,10 @@ const Welcome = () => {
                     className="w-full p-4 text-left hover:bg-gray-50 text-gray-700 font-medium rounded-xl flex items-center space-x-3 transition-colors group"
                   >
                     <div className="w-12 h-12 rounded-2xl bg-gradient-to-br border border-gray-200 from-gray-50 to-gray-50 flex items-center justify-center group-hover:scale-95 transition-transform">
-                      <Settings className="w-6 h-6 text-gray-500" strokeWidth={1.5} />
+                      <Settings
+                        className="w-6 h-6 text-gray-500"
+                        strokeWidth={1.5}
+                      />
                     </div>
                     <span className="text-lg">Account Details</span>
                   </button>
@@ -200,7 +217,10 @@ const Welcome = () => {
                     className="w-full p-4 text-left hover:bg-gray-50 text-gray-700 font-medium rounded-xl flex items-center space-x-3 transition-colors group"
                   >
                     <div className="w-12 h-12 rounded-2xl bg-gradient-to-br border border-gray-200 from-gray-50 to-gray-50 flex items-center justify-center group-hover:scale-95 transition-transform">
-                      <Gift className="w-6 h-6 text-gray-500" strokeWidth={1.5} />
+                      <Gift
+                        className="w-6 h-6 text-gray-500"
+                        strokeWidth={1.5}
+                      />
                     </div>
                     <span className="text-lg">Rewards</span>
                   </button>
@@ -212,7 +232,9 @@ const Welcome = () => {
                     {/* <div className="w-12 h-12 rounded-2xl  from-gray-50 to-gray-50 flex items-center justify-center group-hover:scale-95 transition-transform">
                     <LogOut className="w-5 h-5 text-red-600" strokeWidth={1.5} />
                     </div> */}
-                    <span className="text-lg uppercase font-bold text-red-600">Logout</span>
+                    <span className="text-lg uppercase font-bold text-red-600">
+                      Logout
+                    </span>
                   </button>
                 </div>
               </div>
