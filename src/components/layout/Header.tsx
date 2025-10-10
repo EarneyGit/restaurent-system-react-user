@@ -121,7 +121,8 @@ const Header = () => {
       "returnUrl",
       branchId ? "/app" : window.location.pathname
     );
-    window.location.href = "/login";
+    navigate("/login");
+    // window.location.href = "/login";
   };
 
   if (authLoading) {
@@ -179,6 +180,7 @@ const Header = () => {
                   <UserAvatar />
                 ) : (
                   <button
+                    type="button"
                     onClick={handleLoginClick}
                     className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-yellow-600 hover:bg-yellow-600/90 text-white font-medium transition-colors"
                   >
