@@ -25,24 +25,27 @@ const Footer = () => {
             />
           </Link>
           <span className="text-2xl font-serif tracking-wide text-gray-900">
-            Rasoie - Indian Restaurant
+            Rasoie <span className="hidden md:inline">- Indian Restaurant</span>
           </span>
         </div>
 
         {/* Address | Contact | Email */}
-        <div className="flex flex-col md:flex-row justify-center items-center gap-4 md:gap-8 text-gray-600 text-sm mb-8">
+        <div className="flex flex-wrap justify-center items-center gap-4 md:gap-8 text-gray-600 text-sm mb-8 px-2">
           {/* Address */}
-          <div className="flex items-center gap-2">
-            <MapPin className="w-4 h-4" />
-            <span>1 Tryst Road Stenhousemuir Larbert FK5 4QQ Scotland</span>
+          <div className="flex items-start gap-2 flex-shrink-0 text-center md:text-left">
+            <MapPin className="w-4 h-4 mt-0.5 flex-shrink-0" />
+            <div className="flex flex-col md:flex-row md:items-center md:gap-1">
+              <span>1 Tryst Road Stenhousemuir Larbert</span>
+              <span className="md:ml-1">FK5 4QQ Scotland</span>
+            </div>
           </div>
 
           {/* Divider */}
           <span className="hidden md:inline">|</span>
 
           {/* Phone */}
-          <div className="flex items-center gap-2">
-            <PhoneCall className="w-4 h-4" />
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <PhoneCall className="w-4 h-4 flex-shrink-0" />
             <a
               href="tel:+01324644646"
               className="hover:text-black transition-colors"
@@ -52,8 +55,8 @@ const Footer = () => {
           </div>
 
           {/* Mobile */}
-          <div className="flex items-center gap-2">
-            <Smartphone className="w-4 h-4" />
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <Smartphone className="w-4 h-4 flex-shrink-0" />
             <a
               href="tel:07777438428"
               className="hover:text-black transition-colors"
@@ -66,13 +69,13 @@ const Footer = () => {
           <span className="hidden md:inline">|</span>
 
           {/* Email */}
-          <div className="flex items-center gap-2">
-            <Mail className="w-4 h-4" />
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <Mail className="w-4 h-4 flex-shrink-0" />
             <a
               href="mailto:rasoie.co.uk@gmail.com"
               className="hover:text-black transition-colors"
             >
-              rasoie.co.uk@gmail.com{" "}
+              rasoie.co.uk@gmail.com
             </a>
           </div>
         </div>

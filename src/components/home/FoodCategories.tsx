@@ -21,6 +21,7 @@ import {
   Shrub,
 } from "lucide-react";
 import { useBranch } from "@/context/BranchContext";
+import NoBranchSelected from "../common/NoBranchSelected";
 
 // Utility function to check if category is available at current time
 const isCategoryAvailable = (category: Category): boolean => {
@@ -208,10 +209,14 @@ const FoodCategories = () => {
   const location = useLocation();
   const { selectedBranch } = useBranch();
   const [categories, setCategories] = useState<Category[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
 
+
+
+
+  
   useEffect(() => {
     const fetchCategories = async () => {
       setLoading(true);
@@ -272,6 +277,12 @@ const FoodCategories = () => {
 
   if (error) {
     return <div className="py-4 text-center text-red-500">{error}</div>;
+  }
+
+  if(!selectedBranch?.id) {
+    return (
+     <NoBranchSelected selectedBranch={selectedBranch} />
+    );
   }
 
   return (

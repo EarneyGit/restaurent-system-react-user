@@ -469,6 +469,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
         branchId: selectedBranch.id,
         orderType: deliveryMethod,
         price: priceStructure,
+        sessionId:sessionId 
       });
       toast.success("Added to cart successfully");
     } catch (error) {

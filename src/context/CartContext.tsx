@@ -80,6 +80,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const { sessionId, cartData: guestCartData } = useGuestCart();
   const navigate = useNavigate();
 
+
   // Get current branch's cart items
   const cartItems = selectedBranch ? (branchCarts[selectedBranch.id] || []) : [];
 
@@ -203,11 +204,14 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
             }))
       } as any;
 
+      const currentSessionId = sessionId || localStorage.getItem('guestSessionId');
+
+
       const headers = isAuthenticated ? {
         Authorization: `Bearer ${token}`,
         'Content-Type': 'application/json'
       } : {
-        'x-session-id': sessionId,
+        'x-session-id': currentSessionId,
         'Content-Type': 'application/json'
       };
 
@@ -288,11 +292,13 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return;
       }
 
+      const currentSessionId = sessionId || localStorage.getItem('guestSessionId');
+
       const headers = isAuthenticated ? {
         Authorization: `Bearer ${token}`,
         'Content-Type': 'application/json'
       } : {
-        'x-session-id': sessionId,
+        'x-session-id': currentSessionId,
         'Content-Type': 'application/json'
       };
 

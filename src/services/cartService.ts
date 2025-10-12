@@ -49,6 +49,7 @@ const getHeaders = () => {
   const token = localStorage.getItem('auth_token');
   const sessionId = getSessionId();
   
+  console.log("sessionId",sessionId)
   return {
     'Content-Type': 'application/json',
     ...(token ? { 'Authorization': `Bearer ${token}` } : {}),

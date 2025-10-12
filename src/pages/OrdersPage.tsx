@@ -334,94 +334,100 @@ const OrdersPage = () => {
               </select>
             </div>
           </div>
-          <div className="overflow-x-auto bg-white rounded-xl shadow border border-gray-200">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Order #
-                  </th>
-                  <th className="px-6 w-96 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Date
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Status
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Delivery Method
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Total
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Action
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-100">
-                {isLoading ? (
+          <div className=" bg-white rounded-xl shadow border border-gray-200">
+            <div className="overflow-x-auto w-full">
+              <table className="min-w-[800px] md:min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
                   <tr>
-                    <td colSpan={6} className="text-center py-8">
-                      Loading...
-                    </td>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
+                      Order #
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap w-[180px] md:w-auto">
+                      Date
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
+                      Status
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
+                      Delivery Method
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
+                      Total
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
+                      Action
+                    </th>
                   </tr>
-                ) : paginatedOrders.length === 0 ? (
-                  <tr>
-                    <td colSpan={6} className="text-center py-8 text-gray-500">
-                      No orders found.
-                    </td>
-                  </tr>
-                ) : (
-                  paginatedOrders.map((order) => (
-                    <tr
-                      key={order._id}
-                      className="hover:bg-yellow-50/30 transition"
-                    >
-                      <td className="px-6 py-4 font-medium text-gray-900">
-                        {order.orderNumber}
-                      </td>
-                      <td className="px-6 w-96 py-4 text-gray-700">
-                        {format(
-                          new Date(order.createdAt),
-                          "MMM d, yyyy • h:mm a"
-                        )}
-                      </td>
-                      <td className="px-6 py-4">
-                        <span
-                          className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(
-                            order.status
-                          )}`}
-                        >
-                          {order.status === OrderStatus.COMPLETED
-                            ? "Completed"
-                            : order.status === OrderStatus.PROCESSING
-                            ? "Processing"
-                            : order.status === OrderStatus.PENDING
-                            ? "Pending"
-                            : order.status === OrderStatus.CANCELLED
-                            ? "Cancelled"
-                            : order.status}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 text-gray-700 capitalize">
-                        {getDeliveryMethod(order)}
-                      </td>
-                      <td className="px-6 py-4 font-semibold text-black">
-                        £{order.totalAmount.toFixed(2)}
-                      </td>
-                      <td className="px-6 py-4">
-                        <button
-                          onClick={() => setModalOrder(order)}
-                          className="px-4 py-2 bg-yellow-700 md:text-base text-sm text-white rounded-lg font-medium hover:bg-yellow-700 transition"
-                        >
-                          Show Details
-                        </button>
+                </thead>
+
+                <tbody className="bg-white divide-y divide-gray-100">
+                  {isLoading ? (
+                    <tr>
+                      <td colSpan={6} className="text-center py-8">
+                        Loading...
                       </td>
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+                  ) : paginatedOrders.length === 0 ? (
+                    <tr>
+                      <td
+                        colSpan={6}
+                        className="text-center py-8 text-gray-500"
+                      >
+                        No orders found.
+                      </td>
+                    </tr>
+                  ) : (
+                    paginatedOrders.map((order) => (
+                      <tr
+                        key={order._id}
+                        className="hover:bg-yellow-50/30 transition"
+                      >
+                        <td className="px-6 py-4 font-medium text-gray-900 whitespace-nowrap">
+                          {order.orderNumber}
+                        </td>
+                        <td className="px-6 py-4 text-gray-700 whitespace-nowrap">
+                          {format(
+                            new Date(order.createdAt),
+                            "MMM d, yyyy • h:mm a"
+                          )}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span
+                            className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(
+                              order.status
+                            )}`}
+                          >
+                            {order.status === OrderStatus.COMPLETED
+                              ? "Completed"
+                              : order.status === OrderStatus.PROCESSING
+                              ? "Processing"
+                              : order.status === OrderStatus.PENDING
+                              ? "Pending"
+                              : order.status === OrderStatus.CANCELLED
+                              ? "Cancelled"
+                              : order.status}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 text-gray-700 capitalize whitespace-nowrap">
+                          {getDeliveryMethod(order)}
+                        </td>
+                        <td className="px-6 py-4 font-semibold text-black whitespace-nowrap">
+                          £{order.totalAmount.toFixed(2)}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <button
+                            onClick={() => setModalOrder(order)}
+                            className="px-4 py-2 bg-yellow-700 md:text-base text-sm text-white rounded-lg font-medium hover:bg-yellow-700 transition"
+                          >
+                            Show Details
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
           {/* Pagination Controls */}
           {totalPages > 1 && (
