@@ -113,7 +113,7 @@ const OutletSelectionPage = () => {
         </button>
 
         {/* Header */}
-        <div className="text-center mb-12">
+        <div className="text-center mb-12 pt-20">
           <h1 className="text-3xl md:text-4xl font-bold text-white mb-4">
             Select Your Outlet
           </h1>

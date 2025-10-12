@@ -33,7 +33,7 @@ const Welcome = () => {
   };
 
   return (
-    <div className="min-h-screen relative xl:pt-10 md:pt-5 pt-3 font-sans">
+    <div className="min-h-screen relative flex flex-col justify-center items-center font-sans">
       {/* Background Layer */}
       <div className="absolute inset-0">
         <img
@@ -47,60 +47,17 @@ const Welcome = () => {
       {/* Hero Content */}
       <div className="relative flex flex-col items-center justify-center min-h-[80vh] p-6 animate-fade-in">
         {/* Logo */}
-        <div className="md:w-48 md:h-48 w-40 h-40 mb-8 relative">
-          <div className="absolute inset-0 bg-yellow-100/20 rounded-full blur-xl"></div>
-          <svg viewBox="0 0 200 200" className="w-full h-full relative">
-            <defs>
-              <linearGradient
-                id="logoGradient"
-                x1="0%"
-                y1="0%"
-                x2="100%"
-                y2="100%"
-              >
-                <stop offset="0%" stopColor="#fffbd06" />
-                <stop offset="100%" stopColor="#e5a905" />
-              </linearGradient>
-            </defs>
-            <circle
-              cx="100"
-              cy="100"
-              r="90"
-              fill="white"
-              className="drop-shadow-md"
-            />
-            <circle
-              cx="100"
-              cy="100"
-              r="85"
-              stroke="url(#logoGradient)"
-              strokeWidth="2"
-              fill="none"
-            />
-            {/* Fork */}
-            <path
-              d="M70 50 L70 150 M60 50 L60 90 M80 50 L80 90 M60 90 C60 100, 80 100, 80 90"
-              stroke="url(#logoGradient)"
-              strokeWidth="4"
-              strokeLinecap="round"
-              fill="none"
-            />
-            {/* Spoon */}
-            <path
-              d="M120 50 C160 50, 160 150, 120 150"
-              stroke="url(#logoGradient)"
-              strokeWidth="4"
-              strokeLinecap="round"
-              fill="none"
-            />
-            <circle cx="120" cy="50" r="10" fill="url(#logoGradient)" />
-          </svg>
+        <div className="md:w-40 md:h-40 w-40 h-40 mb-8 relative">
+          <img
+            src="/rasoie_logo.jpg"
+            alt="Rasoie Logo"
+            className="w-full h-full object-contain rounded-full"
+          />
         </div>
-
         {/* Info Card */}
         <div className="text-center bg-white/90 backdrop-blur-none glow-effect p-8 rounded-3xl   max-w-xl mb-6">
-          <h1 className="text-4xl font-mono font-bold bg-gradient-to-r from-neutral-800 via-neutral-700 to-neutral-700 bg-clip-text text-transparent tracking-tight mb-4">
-            Rasoie - Indian Restaurant
+          <h1 className="text-4xl uppercase font-mono font-bold bg-gradient-to-r from-neutral-800 via-neutral-700 to-neutral-700 bg-clip-text text-transparent tracking-tight mb-4">
+            Rasoie
           </h1>
           <p className="text-black/70 font-semibold text-lg mb-8">
             Our flagship Stenhousemuir location with modern amenities and

@@ -164,7 +164,6 @@ const AboutPage = () => {
   const getUpcomingClosedDates = (
     closedDates: BranchDetails["orderingTimes"]["closedDates"] | undefined
   ) => {
-
     if (!closedDates) return [];
 
     const now = new Date();
@@ -443,43 +442,45 @@ const AboutPage = () => {
               </div>
 
               {/* Navigation Tabs */}
-              <div className="flex border-b overflow-x-auto border-white/10">
+              <div className="flex overflow-x-auto border-b flex justify-between items-center border-white/10 scrollbar-hide w-full">
                 <button
                   onClick={() => handleTabChange(branch.id, "info")}
-                  className={`flex-1 px-4 py-3 text-sm font-medium ${
+                  className={`flex-none px-5 py-3 text-sm font-medium whitespace-nowrap ${
                     currentTab === "info"
                       ? "text-yellow-600 border-b-2 border-yellow-700"
                       : "text-white/60 hover:text-white"
                   }`}
                 >
                   <div className="flex items-center justify-center gap-2">
-                    <Info size={18} />
+                    <Info size={18} className="flex-shrink-0" />
                     <span>Information</span>
                   </div>
                 </button>
+
                 <button
                   onClick={() => handleTabChange(branch.id, "hours")}
-                  className={`flex-1 px-4 py-3 text-sm font-medium ${
+                  className={`flex-none px-5 py-3 text-sm font-medium whitespace-nowrap ${
                     currentTab === "hours"
                       ? "text-yellow-600 border-b-2 border-yellow-700"
                       : "text-white/60 hover:text-white"
                   }`}
                 >
                   <div className="flex items-center justify-center gap-2">
-                    <Clock size={18} />
+                    <Clock size={18} className="flex-shrink-0" />
                     <span>Opening Hours</span>
                   </div>
                 </button>
+
                 <button
                   onClick={() => handleTabChange(branch.id, "closed")}
-                  className={`flex-1 px-4 py-3 text-sm font-medium ${
+                  className={`flex-none px-5 py-3 text-sm font-medium whitespace-nowrap ${
                     currentTab === "closed"
                       ? "text-yellow-600 border-b-2 border-yellow-700"
                       : "text-white/60 hover:text-white"
                   }`}
                 >
                   <div className="flex items-center justify-center gap-2">
-                    <Calendar size={18} />
+                    <Calendar size={18} className="flex-shrink-0" />
                     <span>Closed Dates</span>
                   </div>
                 </button>
@@ -488,7 +489,7 @@ const AboutPage = () => {
               {/* Tab Content */}
               <div className="p-6">
                 {currentTab === "info" && (
-                  <div className="space-y-6 px-6">
+                  <div className="space-y-6 md:px-6">
                     {/* Contact Info */}
                     <div className="space-y-4">
                       <div className="flex items-start gap-4">
@@ -548,7 +549,7 @@ const AboutPage = () => {
                 )}
 
                 {currentTab === "hours" && (
-                  <div className="space-y-4 p-6">
+                  <div className="space-y-4 md:p-6">
                     {Object.keys(weeklySchedule).length > 0 ? (
                       Object.entries(weeklySchedule).map(([day, times]) => {
                         const daySchedule = times as DaySchedule;

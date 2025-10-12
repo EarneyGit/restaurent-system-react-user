@@ -128,7 +128,7 @@ const StripeForm: React.FC<{
     try {
       // The order is already created, we just need to process the payment
       const orderId = orderData.createdOrderId;
-      
+
       if (!orderId) {
         throw new Error("Order ID not found");
       }
@@ -160,8 +160,14 @@ const StripeForm: React.FC<{
       }
     } catch (err: unknown) {
       console.error("Payment error:", err);
-      const error = err as { response?: { data?: { message?: string } }; message?: string };
-      const errorMessage = error.response?.data?.message || error.message || "Payment failed. Please try again.";
+      const error = err as {
+        response?: { data?: { message?: string } };
+        message?: string;
+      };
+      const errorMessage =
+        error.response?.data?.message ||
+        error.message ||
+        "Payment failed. Please try again.";
       setError(errorMessage);
     } finally {
       setIsLoading(false);
@@ -501,12 +507,16 @@ const calculateOrderTotals = (
 
   // Get service charges
   const serviceCharges = cartData.serviceCharges?.totalMandatory || 0;
-  
+
   // Calculate accepted optional service charges
-  const acceptedOptionalCharges = cartData.serviceCharges?.breakdown
-    ?.filter(charge => charge.optional && acceptedOptionalServiceCharges.includes(charge.id))
-    ?.reduce((total, charge) => total + charge.amount, 0) || 0;
-  
+  const acceptedOptionalCharges =
+    cartData.serviceCharges?.breakdown
+      ?.filter(
+        (charge) =>
+          charge.optional && acceptedOptionalServiceCharges.includes(charge.id)
+      )
+      ?.reduce((total, charge) => total + charge.amount, 0) || 0;
+
   // Legacy fields for backward compatibility
   const mandatoryCharges = serviceCharges;
   const optionalCharges = acceptedOptionalCharges;
@@ -699,7 +709,7 @@ const OrderConfirmationModal: React.FC<OrderConfirmationModalProps> = ({
         <div className="flex gap-4">
           <button
             onClick={onClose}
-            className="flex-1 px-4 py-3 border border-gray-200 rounded-xl text-gray-700 font-semibold hover:bg-gray-50 transition-colors"
+            className="flex-1 md:px-4 px-2 py-3 border border-gray-200 rounded-xl md:text-base text-sm text-gray-700 font-semibold hover:bg-gray-50 transition-colors"
             disabled={isLoading}
           >
             Cancel
@@ -707,7 +717,7 @@ const OrderConfirmationModal: React.FC<OrderConfirmationModalProps> = ({
           <button
             onClick={onConfirm}
             disabled={isLoading}
-            className="flex-1 px-4 py-3 bg-yellow-700 text-white font-semibold rounded-xl hover:bg-yellow-700 transition-colors flex items-center justify-center gap-2"
+            className="flex-1 md:px-4 px-2 py-3 bg-yellow-700 text-white md:text-base text-sm font-semibold rounded-xl hover:bg-yellow-700 transition-colors flex items-center justify-center gap-2"
           >
             {isLoading ? (
               <>
@@ -729,10 +739,10 @@ const CheckoutPage = () => {
   const { selectedBranch, fetchBranches } = useBranch();
   const [paymentMethod, setPaymentMethod] = useState("card");
   const navigate = useNavigate();
-  const { 
-    cartItems, 
-    formatCurrency, 
-    clearCart, 
+  const {
+    cartItems,
+    formatCurrency,
+    clearCart,
     toggleOptionalServiceCharge,
     isOptionalServiceChargeAccepted,
     acceptedOptionalServiceCharges,
@@ -792,9 +802,11 @@ const CheckoutPage = () => {
 
   // Stripe modal state
   const [showStripeModal, setShowStripeModal] = useState(false);
-  const [orderDataForPayment, setOrderDataForPayment] = useState<OrderData | null>(null);
-  const [stripeClientSecret, setStripeClientSecret] = useState<string | null>(null);
-
+  const [orderDataForPayment, setOrderDataForPayment] =
+    useState<OrderData | null>(null);
+  const [stripeClientSecret, setStripeClientSecret] = useState<string | null>(
+    null
+  );
 
   const [creditCardDetails, setCreditCardDetails] = useState<CreditCardDetails>(
     {
@@ -821,8 +833,8 @@ const CheckoutPage = () => {
     }
   }, [selectedAddressType, user?.address]);
 
-  console.log("sessionId",sessionId);
-  
+  console.log("sessionId", sessionId);
+
   const fetchCartSummary = async () => {
     try {
       const headers = isAuthenticated
@@ -835,11 +847,9 @@ const CheckoutPage = () => {
             "Content-Type": "application/json",
           };
 
-        console.log("headers",headers);
+      console.log("headers", headers);
       const cartResponse = await axios.get(
-        isAuthenticated
-          ? CART_ENDPOINTS.USER_CART
-          : CART_ENDPOINTS.GUEST_CART,
+        isAuthenticated ? CART_ENDPOINTS.USER_CART : CART_ENDPOINTS.GUEST_CART,
         { headers }
       );
 
@@ -862,7 +872,7 @@ const CheckoutPage = () => {
         try {
           // Prepare the delivery address for calculation
           let addressForCalculation = null;
-          
+
           // Priority 1: Use the currently selected delivery address
           if (deliveryAddress && deliveryAddress.postcode) {
             addressForCalculation = deliveryAddress;
@@ -870,39 +880,48 @@ const CheckoutPage = () => {
           // Priority 2: If using saved user address but it wasn't properly parsed
           else if (selectedAddressType === "user" && user?.address) {
             // Try to extract postcode from user address
-            const userAddressStr = typeof user.address === 'string' ? user.address : '';
-            const extractedPostcode = extractPostcodeFromAddress(userAddressStr);
+            const userAddressStr =
+              typeof user.address === "string" ? user.address : "";
+            const extractedPostcode =
+              extractPostcodeFromAddress(userAddressStr);
             if (extractedPostcode) {
-              const addressParts = userAddressStr.split(',').map(part => part.trim());
+              const addressParts = userAddressStr
+                .split(",")
+                .map((part) => part.trim());
               addressForCalculation = {
                 postcode: extractedPostcode,
-                street: addressParts[0] || '',
-                city: addressParts[1] || '',
+                street: addressParts[0] || "",
+                city: addressParts[1] || "",
                 country: "GB",
-                fullAddress: userAddressStr
+                fullAddress: userAddressStr,
               };
             }
           }
-          
+
           // Only proceed if we have a valid address with postcode
           if (addressForCalculation && addressForCalculation.postcode) {
-            console.log("Calculating delivery fee for address:", addressForCalculation);
-            
+            console.log(
+              "Calculating delivery fee for address:",
+              addressForCalculation
+            );
+
             const deliveryResponse = await axios.post(
               "/api/settings/delivery-charges/calculate-checkout",
               {
                 branchId: selectedBranch.id,
                 orderTotal: cartData.subtotal,
-                searchedAddress: addressForCalculation
+                searchedAddress: addressForCalculation,
               }
             );
-            
+
             if (deliveryResponse.data?.success) {
               calculatedDeliveryFee = deliveryResponse.data.data.charge;
               console.log("Delivery fee calculated:", calculatedDeliveryFee);
             }
           } else {
-            console.log("No valid address with postcode for delivery calculation");
+            console.log(
+              "No valid address with postcode for delivery calculation"
+            );
           }
         } catch (deliveryError) {
           console.error("Error calculating delivery fee:", deliveryError);
@@ -938,10 +957,12 @@ const CheckoutPage = () => {
 
   // Helper function to extract postcode from address string
   const extractPostcodeFromAddress = (address: string): string => {
-    const postcodeMatch = address.match(/([A-Z]{1,2}[0-9][A-Z0-9]?\s?[0-9][A-Z]{2})/i);
-    return postcodeMatch ? postcodeMatch[1].toUpperCase() : '';
+    const postcodeMatch = address.match(
+      /([A-Z]{1,2}[0-9][A-Z0-9]?\s?[0-9][A-Z]{2})/i
+    );
+    return postcodeMatch ? postcodeMatch[1].toUpperCase() : "";
   };
-  
+
   React.useEffect(() => {
     const isGuest = localStorage.getItem("isGuest") === "true";
     if (!isAuthenticated && !isGuest) {
@@ -949,7 +970,7 @@ const CheckoutPage = () => {
       toast.error("Please login or continue as guest to proceed");
       navigate("/login", { state: { returnUrl: "/checkout" } });
     }
-    
+
     // For guest users, ensure we collect all required information
     if (!isAuthenticated && isGuest) {
       // Make sure all personal details fields are required for guest users
@@ -1002,10 +1023,10 @@ const CheckoutPage = () => {
     if (user?.address && typeof user.address === "string") {
       setSelectedAddressType("user");
       const parsed = parseFullAddress(user.address);
-      
+
       // Store the parsed address in localStorage to ensure consistency
       localStorage.setItem("deliveryAddress", JSON.stringify(parsed));
-      
+
       return parsed;
     }
 
@@ -1093,28 +1114,33 @@ const CheckoutPage = () => {
     if (selectedAddressType === "user" && user?.address && deliveryAddress) {
       // Ensure we have a valid postcode for the saved address
       if (!deliveryAddress.postcode) {
-        const extractedPostcode = extractPostcodeFromAddress(typeof user.address === 'string' ? user.address : '');
+        const extractedPostcode = extractPostcodeFromAddress(
+          typeof user.address === "string" ? user.address : ""
+        );
         if (extractedPostcode) {
-          setDeliveryAddress(prev => ({
+          setDeliveryAddress((prev) => ({
             ...prev,
-            postcode: extractedPostcode
+            postcode: extractedPostcode,
           }));
         }
       }
-      
+
       // Trigger delivery fee calculation
       fetchCartSummary();
     }
   }, [user, selectedAddressType]);
-  
+
   // Check delivery method and select address on component mount
   useEffect(() => {
     // This will run only once when component mounts
     const deliveryMethod = localStorage.getItem("deliveryMethod");
     console.log("Component mounted, delivery method:", deliveryMethod);
-    
+
     // If delivery method is "deliver", make sure we have an address selected
-    if (deliveryMethod === "deliver" && (!deliveryAddress || !deliveryAddress.postcode)) {
+    if (
+      deliveryMethod === "deliver" &&
+      (!deliveryAddress || !deliveryAddress.postcode)
+    ) {
       // Force a re-check of the delivery method to trigger the other useEffect
       const tempDeliveryMethod = localStorage.getItem("deliveryMethod");
       localStorage.setItem("deliveryMethod", "");
@@ -1127,7 +1153,7 @@ const CheckoutPage = () => {
   // Auto-select address based on delivery method
   useEffect(() => {
     const deliveryMethod = localStorage.getItem("deliveryMethod");
-    
+
     // If delivery method is "deliver", we need to ensure an address is selected
     if (deliveryMethod === "deliver") {
       // First check if we have a valid address already selected
@@ -1142,21 +1168,23 @@ const CheckoutPage = () => {
           // so we'll call it manually here
           if (user?.address && typeof user.address === "string") {
             const parsed = parseFullAddress(user.address);
-            
+
             // Make sure the parsed address has a postcode for delivery calculation
             if (!parsed.postcode && user.address) {
               // Try to extract postcode from the address string
-              const extractedPostcode = extractPostcodeFromAddress(user.address);
+              const extractedPostcode = extractPostcodeFromAddress(
+                user.address
+              );
               if (extractedPostcode) {
                 parsed.postcode = extractedPostcode;
               }
             }
-            
+
             // Update state and localStorage
             setDeliveryAddress(parsed);
             setSelectedAddressType("user");
             localStorage.setItem("deliveryAddress", JSON.stringify(parsed));
-            
+
             // Refresh cart summary to get updated delivery fee
             fetchCartSummary();
           }
@@ -1171,7 +1199,9 @@ const CheckoutPage = () => {
               const parsedAddress = JSON.parse(storedAddress);
               // Ensure the address has proper formatting
               if (parsedAddress.fullAddress) {
-                const parsedComponents = parseFullAddress(parsedAddress.fullAddress);
+                const parsedComponents = parseFullAddress(
+                  parsedAddress.fullAddress
+                );
                 const updatedAddress = {
                   ...parsedAddress,
                   ...parsedComponents,
@@ -1181,7 +1211,7 @@ const CheckoutPage = () => {
                 setDeliveryAddress(parsedAddress);
               }
               setSelectedAddressType("delivery");
-              
+
               // Refresh cart summary to get updated delivery fee
               fetchCartSummary();
             } catch (e) {
@@ -1189,15 +1219,23 @@ const CheckoutPage = () => {
             }
           } else {
             // No address available, user will need to select one
-            console.log("No address available for delivery, user must select one");
+            console.log(
+              "No address available for delivery, user must select one"
+            );
             // You could show a toast message here if needed
             // toast.info("Please select a delivery address");
           }
         }
       }
     }
-  // Run this effect when component mounts and when delivery method changes
-  }, [checkDeliveryMethod, deliveryAddress, user, parseFullAddress, fetchCartSummary]);
+    // Run this effect when component mounts and when delivery method changes
+  }, [
+    checkDeliveryMethod,
+    deliveryAddress,
+    user,
+    parseFullAddress,
+    fetchCartSummary,
+  ]);
 
   // Add click outside handler and cleanup timeout
   useEffect(() => {
@@ -1297,10 +1335,10 @@ const CheckoutPage = () => {
     setShowSearchInput(false);
     setSelectedAddressType("search");
     setSelectedSearchedAddress(address);
-    
+
     // Update localStorage with the new address
     localStorage.setItem("deliveryAddress", JSON.stringify(formattedAddress));
-    
+
     // Refresh cart summary to get updated delivery fee
     fetchCartSummary();
   };
@@ -1324,7 +1362,7 @@ const CheckoutPage = () => {
     if (user?.address && typeof user.address === "string") {
       // Parse the address string into structured format
       const parsed = parseFullAddress(user.address);
-      
+
       // Make sure the parsed address has a postcode for delivery calculation
       if (!parsed.postcode && user.address) {
         // Try to extract postcode from the address string
@@ -1333,21 +1371,23 @@ const CheckoutPage = () => {
           parsed.postcode = extractedPostcode;
         }
       }
-      
+
       // If user has postalCode in profile, use that as a fallback
       if (!parsed.postcode && user?.address) {
         // Try to extract postcode from the address string
-        const extractedPostcode = extractPostcodeFromAddress(typeof user.address === 'string' ? user.address : '');
+        const extractedPostcode = extractPostcodeFromAddress(
+          typeof user.address === "string" ? user.address : ""
+        );
         if (extractedPostcode) {
           parsed.postcode = extractedPostcode;
         }
       }
-      
+
       // Update state and localStorage
       setDeliveryAddress(parsed);
       setSelectedAddressType("user");
       localStorage.setItem("deliveryAddress", JSON.stringify(parsed));
-      
+
       // Refresh cart summary to get updated delivery fee
       fetchCartSummary();
     }
@@ -1371,7 +1411,7 @@ const CheckoutPage = () => {
           setDeliveryAddress(parsedAddress);
         }
         setSelectedAddressType("delivery");
-        
+
         // Refresh cart summary to get updated delivery fee
         fetchCartSummary();
       } catch (e) {
@@ -1509,7 +1549,7 @@ const CheckoutPage = () => {
 
   const handlePlaceOrder = async () => {
     const isGuest = localStorage.getItem("isGuest") === "true";
-    
+
     // Basic validation for all users
     if (
       !selectedTimeSlot ||
@@ -1519,21 +1559,28 @@ const CheckoutPage = () => {
       toast.error("Please fill in all required fields");
       return;
     }
-    
+
     // Additional validation for guest users
     if (!isAuthenticated && isGuest) {
-      if (!personalDetails.firstName || !personalDetails.lastName || !personalDetails.email || !personalDetails.phone) {
-        toast.error("Please provide your full name, email, and phone number to continue as guest");
+      if (
+        !personalDetails.firstName ||
+        !personalDetails.lastName ||
+        !personalDetails.email ||
+        !personalDetails.phone
+      ) {
+        toast.error(
+          "Please provide your full name, email, and phone number to continue as guest"
+        );
         return;
       }
-      
+
       // Validate email format
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailRegex.test(personalDetails.email)) {
         toast.error("Please enter a valid email address");
         return;
       }
-      
+
       // Validate phone number (basic validation)
       if (personalDetails.phone.length < 5) {
         toast.error("Please enter a valid phone number");
@@ -1574,7 +1621,7 @@ const CheckoutPage = () => {
         setIsProcessing(false);
         return;
       }
-      
+
       // Format products data according to backend requirements
       const formattedProducts = cartItems.map((item) => {
         const productId = item.productId || item.id;
@@ -1638,7 +1685,7 @@ const CheckoutPage = () => {
 
       // Check if this is a guest user
       const isGuest = localStorage.getItem("isGuest") === "true";
-      
+
       // Prepare order data according to backend schema
       const orderData = {
         branchId: selectedBranch.id,
@@ -1666,13 +1713,16 @@ const CheckoutPage = () => {
         },
         // Add guest user flag and information for account creation
         isGuest: !isAuthenticated && isGuest,
-        guestUserInfo: (!isAuthenticated && isGuest) ? {
-          firstName: personalDetails.firstName,
-          lastName: personalDetails.lastName,
-          email: personalDetails.email,
-          phone: personalDetails.phone,
-          address: deliveryAddress.fullAddress,
-        } : undefined,
+        guestUserInfo:
+          !isAuthenticated && isGuest
+            ? {
+                firstName: personalDetails.firstName,
+                lastName: personalDetails.lastName,
+                email: personalDetails.email,
+                phone: personalDetails.phone,
+                address: deliveryAddress.fullAddress,
+              }
+            : undefined,
         couponCode: appliedPromo?.code,
         subtotal,
         deliveryFee: deliveryFeeAmount,
@@ -1723,7 +1773,10 @@ const CheckoutPage = () => {
           }
 
           // Store the created order ID and client secret for the Stripe modal
-          setOrderDataForPayment({ ...orderData, createdOrderId: createdOrder._id });
+          setOrderDataForPayment({
+            ...orderData,
+            createdOrderId: createdOrder._id,
+          });
           setStripeClientSecret(clientSecret);
           setShowStripeModal(true);
           setShowConfirmation(false);
@@ -1735,11 +1788,13 @@ const CheckoutPage = () => {
             message?: string;
           };
           console.error("Order creation error:", error);
-          
+
           // Handle specific error cases
           if (err.response?.status === 401) {
             localStorage.setItem("returnUrl", "/checkout");
-            toast.error("Please login or continue as guest to place your order");
+            toast.error(
+              "Please login or continue as guest to place your order"
+            );
             navigate("/login", { state: { returnUrl: "/checkout" } });
           } else if (err.response?.status === 400) {
             toast.error(
@@ -1750,8 +1805,8 @@ const CheckoutPage = () => {
           } else {
             toast.error(
               err.response?.data?.message ||
-              err.message ||
-              "Failed to create order. Please try again."
+                err.message ||
+                "Failed to create order. Please try again."
             );
           }
           setIsProcessing(false);
@@ -1778,7 +1833,7 @@ const CheckoutPage = () => {
 
         if (response.data?.success && response.data?.data) {
           const createdOrder = response.data.data;
-          
+
           // Clear cart
           await clearCart();
 
@@ -1826,8 +1881,8 @@ const CheckoutPage = () => {
       } else {
         toast.error(
           err.response?.data?.message ||
-          err.message ||
-          "Failed to process order. Please try again."
+            err.message ||
+            "Failed to process order. Please try again."
         );
       }
     } finally {
@@ -1913,12 +1968,12 @@ const CheckoutPage = () => {
     setStripeClientSecret(null);
     // Clear cart
     clearCart();
-    
+
     // Store necessary data for order tracking
     if (selectedBranch?.id) {
       localStorage.setItem("selectedBranchId", selectedBranch.id);
     }
-    
+
     // Navigate to order status
     navigate(`/order-status/${orderId}`, {
       state: {
@@ -1933,7 +1988,7 @@ const CheckoutPage = () => {
       },
       replace: true, // Prevent back navigation to checkout
     });
-    
+
     toast.success("Payment successful! Your order has been placed.");
   };
 
@@ -1950,20 +2005,22 @@ const CheckoutPage = () => {
     <div className="min-h-screen bg-gray-50 py-12">
       <div className="max-w-7xl mx-auto px-4">
         {/* Add Header with Back Button */}
-        <div className="flex items-center justify-between mb-8">
+        <div className="md:flex items-center justify-between md:mb-8 mb-5">
           <div>
             <h1 className="text-3xl font-bold text-gray-900 mb-2">Checkout</h1>
             <p className="text-gray-500">
               Complete your order in just a few steps
             </p>
           </div>
-          <button
-            onClick={() => navigate("/cart")}
-            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 border border-gray-200 rounded-lg hover:border-gray-300 transition-colors"
-          >
-            <ArrowLeft size={18} />
-            Back to Cart
-          </button>
+          <div className="flex items-center justify-end md:pt-0 pt-5">
+            <button
+              onClick={() => navigate("/cart")}
+              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 border border-gray-200 rounded-lg hover:border-gray-300 transition-colors"
+            >
+              <ArrowLeft size={18} />
+              Back to Cart
+            </button>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -2069,7 +2126,10 @@ const CheckoutPage = () => {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Email {(!isAuthenticated || personalDetailsRequired) && <span className="text-red-500">*</span>}
+                      Email{" "}
+                      {(!isAuthenticated || personalDetailsRequired) && (
+                        <span className="text-red-500">*</span>
+                      )}
                     </label>
                     <input
                       type="email"
@@ -2283,7 +2343,7 @@ const CheckoutPage = () => {
                         )}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <h3 className="font-medium text-gray-900 truncate">
+                        <h3 className="font-medium text-gray-900">
                           {item.name}
                         </h3>
                         <p className="text-sm text-gray-500 mt-0.5">
@@ -2327,7 +2387,7 @@ const CheckoutPage = () => {
 
           {/* Right Column - Order Summary */}
           <div className="lg:col-span-1">
-            <div className="bg-white rounded-2xl p-6 shadow-lg sticky top-24">
+            <div className="bg-white rounded-2xl md:p-6 p-1 shadow-lg sticky top-24">
               {/* Payment Method - Compact Version */}
               <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
                 <div className="p-4 border-b border-gray-100 bg-gray-50">
@@ -2530,34 +2590,42 @@ const CheckoutPage = () => {
                     )}
 
                     {/* Optional Service Charges with Checkboxes */}
-                    {cartSummary.serviceCharges.breakdown && cartSummary.serviceCharges.breakdown.length > 0 && (
-                      <div className="space-y-2">
-                        {cartSummary.serviceCharges.breakdown
-                          .filter(charge => charge.optional)
-                          .map((charge) => (
-                            <div key={charge.id} className="flex justify-between text-sm items-center">
-                              <div className="flex items-center space-x-2">
-                                <input
-                                  type="checkbox"
-                                  id={`checkout-optional-charge-${charge.id}`}
-                                  checked={isOptionalServiceChargeAccepted(charge.id)}
-                                  onChange={() => toggleOptionalServiceCharge(charge.id)}
-                                  className="w-4 h-4 text-yellow-700 bg-gray-100 border-gray-300 rounded focus:ring-yellow-600 focus:ring-2"
-                                />
-                                <label 
-                                  htmlFor={`checkout-optional-charge-${charge.id}`}
-                                  className="text-gray-600 cursor-pointer"
-                                >
-                                  {charge.name} (Optional)
-                                </label>
+                    {cartSummary.serviceCharges.breakdown &&
+                      cartSummary.serviceCharges.breakdown.length > 0 && (
+                        <div className="space-y-2">
+                          {cartSummary.serviceCharges.breakdown
+                            .filter((charge) => charge.optional)
+                            .map((charge) => (
+                              <div
+                                key={charge.id}
+                                className="flex justify-between text-sm items-center"
+                              >
+                                <div className="flex items-center space-x-2">
+                                  <input
+                                    type="checkbox"
+                                    id={`checkout-optional-charge-${charge.id}`}
+                                    checked={isOptionalServiceChargeAccepted(
+                                      charge.id
+                                    )}
+                                    onChange={() =>
+                                      toggleOptionalServiceCharge(charge.id)
+                                    }
+                                    className="w-4 h-4 text-yellow-700 bg-gray-100 border-gray-300 rounded focus:ring-yellow-600 focus:ring-2"
+                                  />
+                                  <label
+                                    htmlFor={`checkout-optional-charge-${charge.id}`}
+                                    className="text-gray-600 cursor-pointer"
+                                  >
+                                    {charge.name} (Optional)
+                                  </label>
+                                </div>
+                                <span className="font-medium">
+                                  {formatCurrency(charge.amount)}
+                                </span>
                               </div>
-                              <span className="font-medium">
-                                {formatCurrency(charge.amount)}
-                              </span>
-                            </div>
-                          ))}
-                      </div>
-                    )}
+                            ))}
+                        </div>
+                      )}
 
                     {/* Tax */}
                     {cartSummary.taxRate > 0 && (
@@ -2632,10 +2700,21 @@ const CheckoutPage = () => {
                                     0
                                   ) +
                                     cartSummary.deliveryFee +
-                                    (cartSummary.serviceCharges?.totalMandatory || 0) +
+                                    (cartSummary.serviceCharges
+                                      ?.totalMandatory || 0) +
                                     (cartSummary.serviceCharges?.breakdown
-                                      ?.filter(charge => charge.optional && acceptedOptionalServiceCharges.includes(charge.id))
-                                      ?.reduce((total, charge) => total + charge.amount, 0) || 0) +
+                                      ?.filter(
+                                        (charge) =>
+                                          charge.optional &&
+                                          acceptedOptionalServiceCharges.includes(
+                                            charge.id
+                                          )
+                                      )
+                                      ?.reduce(
+                                        (total, charge) =>
+                                          total + charge.amount,
+                                        0
+                                      ) || 0) +
                                     (cartSummary.subtotal *
                                       cartSummary.taxRate) /
                                       100 -

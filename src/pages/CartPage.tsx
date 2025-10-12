@@ -239,50 +239,53 @@ const CartItem: React.FC<CartItemProps> = ({
       </div>
 
       {/* Quantity Controls - Below Image and Info */}
-      <div className="flex items-center justify-between mt-4 pt-3 border-t border-gray-100">
-        <div className="flex items-center border border-gray-200 rounded-lg bg-gray-50">
-          <button
-            onClick={() => onUpdateQuantity(id, Math.max(1, quantity - 1))}
-            className="w-8 h-8 flex items-center justify-center text-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
-            disabled={quantity === 1}
-            title={
-              quantity === 1 ? "Minimum quantity is 1" : "Decrease quantity"
-            }
-          >
-            −
-          </button>
-          <span className="w-8 text-center font-medium text-gray-800">
-            {quantity}
-          </span>
-          <button
-            onClick={() => {
-              if (quantity >= availableQuantity) {
-                alert(`Only ${availableQuantity} items available in stock`);
-                return;
+      {/* Quantity Controls - Below Image and Info */}
+      <div className="mt-4 pt-3 border-t flex flex-col md:flex-row md:justify-between border-gray-100">
+        {/* Quantity Row */}
+        <div className="flex items-center justify-between md:justify-start md:gap-6">
+          <div className="flex flex-1 items-center justify-between md:justify-start border border-gray-200 rounded-lg bg-gray-50">
+            <button
+              onClick={() => onUpdateQuantity(id, Math.max(1, quantity - 1))}
+              className="w-8 h-8 flex items-center justify-center text-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={quantity === 1}
+              title={
+                quantity === 1 ? "Minimum quantity is 1" : "Decrease quantity"
               }
-              onUpdateQuantity(id, quantity + 1);
-            }}
-            className="w-8 h-8 flex items-center justify-center text-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
-            disabled={!isInStock || quantity >= availableQuantity}
-            title={
-              quantity >= availableQuantity
-                ? "Maximum quantity reached"
-                : "Increase quantity"
-            }
-          >
-            +
-          </button>
+            >
+              −
+            </button>
+            <span className="w-8 text-center font-medium text-gray-800">
+              {quantity}
+            </span>
+            <button
+              onClick={() => {
+                if (quantity >= availableQuantity) {
+                  alert(`Only ${availableQuantity} items available in stock`);
+                  return;
+                }
+                onUpdateQuantity(id, quantity + 1);
+              }}
+              className="w-8 h-8 flex items-center justify-center text-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={!isInStock || quantity >= availableQuantity}
+              title={
+                quantity >= availableQuantity
+                  ? "Maximum quantity reached"
+                  : "Increase quantity"
+              }
+            >
+              +
+            </button>
+          </div>
         </div>
 
-        <div className="flex items-center gap-4">
-          <div className="text-right">
-            <span className="font-medium text-gray-900">
-              Total: {formatCurrency(price.total)}
-            </span>
-          </div>
+        {/* Total & Remove Row */}
+        <div className="flex items-center md:gap-5 gap-2 justify-between mt-3">
+          <span className="font-medium text-gray-900">
+            Total: {formatCurrency(price.total)}
+          </span>
           <button
             onClick={() => onRemove(id)}
-            className="flex items-center gap-1.5 text-sm text-gray-500"
+            className="flex items-center gap-1.5 text-sm text-red-500 hover:text-red-600 transition-colors"
           >
             <Trash2 size={16} />
             Remove
@@ -420,7 +423,7 @@ const CartPage = () => {
       totalMandatory: 0,
       totalOptional: 0,
       totalAll: 0,
-      breakdown: []
+      breakdown: [],
     },
     total: 0,
     itemCount: 0,
@@ -455,7 +458,7 @@ const CartPage = () => {
               totalMandatory: 0,
               totalOptional: 0,
               totalAll: 0,
-              breakdown: []
+              breakdown: [],
             },
             total: response.data.data.total || 0,
             itemCount: response.data.data.itemCount || 0,
@@ -564,7 +567,7 @@ const CartPage = () => {
       <div className="mx-auto px-4 py-10">
         <div className="max-w-7xl mx-auto">
           {/* Header Section */}
-          <div className="flex items-center justify-between mb-8">
+          <div className="md:flex md:items-center md:justify-between md:mb-8 mb-5">
             <div>
               <h1 className="md:text-4xl text-2xl font-bold text-gray-900 mb-2">
                 Shopping Cart
@@ -573,20 +576,22 @@ const CartPage = () => {
                 Review your items and proceed to checkout
               </p>
             </div>
-            <button
-              onClick={() => navigate("/app")}
-              className="flex text-sm items-center border border-gray-200 rounded-md px-4 py-2 hover:text-gray-900 font-medium text-gray-600 transition-colors"
-            >
-              <ArrowLeft size={18} className="mr-2" />
-              <span>Continue Shopping</span>
-            </button>
+            <div className="flex items-center justify-end md:pt-0 pt-5">
+              <button
+                onClick={() => navigate("/app")}
+                className="flex text-sm items-center border border-gray-200 rounded-md px-4 py-2 hover:text-gray-900 font-medium text-gray-600 transition-colors"
+              >
+                <ArrowLeft size={18} className="mr-2" />
+                <span>Continue Shopping</span>
+              </button>
+            </div>
           </div>
 
           {/* Main Content */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Cart Items */}
             <div className="lg:col-span-2">
-              <div className="bg-white rounded-3xl shadow-md border p-8 space-y-6">
+              <div className="bg-white rounded-3xl shadow-md border md:p-8 p-3 space-y-6">
                 <h2 className="text-2xl font-semibold mb-6 flex items-center">
                   <span className="w-8 h-8 rounded-full bg-yellow-100 text-yellow-700 flex items-center justify-center text-lg mr-3">
                     1
@@ -677,44 +682,58 @@ const CartPage = () => {
                       </div>
 
                       {/* Service Charges */}
-                      {cartSummary.serviceCharges && cartSummary.serviceCharges.totalMandatory > 0 && (
-                        <div className="flex justify-between text-sm items-center">
-                          <span className="text-gray-600">Service Charge (Mandatory)</span>
-                          <span className="font-medium">
-                            {formatCurrency(cartSummary.serviceCharges.totalMandatory)}
-                          </span>
-                        </div>
-                      )}
+                      {cartSummary.serviceCharges &&
+                        cartSummary.serviceCharges.totalMandatory > 0 && (
+                          <div className="flex justify-between text-sm items-center">
+                            <span className="text-gray-600">
+                              Service Charge (Mandatory)
+                            </span>
+                            <span className="font-medium">
+                              {formatCurrency(
+                                cartSummary.serviceCharges.totalMandatory
+                              )}
+                            </span>
+                          </div>
+                        )}
 
                       {/* Optional Service Charges with Checkboxes */}
-                      {cartSummary.serviceCharges && cartSummary.serviceCharges.breakdown && cartSummary.serviceCharges.breakdown.length > 0 && (
-                        <div className="space-y-2">
-                          {cartSummary.serviceCharges.breakdown
-                            .filter(charge => charge.optional)
-                            .map((charge) => (
-                              <div key={charge.id} className="flex justify-between text-sm items-center">
-                                <div className="flex items-center space-x-2">
-                                  <input
-                                    type="checkbox"
-                                    id={`optional-charge-${charge.id}`}
-                                    checked={isOptionalServiceChargeAccepted(charge.id)}
-                                    onChange={() => toggleOptionalServiceCharge(charge.id)}
-                                    className="w-4 h-4 text-yellow-700 bg-gray-100 border-gray-300 rounded focus:ring-yellow-600 focus:ring-2"
-                                  />
-                                  <label 
-                                    htmlFor={`optional-charge-${charge.id}`}
-                                    className="text-gray-600 cursor-pointer"
-                                  >
-                                    {charge.name} (Optional)
-                                  </label>
+                      {cartSummary.serviceCharges &&
+                        cartSummary.serviceCharges.breakdown &&
+                        cartSummary.serviceCharges.breakdown.length > 0 && (
+                          <div className="space-y-2">
+                            {cartSummary.serviceCharges.breakdown
+                              .filter((charge) => charge.optional)
+                              .map((charge) => (
+                                <div
+                                  key={charge.id}
+                                  className="flex justify-between text-sm items-center"
+                                >
+                                  <div className="flex items-center space-x-2">
+                                    <input
+                                      type="checkbox"
+                                      id={`optional-charge-${charge.id}`}
+                                      checked={isOptionalServiceChargeAccepted(
+                                        charge.id
+                                      )}
+                                      onChange={() =>
+                                        toggleOptionalServiceCharge(charge.id)
+                                      }
+                                      className="w-4 h-4 text-yellow-700 bg-gray-100 border-gray-300 rounded focus:ring-yellow-600 focus:ring-2"
+                                    />
+                                    <label
+                                      htmlFor={`optional-charge-${charge.id}`}
+                                      className="text-gray-600 cursor-pointer"
+                                    >
+                                      {charge.name} (Optional)
+                                    </label>
+                                  </div>
+                                  <span className="font-medium">
+                                    {formatCurrency(charge.amount)}
+                                  </span>
                                 </div>
-                                <span className="font-medium">
-                                  {formatCurrency(charge.amount)}
-                                </span>
-                              </div>
-                            ))}
-                        </div>
-                      )}
+                              ))}
+                          </div>
+                        )}
 
                       {/* Total Savings */}
                       {cartItems.some(
@@ -749,12 +768,20 @@ const CartPage = () => {
                               cartItems.reduce(
                                 (total, item) => total + item.price.total,
                                 0
-                              ) + 
-                              cartSummary.deliveryFee + 
-                              (cartSummary.serviceCharges?.totalMandatory || 0) +
-                              (cartSummary.serviceCharges?.breakdown
-                                ?.filter(charge => charge.optional && isOptionalServiceChargeAccepted(charge.id))
-                                ?.reduce((total, charge) => total + charge.amount, 0) || 0)
+                              ) +
+                                cartSummary.deliveryFee +
+                                (cartSummary.serviceCharges?.totalMandatory ||
+                                  0) +
+                                (cartSummary.serviceCharges?.breakdown
+                                  ?.filter(
+                                    (charge) =>
+                                      charge.optional &&
+                                      isOptionalServiceChargeAccepted(charge.id)
+                                  )
+                                  ?.reduce(
+                                    (total, charge) => total + charge.amount,
+                                    0
+                                  ) || 0)
                             )}
                           </span>
                           {cartItems.some(
