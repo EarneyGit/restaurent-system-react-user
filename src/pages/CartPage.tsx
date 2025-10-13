@@ -670,15 +670,9 @@ const CartPage = () => {
                       {/* Delivery Fee */}
                       <div className="flex justify-between text-sm items-center">
                         <span className="text-gray-600">Delivery Fee</span>
-                        {cartSummary.deliveryFee === 0 ? (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-                            Free
-                          </span>
-                        ) : (
-                          <span className="font-medium">
-                            {formatCurrency(cartSummary.deliveryFee)}
-                          </span>
-                        )}
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                          Checkout for delivery fee
+                        </span>
                       </div>
 
                       {/* Service Charges */}
