@@ -24,6 +24,7 @@ import { ChevronDown, ChevronUp } from "lucide-react";
 interface CartSummary {
   subtotal: number;
   deliveryFee: number;
+  orderType: string;
   serviceCharges?: {
     totalMandatory: number;
     totalOptional: number;
@@ -419,6 +420,7 @@ const CartPage = () => {
   const [cartSummary, setCartSummary] = useState<CartSummary>({
     subtotal: 0,
     deliveryFee: 0,
+    orderType: 'collection',
     serviceCharges: {
       totalMandatory: 0,
       totalOptional: 0,
@@ -454,6 +456,7 @@ const CartPage = () => {
           setCartSummary({
             subtotal: response.data.data.subtotal || 0,
             deliveryFee: response.data.data.deliveryFee || 0,
+            orderType: response.data.data.orderType,
             serviceCharges: response.data.data.serviceCharges || {
               totalMandatory: 0,
               totalOptional: 0,
@@ -668,12 +671,14 @@ const CartPage = () => {
                       )}
 
                       {/* Delivery Fee */}
+                      {cartSummary.orderType === 'delivery' && (
                       <div className="flex justify-between text-sm items-center">
                         <span className="text-gray-600">Delivery Fee</span>
                         <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
                           Checkout for delivery fee
                         </span>
                       </div>
+                      )}
 
                       {/* Service Charges */}
                       {cartSummary.serviceCharges &&
