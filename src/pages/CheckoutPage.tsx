@@ -800,6 +800,10 @@ const CheckoutPage = () => {
     useState<AddressResult | null>(null);
   const [personalDetailsRequired, setPersonalDetailsRequired] = useState(false);
 
+  // Delivery validation state
+  const [deliveryValidationError, setDeliveryValidationError] = useState<string | null>(null);
+  const [isDeliveryValid, setIsDeliveryValid] = useState(true);
+
   // Stripe modal state
   const [showStripeModal, setShowStripeModal] = useState(false);
   const [orderDataForPayment, setOrderDataForPayment] =
@@ -905,8 +909,9 @@ const CheckoutPage = () => {
               addressForCalculation
             );
 
-            const deliveryResponse = await axios.post(
-              "/api/settings/delivery-charges/calculate-checkout",
+            // First validate delivery distance
+            const validationResponse = await axios.post(
+              "/api/settings/delivery-charges/validate-delivery",
               {
                 branchId: selectedBranch.id,
                 orderTotal: cartData.subtotal,
@@ -914,9 +919,20 @@ const CheckoutPage = () => {
               }
             );
 
-            if (deliveryResponse.data?.success) {
-              calculatedDeliveryFee = deliveryResponse.data.data.charge;
+            if (validationResponse.data?.success && validationResponse.data?.deliverable) {
+              calculatedDeliveryFee = validationResponse.data.data.charge;
               console.log("Delivery fee calculated:", calculatedDeliveryFee);
+              setDeliveryValidationError(null);
+              setIsDeliveryValid(true);
+            } else {
+              // Handle delivery validation errors
+              const errorMessage = validationResponse.data?.message || "Delivery not available to this location";
+              console.error("Delivery validation failed:", errorMessage);
+              
+              // Set delivery fee to null to indicate delivery is not available
+              calculatedDeliveryFee = null;
+              setDeliveryValidationError(errorMessage);
+              setIsDeliveryValid(false);
             }
           } else {
             console.log(
@@ -925,7 +941,9 @@ const CheckoutPage = () => {
           }
         } catch (deliveryError) {
           console.error("Error calculating delivery fee:", deliveryError);
-          // Don't show error to user, just default to 0
+          setDeliveryValidationError("Unable to validate delivery. Please try again.");
+          setIsDeliveryValid(false);
+          calculatedDeliveryFee = null;
         }
       }
 
@@ -1557,6 +1575,12 @@ const CheckoutPage = () => {
       !personalDetails.firstName
     ) {
       toast.error("Please fill in all required fields");
+      return;
+    }
+
+    // Check delivery validation for delivery orders
+    if (checkDeliveryMethod === "deliver" && !isDeliveryValid) {
+      toast.error(deliveryValidationError || "Delivery not available to this location");
       return;
     }
 
@@ -2300,6 +2324,26 @@ const CheckoutPage = () => {
                           </button>
                         </div>
                       )}
+
+                    {/* Delivery validation error message */}
+                    {deliveryValidationError && checkDeliveryMethod === "deliver" && (
+                      <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-xl">
+                        <div className="flex items-start gap-2">
+                          <AlertCircle size={18} className="text-red-600 mt-0.5 flex-shrink-0" />
+                          <div className="flex-1">
+                            <p className="text-sm font-medium text-red-800">
+                              Delivery Not Available
+                            </p>
+                            <p className="text-sm text-red-700 mt-1">
+                              {deliveryValidationError}
+                            </p>
+                            <p className="text-xs text-red-600 mt-2">
+                              Please choose a different address or select pickup instead.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -2759,9 +2803,11 @@ const CheckoutPage = () => {
                         : checkDeliveryMethod !== "collect" &&
                           !deliveryAddress.fullAddress
                         ? "Please select a delivery address"
+                        : checkDeliveryMethod === "deliver" && !isDeliveryValid
+                        ? deliveryValidationError || "Delivery not available to this location"
                         : ""
                     }
-                    disabled={isProcessing || !acceptedTerms}
+                    disabled={isProcessing || !acceptedTerms || (checkDeliveryMethod === "deliver" && !isDeliveryValid)}
                     className="w-full bg-yellow-700 text-white py-3 rounded-xl font-semibold hover:bg-yellow-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                   >
                     {isProcessing ? (
