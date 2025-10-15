@@ -204,13 +204,7 @@ const OrderSuccessPage = () => {
         requiresAuth: false, // Don't show login requirement for guests
       });
 
-      // Log detailed info for debugging
-      console.log("Guest order access error:", {
-        orderId,
-        sessionId: localStorage.getItem("sessionId"),
-        customerId: localStorage.getItem("customerId"),
-        error: errorMessage,
-      });
+
     } else {
       setError({ message: errorMessage, requiresAuth });
     }
@@ -231,8 +225,6 @@ const OrderSuccessPage = () => {
     try {
       setIsLoading(true);
       setError(null);
-
-      console.log("Fetching order details for ID:", orderId);
 
       // Get branchId from URL params first
       const urlParams = new URLSearchParams(window.location.search);
@@ -270,27 +262,15 @@ const OrderSuccessPage = () => {
         const sessionId = localStorage.getItem("sessionId");
         if (sessionId) {
           headers["x-session-id"] = sessionId;
-          console.log("Adding session ID to request:", sessionId);
         } else {
-          // If we're in guest mode but don't have a session ID, try to get it from customerId in localStorage
           const customerId = localStorage.getItem("customerId");
           if (customerId) {
             headers["x-session-id"] = customerId;
-            console.log("Using customerId as session ID:", customerId);
           } else {
             console.warn("No session ID or customerId found for guest user");
           }
         }
       }
-
-      console.log("Making API call with:", {
-        url: `/api/orders/${orderId}`,
-        headers,
-        branchId,
-        isGuest,
-        isAuthenticated,
-      });
-
       // Make API call with branchId in query params
       const response = await axios.get(`/api/orders/${orderId}`, {
         headers,
@@ -394,7 +374,6 @@ const OrderSuccessPage = () => {
     // If not authenticated, check if user is in guest mode
     if (!isAuthenticated) {
       const isGuest = localStorage.getItem("isGuest") === "true";
-      console.log("Guest user status:", isGuest);
 
       if (isGuest) {
         // Ensure we have a customerId or sessionId for guest users
@@ -408,7 +387,6 @@ const OrderSuccessPage = () => {
             .toString(36)
             .substring(2, 9)}`;
           localStorage.setItem("customerId", guestId);
-          console.log("Generated new guest ID:", guestId);
         }
       }
     }
@@ -431,7 +409,6 @@ const OrderSuccessPage = () => {
 
       const unsubscribe = subscribeToOrderUpdates((data: OrderUpdate) => {
         if (data.orderId === orderId) {
-          console.log("Updating order status:", data.status);
           setCurrentStatus(data.status);
           toast.info(data.message || `Order status updated to ${data.status}`);
         }
