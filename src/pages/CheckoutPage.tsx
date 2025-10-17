@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import {
   Clock,
@@ -13,7 +13,6 @@ import {
 import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
-import DeliveryAddressForm from "@/components/cart/DeliveryAddressForm";
 import { useBranch } from "@/context/BranchContext";
 import axios from "@/config/axios.config";
 import { CartItem as CartItemType } from "@/context/CartContext";
@@ -372,34 +371,6 @@ const NoImage = () => (
     </div>
   </div>
 );
-
-// Image with Fallback Component
-const ImageWithFallback = ({ src, alt }: { src: string; alt: string }) => {
-  const [error, setError] = useState(false);
-
-  if (error) {
-    return <NoImage />;
-  }
-
-  return (
-    <img
-      src={src}
-      alt={alt}
-      className="w-full h-full object-cover"
-      onError={() => setError(true)}
-    />
-  );
-};
-
-// Format price in GBP
-const formatPrice = (amount: number) => {
-  return new Intl.NumberFormat("en-GB", {
-    style: "currency",
-    currency: "GBP",
-    minimumFractionDigits: 2,
-  }).format(amount);
-};
-
 interface CartData {
   orderType: 'collect' | 'delivery';
   subtotal: number;
@@ -468,11 +439,6 @@ const calculateItemTotal = (item: CartItemType) => {
 
   return 0;
 };
-
-// Helper for safe item total calculation
-function getItemTotal(item: CartItemType): number {
-  return calculateItemTotal(item);
-}
 
 // Calculate order totals using CartContext methods
 const calculateOrderTotals = (
@@ -561,16 +527,6 @@ const calculateOrderTotals = (
   };
 };
 
-interface ApiError {
-  response?: {
-    data?: {
-      message?: string;
-    };
-  };
-  message?: string;
-}
-
-// Add new interface for credit card
 interface CreditCardDetails {
   number: string;
   expiry: string;
@@ -803,7 +759,9 @@ const CheckoutPage = () => {
   const [personalDetailsRequired, setPersonalDetailsRequired] = useState(false);
 
   // Delivery validation state
-  const [deliveryValidationError, setDeliveryValidationError] = useState<string | null>(null);
+  const [deliveryValidationError, setDeliveryValidationError] = useState<
+    string | null
+  >(null);
   const [isDeliveryValid, setIsDeliveryValid] = useState(true);
 
   // Stripe modal state
@@ -814,164 +772,156 @@ const CheckoutPage = () => {
     null
   );
 
-  const [creditCardDetails, setCreditCardDetails] = useState<CreditCardDetails>(
-    {
-      number: "",
-      expiry: "",
-      cvc: "",
-      name: "",
-    }
-  );
-
-  const handleCreditCardChange = (
-    field: keyof CreditCardDetails,
-    value: string
-  ) => {
-    setCreditCardDetails((prev) => ({
-      ...prev,
-      [field]: value,
-    }));
-  };
-
   useEffect(() => {
     if (selectedAddressType === "user" && user?.address) {
       setAddressError("");
     }
   }, [selectedAddressType, user?.address]);
 
-  console.log("sessionId", sessionId);
-
-  const fetchCartSummary = async () => {
-    try {
-      const headers = isAuthenticated
-        ? {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          }
-        : {
-            "x-session-id": sessionId,
-            "Content-Type": "application/json",
-          };
-
-      console.log("headers", headers);
-      const cartResponse = await axios.get(
-        isAuthenticated ? CART_ENDPOINTS.USER_CART : CART_ENDPOINTS.GUEST_CART,
-        { headers }
-      );
-
-      if (!cartResponse.data?.data) {
-        throw new Error("Failed to fetch cart data");
-      }
-
-      const cartData: CartData = cartResponse.data.data;
-
-      const serviceCharges = {
-        totalMandatory: cartData.serviceCharges?.totalMandatory || 0,
-        totalOptional: cartData.serviceCharges?.totalOptional || 0,
-        totalAll: cartData.serviceCharges?.totalAll || 0,
-        breakdown: cartData.serviceCharges?.breakdown || [],
-      };
-
-      // Calculate delivery fee if we have an address
-      let calculatedDeliveryFee = 0;
-      if (selectedBranch?.id) {
-        try {
-          // Prepare the delivery address for calculation
-          let addressForCalculation = null;
-
-          // Priority 1: Use the currently selected delivery address
-          if (deliveryAddress && deliveryAddress.postcode) {
-            addressForCalculation = deliveryAddress;
-          }
-          // Priority 2: If using saved user address but it wasn't properly parsed
-          else if (selectedAddressType === "user" && user?.address) {
-            // Try to extract postcode from user address
-            const userAddressStr =
-              typeof user.address === "string" ? user.address : "";
-            const extractedPostcode =
-              extractPostcodeFromAddress(userAddressStr);
-            if (extractedPostcode) {
-              const addressParts = userAddressStr
-                .split(",")
-                .map((part) => part.trim());
-              addressForCalculation = {
-                postcode: extractedPostcode,
-                street: addressParts[0] || "",
-                city: addressParts[1] || "",
-                country: "GB",
-                fullAddress: userAddressStr,
-              };
+  const fetchCartSummary = useCallback(
+    async (addressForCalculationParam?: {
+      street?: string;
+      city?: string;
+      state?: string;
+      postcode?: string;
+      country?: string;
+      fullAddress?: string;
+    }) => {
+      try {
+        const headers = isAuthenticated
+          ? {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
             }
-          }
+          : {
+              "x-session-id": sessionId,
+              "Content-Type": "application/json",
+            };
 
-          // Only proceed if we have a valid address with postcode
-          if (addressForCalculation && addressForCalculation.postcode) {
-            console.log(
-              "Calculating delivery fee for address:",
-              addressForCalculation
-            );
+        const cartResponse = await axios.get(
+          isAuthenticated
+            ? CART_ENDPOINTS.USER_CART
+            : CART_ENDPOINTS.GUEST_CART,
+          { headers }
+        );
 
-            // First validate delivery distance
-            const validationResponse = await axios.post(
-              "/api/settings/delivery-charges/validate-delivery",
-              {
-                branchId: selectedBranch.id,
-                orderTotal: cartData.subtotal,
-                searchedAddress: addressForCalculation,
+        const cartData: CartData = cartResponse.data.data;
+
+        const serviceCharges = {
+          totalMandatory: cartData.serviceCharges?.totalMandatory || 0,
+          totalOptional: cartData.serviceCharges?.totalOptional || 0,
+          totalAll: cartData.serviceCharges?.totalAll || 0,
+          breakdown: cartData.serviceCharges?.breakdown || [],
+        };
+
+        // Calculate delivery fee if we have an address
+        let calculatedDeliveryFee = 0;
+        if (selectedBranch?.id) {
+          try {
+            // Determine address to use
+            let addressForCalculation = addressForCalculationParam;
+            if (!addressForCalculation) {
+              try {
+                const stored = localStorage.getItem("deliveryAddress");
+                if (stored) {
+                  const parsed = JSON.parse(stored);
+                  addressForCalculation = parsed?.postcode ? parsed : undefined;
+                }
+              } catch (e) {
+                console.error(
+                  "Failed to parse deliveryAddress from localStorage",
+                  e
+                );
               }
-            );
-
-            if (validationResponse.data?.success && validationResponse.data?.deliverable) {
-              calculatedDeliveryFee = validationResponse.data.data.charge;
-              console.log("Delivery fee calculated:", calculatedDeliveryFee);
-              setDeliveryValidationError(null);
-              setIsDeliveryValid(true);
-            } else {
-              // Handle delivery validation errors
-              const errorMessage = validationResponse.data?.message || "Delivery not available to this location";
-              console.error("Delivery validation failed:", errorMessage);
-              
-              // Set delivery fee to null to indicate delivery is not available
-              calculatedDeliveryFee = null;
-              setDeliveryValidationError(errorMessage);
-              setIsDeliveryValid(false);
             }
-          } else {
-            console.log(
-              "No valid address with postcode for delivery calculation"
-            );
+
+            // Only proceed if we have a valid address with postcode
+            if (addressForCalculation && addressForCalculation.postcode) {
+              try {
+                const validationResponse = await axios.post(
+                  "/api/settings/delivery-charges/validate-delivery",
+                  {
+                    branchId: selectedBranch.id,
+                    orderTotal: cartData.subtotal,
+                    searchedAddress: addressForCalculation,
+                  }
+                );
+
+                if (
+                  validationResponse.data?.success &&
+                  validationResponse.data?.deliverable
+                ) {
+                  setDeliveryValidationError(null);
+                  setIsDeliveryValid(true);
+
+                  const deliveryResponse = await axios.post(
+                    "/api/settings/delivery-charges/calculate-checkout",
+                    {
+                      branchId: selectedBranch.id,
+                      orderTotal: cartData.subtotal,
+                      searchedAddress: addressForCalculation,
+                    }
+                  );
+
+                  if (deliveryResponse.data?.success) {
+                    calculatedDeliveryFee = deliveryResponse.data.data.charge;
+                  }
+                } else {
+                  const errorMessage =
+                    validationResponse.data?.message ||
+                    "Delivery not available to this location";
+                  setDeliveryValidationError(errorMessage);
+                  setIsDeliveryValid(false);
+                  calculatedDeliveryFee = 0;
+                }
+              } catch (validationError) {
+                console.error("Error validating delivery:", validationError);
+                setDeliveryValidationError(
+                  "Unable to validate delivery. Please try again."
+                );
+                setIsDeliveryValid(false);
+                calculatedDeliveryFee = 0;
+              }
+            }
+          } catch (deliveryError) {
+            console.error("Error calculating delivery fee:", deliveryError);
+            // Don't show error to user, just default to 0
           }
-        } catch (deliveryError) {
-          console.error("Error calculating delivery fee:", deliveryError);
-          setDeliveryValidationError("Unable to validate delivery. Please try again.");
-          setIsDeliveryValid(false);
-          calculatedDeliveryFee = null;
         }
+
+        const totals = calculateOrderTotals(
+          { ...cartData, deliveryFee: calculatedDeliveryFee },
+          cartItems,
+          appliedPromo?.discountAmount,
+          acceptedOptionalServiceCharges
+        );
+
+        setCartSummary({
+          subtotal: totals.subtotal,
+          deliveryFee: calculatedDeliveryFee,
+          total: totals.total,
+          itemCount: cartData.itemCount || cartItems.length,
+          taxRate: totals.taxRate,
+          serviceCharges,
+          orderType: cartData.orderType,
+        });
+      } catch (error) {
+        console.error("Error fetching cart summary:", error);
+        toast.error("Failed to fetch cart details. Please try again.");
+      } finally {
+        setIsLoading(false);
       }
-
-      const totals = calculateOrderTotals(
-        { ...cartData, deliveryFee: calculatedDeliveryFee },
-        cartItems,
-        appliedPromo?.discountAmount,
-        acceptedOptionalServiceCharges
-      );
-
-      setCartSummary({
-        subtotal: totals.subtotal,
-        deliveryFee: calculatedDeliveryFee,
-        total: totals.total,
-        itemCount: cartData.itemCount || cartItems.length,
-        taxRate: totals.taxRate,
-        serviceCharges,
-        orderType: cartData.orderType,
-      });
-    } catch (error) {
-      console.error("Error fetching cart summary:", error);
-      toast.error("Failed to fetch cart details. Please try again.");
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    },
+    [
+      isAuthenticated,
+      token,
+      sessionId,
+      selectedBranch?.id,
+      cartItems,
+      appliedPromo?.discountAmount,
+      acceptedOptionalServiceCharges,
+    ]
+  );
 
   // Get delivery method from localStorage
   const checkDeliveryMethod = localStorage.getItem("deliveryMethod") || "";
@@ -1017,7 +967,7 @@ const CheckoutPage = () => {
     }
   }, [user]);
 
-  const parseFullAddress = (fullAddress: string) => {
+  const parseFullAddress = useCallback((fullAddress: string) => {
     const parts = fullAddress.split(",").map((part) => part.trim());
 
     return {
@@ -1028,7 +978,7 @@ const CheckoutPage = () => {
       country: "GB",
       fullAddress,
     };
-  };
+  }, []);
 
   const formatFullAddress = (
     street: string,
@@ -1045,7 +995,6 @@ const CheckoutPage = () => {
       setSelectedAddressType("user");
       const parsed = parseFullAddress(user.address);
 
-      // Store the parsed address in localStorage to ensure consistency
       localStorage.setItem("deliveryAddress", JSON.stringify(parsed));
 
       return parsed;
@@ -1074,7 +1023,6 @@ const CheckoutPage = () => {
     };
   });
 
-  // Update delivery address when user data changes
   useEffect(() => {
     // Only update if we don't already have a valid address
     if (
@@ -1083,6 +1031,7 @@ const CheckoutPage = () => {
       !deliveryAddress.postcode
     ) {
       const storedAddress = localStorage.getItem("deliveryAddress");
+      const orderDetailsRaw = localStorage.getItem("orderDetails");
       if (storedAddress) {
         try {
           const parsedAddress = JSON.parse(storedAddress);
@@ -1102,6 +1051,35 @@ const CheckoutPage = () => {
         } catch (e) {
           console.error("Error parsing stored address:", e);
         }
+      } else if (orderDetailsRaw) {
+        try {
+          const orderDetails = JSON.parse(orderDetailsRaw);
+          if (
+            orderDetails?.deliveryMethod === "deliver" &&
+            orderDetails?.address
+          ) {
+            const a = orderDetails.address;
+            const updatedAddress = {
+              street: a.street || "",
+              city: a.city || "",
+              state: a.state || "",
+              postcode: a.postcode || a.postalCode || "",
+              country: a.country || "GB",
+              fullAddress:
+                a.fullAddress ||
+                [a.street, a.city, a.postcode || a.postalCode]
+                  .filter(Boolean)
+                  .join(", "),
+            };
+            setDeliveryAddress(updatedAddress);
+            localStorage.setItem(
+              "deliveryAddress",
+              JSON.stringify(updatedAddress)
+            );
+          }
+        } catch (e) {
+          console.error("Error parsing orderDetails from localStorage:", e);
+        }
       } else if (user?.address && typeof user.address === "string") {
         // Only parse user address if it's a string and we don't have an address yet
         const parsed = parseFullAddress(user.address);
@@ -1109,12 +1087,7 @@ const CheckoutPage = () => {
         setSelectedAddressType("user");
       }
     }
-  }, [
-    user,
-    deliveryAddress.street,
-    deliveryAddress.city,
-    deliveryAddress.postcode,
-  ]);
+  }, [user, parseFullAddress]);
 
   // Fetch cart summary with delivery fee calculation
   useEffect(() => {
@@ -1155,7 +1128,6 @@ const CheckoutPage = () => {
   useEffect(() => {
     // This will run only once when component mounts
     const deliveryMethod = localStorage.getItem("deliveryMethod");
-    console.log("Component mounted, delivery method:", deliveryMethod);
 
     // If delivery method is "deliver", make sure we have an address selected
     if (
@@ -1171,17 +1143,51 @@ const CheckoutPage = () => {
     }
   }, []); // Empty dependency array means this runs once on mount
 
-  // Auto-select address based on delivery method
+  // Auto-select address based on delivery method and localStorage orderDetails
   useEffect(() => {
     const deliveryMethod = localStorage.getItem("deliveryMethod");
 
     // If delivery method is "deliver", we need to ensure an address is selected
     if (deliveryMethod === "deliver") {
       // First check if we have a valid address already selected
-      if (deliveryAddress && deliveryAddress.postcode) {
-        // Address already selected, no need to do anything
+      if (deliveryAddress) {
         console.log("Address already selected:", deliveryAddress);
       } else {
+        // Try to use address from orderDetails in localStorage
+        const orderDetailsRaw = localStorage.getItem("orderDetails");
+        if (orderDetailsRaw) {
+          try {
+            const orderDetails = JSON.parse(orderDetailsRaw);
+            if (
+              orderDetails?.deliveryMethod === "deliver" &&
+              orderDetails?.address
+            ) {
+              const a = orderDetails.address;
+              const updatedAddress = {
+                street: a.street || "",
+                city: a.city || "",
+                state: a.state || "",
+                postcode: a.postcode || a.postalCode || "",
+                country: a.country || "GB",
+                fullAddress:
+                  a.fullAddress ||
+                  [a.street, a.city, a.postcode || a.postalCode]
+                    .filter(Boolean)
+                    .join(", "),
+              };
+              setDeliveryAddress(updatedAddress);
+              setSelectedAddressType("delivery");
+              localStorage.setItem(
+                "deliveryAddress",
+                JSON.stringify(updatedAddress)
+              );
+              fetchCartSummary();
+              return;
+            }
+          } catch (e) {
+            console.error("Error parsing orderDetails from localStorage:", e);
+          }
+        }
         // Try to select user's saved address if available
         if (user?.address && typeof user.address === "string") {
           console.log("Auto-selecting user's saved address for delivery");
@@ -1213,8 +1219,6 @@ const CheckoutPage = () => {
           // Try to use address from localStorage
           const storedAddress = localStorage.getItem("deliveryAddress");
           if (storedAddress) {
-            console.log("Auto-selecting stored address for delivery");
-            // We can't use handleDeliveryAddressSelect directly in the dependency array
             // so we'll call it manually here
             try {
               const parsedAddress = JSON.parse(storedAddress);
@@ -1238,13 +1242,6 @@ const CheckoutPage = () => {
             } catch (e) {
               console.error("Error parsing stored address:", e);
             }
-          } else {
-            // No address available, user will need to select one
-            console.log(
-              "No address available for delivery, user must select one"
-            );
-            // You could show a toast message here if needed
-            // toast.info("Please select a delivery address");
           }
         }
       }
@@ -1252,10 +1249,10 @@ const CheckoutPage = () => {
     // Run this effect when component mounts and when delivery method changes
   }, [
     checkDeliveryMethod,
-    deliveryAddress,
     user,
     parseFullAddress,
     fetchCartSummary,
+    deliveryAddress?.postcode,
   ]);
 
   // Add click outside handler and cleanup timeout
@@ -1414,33 +1411,6 @@ const CheckoutPage = () => {
     }
   };
 
-  // Handle delivery address selection
-  const handleDeliveryAddressSelect = async () => {
-    const storedAddress = localStorage.getItem("deliveryAddress");
-    if (storedAddress) {
-      try {
-        const parsedAddress = JSON.parse(storedAddress);
-        // Ensure the address has proper formatting
-        if (parsedAddress.fullAddress) {
-          const parsedComponents = parseFullAddress(parsedAddress.fullAddress);
-          const updatedAddress = {
-            ...parsedAddress,
-            ...parsedComponents,
-          };
-          setDeliveryAddress(updatedAddress);
-        } else {
-          setDeliveryAddress(parsedAddress);
-        }
-        setSelectedAddressType("delivery");
-
-        // Refresh cart summary to get updated delivery fee
-        fetchCartSummary();
-      } catch (e) {
-        console.error("Error parsing stored address:", e);
-      }
-    }
-  };
-
   // Handle search for new address
   const handleSearchAddressSelect = () => {
     setSelectedAddressType("search");
@@ -1583,7 +1553,9 @@ const CheckoutPage = () => {
 
     // Check delivery validation for delivery orders
     if (checkDeliveryMethod === "deliver" && !isDeliveryValid) {
-      toast.error(deliveryValidationError || "Delivery not available to this location");
+      toast.error(
+        deliveryValidationError || "Delivery not available to this location"
+      );
       return;
     }
 
@@ -2266,7 +2238,6 @@ const CheckoutPage = () => {
                             <span>{addressError}</span>
                           </div>
                         )}
-                        {/* Only show dropdown if there are valid results and no error */}
                         {showAddressSearch &&
                           validAddressSearchResults.length > 0 &&
                           !addressError && (
@@ -2301,7 +2272,6 @@ const CheckoutPage = () => {
                           )}
                       </div>
                     )}
-                    {/* Only show the selected searched address card if a valid address is selected from search */}
                     {selectedSearchedAddress &&
                       selectedAddressType === "search" && (
                         <div className="mt-4 p-4 bg-gray-50 rounded-xl flex items-start gap-2 relative">
@@ -2329,24 +2299,44 @@ const CheckoutPage = () => {
                       )}
 
                     {/* Delivery validation error message */}
-                    {deliveryValidationError && checkDeliveryMethod === "deliver" && (
-                      <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-xl">
-                        <div className="flex items-start gap-2">
-                          <AlertCircle size={18} className="text-red-600 mt-0.5 flex-shrink-0" />
-                          <div className="flex-1">
-                            <p className="text-sm font-medium text-red-800">
-                              Delivery Not Available
-                            </p>
-                            <p className="text-sm text-red-700 mt-1">
-                              {deliveryValidationError}
-                            </p>
-                            <p className="text-xs text-red-600 mt-2">
-                              Please choose a different address or select pickup instead.
-                            </p>
+                    {deliveryValidationError &&
+                      checkDeliveryMethod === "deliver" && (
+                        <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-xl">
+                          <div className="flex items-start gap-3">
+                            <AlertCircle
+                              size={20}
+                              className="text-red-600 mt-0.5 flex-shrink-0"
+                            />
+                            <div className="flex-1 space-y-1">
+                              <p className="text-sm font-semibold text-red-800">
+                                Delivery Not Available
+                              </p>
+                              <p className="text-sm text-red-700">
+                                {deliveryValidationError}
+                              </p>
+                              <p className="text-xs pb-3 text-red-600">
+                                Please choose a different address or select{" "}
+                                <strong>Pickup</strong> instead.
+                              </p>
+
+                              {!selectedSearchedAddress &&
+                                deliveryAddress.fullAddress && (
+                                  <div className="mt-6 p-3 bg-gray-50 border border-gray-200 rounded-lg flex items-start gap-2">
+                                    <MapPin
+                                      size={18}
+                                      className="text-yellow-600 mt-0.5 flex-shrink-0"
+                                    />
+                                    <div className="flex-1">
+                                      <p className="text-sm font-medium text-gray-800 leading-snug">
+                                        {deliveryAddress.fullAddress}
+                                      </p>
+                                    </div>
+                                  </div>
+                                )}
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    )}
+                      )}
                   </div>
                 </div>
               </div>
@@ -2447,7 +2437,6 @@ const CheckoutPage = () => {
                     {[
                       { id: "card", label: "Card", icon: CreditCard },
                       { id: "cash", label: "Cash", icon: Wallet },
-                      // { id: "online", label: "Online", icon: Check },
                     ].map(({ id, label, icon: Icon }) => (
                       <button
                         key={id}
@@ -2463,66 +2452,9 @@ const CheckoutPage = () => {
                       </button>
                     ))}
                   </div>
-
-                  {/* {paymentMethod === "card" && (
-                    <div className="mt-4 space-y-3">
-                      <input
-                        type="text"
-                        value={creditCardDetails.name}
-                        onChange={(e) =>
-                          handleCreditCardChange("name", e.target.value)
-                        }
-                        placeholder="Card holder name"
-                        className="w-full px-3 py-2 text-sm rounded-lg border border-gray-200 "
-                      />
-                      <div className="grid grid-cols-2 gap-3">
-                        <input
-                          type="text"
-                          value={creditCardDetails.number}
-                          onChange={(e) =>
-                            handleCreditCardChange(
-                              "number",
-                              e.target.value.replace(/\D/g, "").slice(0, 16)
-                            )
-                          }
-                          placeholder="Card number"
-                          className="w-full px-3 py-2 text-sm rounded-lg border border-gray-200 "
-                        />
-                        <div className="grid grid-cols-2 gap-2">
-                          <input
-                            type="text"
-                            value={creditCardDetails.expiry}
-                            onChange={(e) => {
-                              let value = e.target.value.replace(/\D/g, "");
-                              if (value.length >= 2) {
-                                value =
-                                  value.slice(0, 2) + "/" + value.slice(2, 4);
-                              }
-                              handleCreditCardChange("expiry", value);
-                            }}
-                            placeholder="MM/YY"
-                            className="w-full px-3 py-2 text-sm rounded-lg border border-gray-200 "
-                          />
-                          <input
-                            type="text"
-                            value={creditCardDetails.cvc}
-                            onChange={(e) =>
-                              handleCreditCardChange(
-                                "cvc",
-                                e.target.value.replace(/\D/g, "").slice(0, 3)
-                              )
-                            }
-                            placeholder="CVC"
-                            className="w-full px-3 py-2 text-sm rounded-lg border border-gray-200 "
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  )} */}
                 </div>
               </div>
 
-              {/* Promo Code Section */}
               <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
                 <div className="p-4">
                   <div className="flex gap-2 overflow-x-auto">
@@ -2807,10 +2739,15 @@ const CheckoutPage = () => {
                           !deliveryAddress.fullAddress
                         ? "Please select a delivery address"
                         : checkDeliveryMethod === "deliver" && !isDeliveryValid
-                        ? deliveryValidationError || "Delivery not available to this location"
+                        ? deliveryValidationError ||
+                          "Delivery not available to this location"
                         : ""
                     }
-                    disabled={isProcessing || !acceptedTerms || (checkDeliveryMethod === "deliver" && !isDeliveryValid)}
+                    disabled={
+                      isProcessing ||
+                      !acceptedTerms ||
+                      (checkDeliveryMethod === "deliver" && !isDeliveryValid)
+                    }
                     className="w-full bg-yellow-700 text-white py-3 rounded-xl font-semibold hover:bg-yellow-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                   >
                     {isProcessing ? (
