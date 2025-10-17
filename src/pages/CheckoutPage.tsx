@@ -401,6 +401,7 @@ const formatPrice = (amount: number) => {
 };
 
 interface CartData {
+  orderType: 'collect' | 'delivery';
   subtotal: number;
   deliveryFee: number;
   taxRate: number;
@@ -781,6 +782,7 @@ const CheckoutPage = () => {
     savings: number;
   } | null>(null);
   const [cartSummary, setCartSummary] = useState({
+    orderType: 'collect',
     subtotal: 0,
     deliveryFee: 0,
     total: 0,
@@ -961,6 +963,7 @@ const CheckoutPage = () => {
         itemCount: cartData.itemCount || cartItems.length,
         taxRate: totals.taxRate,
         serviceCharges,
+        orderType: cartData.orderType,
       });
     } catch (error) {
       console.error("Error fetching cart summary:", error);
@@ -2606,7 +2609,7 @@ const CheckoutPage = () => {
                     )}
 
                     {/* Delivery Fee */}
-                    <div className="flex justify-between text-sm items-center">
+                    {cartSummary.orderType === 'delivery' && <div className="flex justify-between text-sm items-center">
                       <span className="text-gray-600">Delivery Fee</span>
                       {cartSummary.deliveryFee === 0 ? (
                         <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
@@ -2618,7 +2621,7 @@ const CheckoutPage = () => {
                         </span>
                       )}
                     </div>
-
+}
                     {/* Service Charges */}
                     {cartSummary.serviceCharges.totalMandatory > 0 && (
                       <div className="flex justify-between text-sm">
