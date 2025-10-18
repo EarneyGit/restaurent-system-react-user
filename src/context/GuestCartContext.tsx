@@ -61,20 +61,22 @@ const GuestCartContext = createContext<GuestCartContextType | undefined>(undefin
 export const GuestCartProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [cartData, setCartData] = useState<CartData | null>(null);
-  const isGuest = localStorage.getItem("isGuest") === "true";
+  
+  const localStorageIsGuest = localStorage.getItem("isGuest");
+  const isGuest = localStorageIsGuest === "true";
 
   useEffect(() => {
     // Initialize or retrieve session ID
-    const existingSessionId = localStorage.getItem('guestSessionId');
-    
+    const existingSessionId = localStorage.getItem("guestSessionId");
+
     if (existingSessionId && isGuest) {
       // console.log('Using existing guest session:', existingSessionId);
       setSessionId(existingSessionId);
     } else if (isGuest) {
       const newSessionId = uuidv4();
       // console.log('Creating new guest session:', newSessionId);
-      localStorage.setItem('guestSessionId', newSessionId);
-      localStorage.setItem('isGuest', 'true');
+      localStorage.setItem("guestSessionId", newSessionId);
+      localStorage.setItem("isGuest", "true");
       setSessionId(newSessionId);
     } else {
       // Clear session if not a guest
@@ -82,7 +84,7 @@ export const GuestCartProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       localStorage.removeItem("guestSessionId");
       setSessionId(null);
     }
-  }, [isGuest]);
+  }, [localStorageIsGuest]);
 
   useEffect(() => {
     // Load cart data when sessionId changes and user is guest
