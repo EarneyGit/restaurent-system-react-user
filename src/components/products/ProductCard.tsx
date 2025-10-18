@@ -5,7 +5,7 @@ import { Minus, Plus, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import ProductOptionsModal from "../modals/ProductOptionsModal";
 import axios from "axios";
-import { CART_ENDPOINTS } from "@/config/api.config";
+import { API_BASE_URL, CART_ENDPOINTS } from "@/config/api.config";
 import { useAuth } from "@/context/AuthContext";
 import { useGuestCart } from "@/context/GuestCartContext";
 import { useBranch } from "@/context/BranchContext";
@@ -344,9 +344,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
   const isInCart = Boolean(cartItem);
 
   // Get the API URL from environment variable and ensure it ends with a slash
-  const API_URL = (
-    import.meta.env.VITE_API_URL || "http://82.25.104.117:5001"
-  ).replace(/\/?$/, "/");
+  const API_URL = API_BASE_URL.replace(/\/?$/, "/");
 
   const getImageUrl = (url: string | undefined): string | null => {
     if (!url) return null;

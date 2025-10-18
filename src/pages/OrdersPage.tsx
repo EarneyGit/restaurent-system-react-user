@@ -24,7 +24,7 @@ import {
   endOfDay,
 } from "date-fns";
 import axios from "@/config/axios.config";
-import { ORDER_ENDPOINTS } from "@/config/api.config";
+import { API_BASE_URL, ORDER_ENDPOINTS } from "@/config/api.config";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
 import Header from "@/components/layout/Header";
@@ -176,8 +176,7 @@ const OrdersPage = () => {
     const fetchBranches = async () => {
       try {
         setIsLoadingBranches(true);
-        const API_URL =
-          import.meta.env.VITE_API_URL || "http://82.25.104.117:5001";
+        const API_URL = API_BASE_URL;
         const response = await axios.get(`${API_URL}/api/branches`);
         if (response.data?.success) {
           setAvailableBranches(response.data.data);

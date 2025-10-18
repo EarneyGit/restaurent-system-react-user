@@ -9,6 +9,7 @@ import { Navigation, Autoplay } from 'swiper/modules';
 import 'swiper/css';
 import 'swiper/css/navigation';
 import '@/styles/carousel.css';
+import { API_BASE_URL } from "@/config/api.config";
 
 interface Product extends Omit<BaseProduct, 'category' | 'id'> {
   originalPrice?: number;
@@ -16,7 +17,7 @@ interface Product extends Omit<BaseProduct, 'category' | 'id'> {
   id: string;
 }
 
-const API_URL = (import.meta.env.VITE_API_URL || 'http://82.25.104.117:5001').replace(/\/?$/, '/');
+const API_URL = API_BASE_URL.replace(/\/?$/, "/");
 
 const VariantPlaceholderSVG = ({ color }: { color: string }) => (
   <svg 

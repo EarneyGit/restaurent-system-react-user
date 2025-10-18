@@ -1,5 +1,8 @@
-const RAW_API_URL = import.meta.env.VITE_API_URL || 'http://82.25.104.117:5001';
+const RAW_API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001';
 const ALLOW_INSECURE = import.meta.env.VITE_ALLOW_INSECURE_REQUESTS === 'true';
+
+console.log(import.meta.env);
+console.log({RAW_API_URL});
 
 export const API_BASE_URL = (() => {
   try {

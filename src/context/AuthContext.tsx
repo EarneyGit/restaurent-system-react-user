@@ -89,6 +89,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       if (response.data.success && response.data.data) {
         console.log('User details fetched:', response.data.data);
+        localStorage.setItem('user', JSON.stringify(response.data.data));
         setUser(response.data.data);
         return true;
       }
@@ -123,6 +124,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
         if (response.data.success && response.data.data) {
           console.log('User data fetched successfully:', response.data.data);
+          localStorage.setItem('user', JSON.stringify(response.data.data));
           setUser(response.data.data);
         } else {
           console.log('Failed to fetch user data - no user in response');
@@ -321,6 +323,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setIsLoading(true);
       setError(null);
       const response = await axios.get<{ success: boolean; data: User }>(AUTH_ENDPOINTS.GET_ME);
+      localStorage.setItem('user', JSON.stringify(response.data.data));
       setUser(response.data.data);
       return response.data.data;
     } catch (error) {

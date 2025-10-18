@@ -1,7 +1,8 @@
 import { io, Socket } from 'socket.io-client';
 import { OrderStatusType } from "@/types/order.types";
+import { API_BASE_URL } from "@/config/api.config";
 
-const SOCKET_URL = import.meta.env.REACT_APP_API_URL || 'http://82.25.104.117:5001';
+const SOCKET_URL = API_BASE_URL;
 
 let socket: Socket | null = null;
 

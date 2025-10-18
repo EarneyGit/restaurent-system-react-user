@@ -1,6 +1,7 @@
+import { API_BASE_URL } from '@/config/api.config';
 import axios, { AxiosError } from 'axios';
 
-export const BASE_URL = import.meta.env.VITE_API_URL || 'http://82.25.104.117:5001';
+export const BASE_URL = API_BASE_URL;
 export const API_URL = `${BASE_URL}/api`;
 
 // Types

@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { useBranch } from "@/context/BranchContext";
 import NoBranchSelected from "../common/NoBranchSelected";
+import { API_BASE_URL } from "@/config/api.config";
 
 // Utility function to check if category is available at current time
 const isCategoryAvailable = (category: Category): boolean => {
@@ -142,7 +143,7 @@ const CategoryItem: React.FC<CategoryProps> = ({
         .map((segment) => encodeURIComponent(segment))
         .join("/");
 
-      return `${import.meta.env.VITE_API_URL}/${encodedUrl}`;
+      return `${API_BASE_URL}/${encodedUrl}`;
     } catch (error) {
       console.error("Error processing image URL:", error);
       return null;

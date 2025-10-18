@@ -1,6 +1,7 @@
+import { API_BASE_URL } from '@/config/api.config';
 import axios from 'axios';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://82.25.104.117:5001';
+const API_URL = API_BASE_URL;
 
 interface CartItem {
   productId: string;

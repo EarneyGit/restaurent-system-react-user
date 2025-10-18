@@ -18,7 +18,7 @@ import { CartItem as CartItemType } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
 import { useGuestCart } from "@/context/GuestCartContext";
 import axios from "@/config/axios.config";
-import { CART_ENDPOINTS } from "@/config/api.config";
+import { API_BASE_URL, CART_ENDPOINTS } from "@/config/api.config";
 import { ChevronDown, ChevronUp } from "lucide-react";
 
 interface CartSummary {
@@ -162,7 +162,7 @@ const CartItem: React.FC<CartItemProps> = ({
         <div className="w-16 h-16 flex-shrink-0 overflow-hidden rounded-lg border border-gray-100 bg-gray-50">
           {images?.[0] ? (
             <img
-              src={`${import.meta.env.VITE_API_URL}${images[0]}`}
+              src={`${API_BASE_URL}${images[0]}`}
               alt={name}
               className="w-full h-full object-cover"
               onError={(e) => (e.currentTarget.style.display = "none")}
