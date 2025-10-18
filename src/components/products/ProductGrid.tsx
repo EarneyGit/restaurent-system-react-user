@@ -78,57 +78,88 @@ const ProductGrid: React.FC<ProductGridProps> = React.memo(
     }, []);
 
     // ✅ Check availability API
-    const checkBranchAvailability = useCallback(async (branchId: string) => {
-      try {
-        const getTodayDate = () => {
-          const today = new Date();
-          const year = today.getFullYear();
-          const month = String(today.getMonth() + 1).padStart(2, "0");
-          const day = String(today.getDate()).padStart(2, "0");
-          return `${year}-${month}-${day}`;
-        };
-        const todayDate = getTodayDate();
-        const currentDate = new Date();
-        const formattedDate = todayDate;
-        const formattedTime = currentDate.toTimeString().slice(0, 5);
+    const getTodayDate = () => {
+      const today = new Date();
+      const year = today.getFullYear();
+      const month = String(today.getMonth() + 1).padStart(2, "0");
+      const day = String(today.getDate()).padStart(2, "0");
+      return `${year}-${month}-${day}`;
+    };
+    const todayDate = getTodayDate();
+    const currentDate = new Date();
+    const formattedDate = todayDate;
+    const formattedTime = currentDate.toTimeString().slice(0, 5);
 
-        const [deliveryRes, collectionRes] = await Promise.all([
-          axios.post(`/api/ordering-times/${branchId}/check-availability`, {
-            orderType: "delivery",
-            date: formattedDate,
-            time: formattedTime,
-          }),
-          axios.post(`/api/ordering-times/${branchId}/check-availability`, {
-            orderType: "collection",
-            date: formattedDate,
-            time: formattedTime,
-          }),
-        ]);
+    // Cache for API responses
+    const availabilityCache = useMemo(() => new Map(), []);
 
-        const delivery = deliveryRes.data;
-        const collection = collectionRes.data;
+    const checkBranchAvailability = useCallback(
+      async (branchId: string) => {
+        try {
+          // Create cache key based on branchId, date, and time
+          const cacheKey = `${branchId}-${formattedDate}-${formattedTime}`;
 
-        setBranchAvailability({
-          delivery: {
-            available: delivery?.available ?? false,
-            reason: delivery?.reason || "Delivery not available",
-          },
-          collection: {
-            available: collection?.available ?? false,
-            reason: collection?.reason || "Collection not available",
-          },
-        });
+          // Check if we have cached data for this combination
+          if (availabilityCache.has(cacheKey)) {
+            const cachedData = availabilityCache.get(cacheKey);
+            setBranchAvailability(cachedData.branchAvailability);
+            setIsBranchAvailable(cachedData.isBranchAvailable);
+            return;
+          }
 
-        setIsBranchAvailable(delivery?.available || collection?.available);
-      } catch (error) {
-        console.error("Error checking branch availability:", error);
-        setBranchAvailability({
-          delivery: { available: false, reason: "Error checking delivery" },
-          collection: { available: false, reason: "Error checking collection" },
-        });
-        setIsBranchAvailable(false);
-      }
-    }, []);
+          // memoize the axios requests by formattedDate and formattedTime
+          const [deliveryRes, collectionRes] = await Promise.all([
+            axios.post(`/api/ordering-times/${branchId}/check-availability`, {
+              orderType: "delivery",
+              date: formattedDate,
+              time: formattedTime,
+            }),
+            axios.post(`/api/ordering-times/${branchId}/check-availability`, {
+              orderType: "collection",
+              date: formattedDate,
+              time: formattedTime,
+            }),
+          ]);
+
+          const delivery = deliveryRes.data;
+          const collection = collectionRes.data;
+
+          const branchAvailabilityData = {
+            delivery: {
+              available: delivery?.available ?? false,
+              reason: delivery?.reason || "Delivery not available",
+            },
+            collection: {
+              available: collection?.available ?? false,
+              reason: collection?.reason || "Collection not available",
+            },
+          };
+
+          const isBranchAvailableData =
+            delivery?.available || collection?.available;
+
+          // Cache the response
+          availabilityCache.set(cacheKey, {
+            branchAvailability: branchAvailabilityData,
+            isBranchAvailable: isBranchAvailableData,
+          });
+
+          setBranchAvailability(branchAvailabilityData);
+          setIsBranchAvailable(isBranchAvailableData);
+        } catch (error) {
+          console.error("Error checking branch availability:", error);
+          setBranchAvailability({
+            delivery: { available: false, reason: "Error checking delivery" },
+            collection: {
+              available: false,
+              reason: "Error checking collection",
+            },
+          });
+          setIsBranchAvailable(false);
+        }
+      },
+      [formattedDate, formattedTime, availabilityCache]
+    );
 
     // ✅ Fetch products
     useEffect(() => {
@@ -249,7 +280,8 @@ const ProductGrid: React.FC<ProductGridProps> = React.memo(
     const totalPages = Math.ceil(filteredProducts.length / productsPerPage);
     const indexOfLast = currentPage * productsPerPage;
     const indexOfFirst = indexOfLast - productsPerPage;
-    const currentProducts = filteredProducts.slice(indexOfFirst, indexOfLast)
+    const currentProducts = filteredProducts
+      .slice(indexOfFirst, indexOfLast)
       .sort((a: any, b: any) => a.displayOrder - b.displayOrder);
     console.log({ currentProducts });
     const handlePageChange = (page: number) => {
