@@ -3,6 +3,7 @@ import { v4 as uuidv4 } from 'uuid';
 import axios from 'axios';
 import { API_BASE_URL, CART_ENDPOINTS } from '@/config/api.config';
 import { toast } from 'sonner';
+import { useAuth } from './AuthContext';
 
 interface CartItem {
   id: string;
@@ -61,8 +62,10 @@ const GuestCartContext = createContext<GuestCartContextType | undefined>(undefin
 export const GuestCartProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [cartData, setCartData] = useState<CartData | null>(null);
-  
+  const { isAuthenticated } = useAuth();
+  console.log({isAuthenticated});
   const localStorageIsGuest = localStorage.getItem("isGuest");
+
   const isGuest = localStorageIsGuest === "true";
 
   useEffect(() => {
@@ -84,7 +87,7 @@ export const GuestCartProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       localStorage.removeItem("guestSessionId");
       setSessionId(null);
     }
-  }, [localStorageIsGuest]);
+  }, [localStorageIsGuest, isAuthenticated]);
 
   useEffect(() => {
     // Load cart data when sessionId changes and user is guest
