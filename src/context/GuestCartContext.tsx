@@ -78,7 +78,8 @@ export const GuestCartProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       setSessionId(newSessionId);
     } else {
       // Clear session if not a guest
-      localStorage.setItem("isGuest", "false");
+      localStorage.removeItem("isGuest");
+      localStorage.removeItem("guestSessionId");
       setSessionId(null);
     }
   }, [isGuest]);
