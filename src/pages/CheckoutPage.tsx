@@ -692,7 +692,7 @@ const OrderConfirmationModal: React.FC<OrderConfirmationModalProps> = ({
 };
 
 const CheckoutPage = () => {
-  const { user, isAuthenticated, token } = useAuth();
+  const { user, isAuthenticated, token, getMe } = useAuth();
   const { selectedBranch, fetchBranches } = useBranch();
   const [paymentMethod, setPaymentMethod] = useState("card");
   const navigate = useNavigate();
@@ -773,14 +773,7 @@ const CheckoutPage = () => {
   );
 
   const fetchCartSummary = useCallback(
-    async (addressForCalculationParam?: {
-      street?: string;
-      city?: string;
-      state?: string;
-      postcode?: string;
-      country?: string;
-      fullAddress?: string;
-    }) => {
+    async () => {
       try {
         const headers = isAuthenticated
           ? {
@@ -914,6 +907,7 @@ const CheckoutPage = () => {
       cartItems,
       appliedPromo?.discountAmount,
       acceptedOptionalServiceCharges,
+      address,
       address?.latitude,
       address?.longitude,
     ]
@@ -1072,7 +1066,7 @@ const CheckoutPage = () => {
       state = address.state;
     }
 
-    const postcode = address.postcode || "";
+    const postcode = address.postcode || (address as Address).postalCode || "";
 
     const fullAddress =
       "fullAddress" in address
@@ -1111,6 +1105,9 @@ const CheckoutPage = () => {
     appliedPromo?.discountAmount,
     acceptedOptionalServiceCharges,
     address?.postcode, // Add deliveryAddress dependency
+    address?.latitude,
+    address?.longitude,
+    address?.fullAddress,
   ]);
 
   // Handle search for new address
@@ -1436,6 +1433,9 @@ const CheckoutPage = () => {
           setShowStripeModal(true);
           setShowConfirmation(false);
           setIsProcessing(false);
+          if (isAuthenticated && token) {          
+            getMe();
+          }
           return;
         } catch (error: unknown) {
           const err = error as {
@@ -1510,6 +1510,9 @@ const CheckoutPage = () => {
           });
 
           setShowConfirmation(false);
+          if (isAuthenticated && token) {
+            getMe();
+          }
           toast.success("Order placed successfully!");
         } else {
           throw new Error(response.data?.message || "Failed to create order");
@@ -2030,32 +2033,45 @@ const CheckoutPage = () => {
                           {user.deliveryAddresses.map((userSavedAddress) => (
                             <div
                               key={userSavedAddress.fullAddress}
-                              className="flex items-center gap-2 justify-between"
+                              onClick={() =>
+                                handleAddressSelect(
+                                  userSavedAddress as unknown as Address
+                                )
+                              }
+                              className={`${
+                                userSavedAddress.fullAddress ===
+                                address?.fullAddress
+                                  ? "bg-gray-100 bg-yellow-50/80"
+                                  : ""
+                              } flex items-center gap-2 justify-between mb-2 hover:bg-gray-100 p-2 rounded-lg cursor-pointer`}
                             >
                               <MapPin
                                 size={16}
                                 className="text-yellow-600 mt-0.5 flex-shrink-0"
                               />
                               <p className="text-sm font-medium text-gray-800 leading-snug">
+                                {userSavedAddress.default && (
+                                  <span className="text-xs text-gray-500">
+                                    (default) &nbsp;
+                                  </span>
+                                )}
                                 {userSavedAddress.fullAddress}
                               </p>
-                              {userSavedAddress.default && (
-                                <span className="text-xs text-gray-500">
-                                  default address
-                                </span>
-                              )}
 
-                              <button
-                                type="button"
+                              {/* check box to select the address */}
+                              <input
+                                type="checkbox"
+                                checked={
+                                  userSavedAddress.fullAddress ===
+                                  address?.fullAddress
+                                }
                                 onClick={() =>
                                   handleAddressSelect(
                                     userSavedAddress as unknown as Address
                                   )
                                 }
-                                className="flex items-center gap-2 text-xs font-bold bg-yellow-700 text-white px-2.5 py-2 rounded-lg  hover:bg-yellow-700 transition"
-                              >
-                                <Check size={16} /> Use this address
-                              </button>
+                                className="w-4 h-4 text-yellow-600 bg-gray-100 border-gray-300 rounded"
+                              />
                             </div>
                           ))}
                         </div>
@@ -2527,12 +2543,17 @@ const CheckoutPage = () => {
                 (appliedPromo ? appliedPromo.discountAmount : 0),
           originalTotal: appliedPromo?.originalTotal,
           discountAmount: appliedPromo?.discountAmount,
-          address: address?.fullAddress || [
-            address?.street,
-            address?.city,
-            address?.postcode,
-            address?.country,
-          ].filter(Boolean).join(", ") || "-",
+          address:
+            address?.fullAddress ||
+            [
+              address?.street,
+              address?.city,
+              address?.postcode,
+              address?.country,
+            ]
+              .filter(Boolean)
+              .join(", ") ||
+            "-",
           deliveryTime: selectedTimeSlot,
           serviceCharge: cartSummary.serviceCharges.totalMandatory,
         }}
