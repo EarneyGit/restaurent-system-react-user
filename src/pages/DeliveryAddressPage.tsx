@@ -13,11 +13,14 @@ const DeliveryAddressPage = () => {
       const address = JSON.parse(savedAddress);
       
       // Store delivery method and address in localStorage
-      localStorage.setItem('orderDetails', JSON.stringify({
-        deliveryMethod: 'deliver',
-        address: address,
-        timestamp: new Date().toISOString()
-      }));
+      localStorage.setItem(
+        "orderDetails",
+        JSON.stringify({
+          deliveryMethod: "delivery",
+          address: address,
+          timestamp: new Date().toISOString(),
+        })
+      );
 
       // Navigate to app or checkout
       navigate('/app');

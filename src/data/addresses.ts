@@ -5,6 +5,8 @@ export interface Address {
   state: string;
   postcode: string;
   country: string;
+  latitude: number;
+  longitude: number;
 }
 
 // Common UK addresses organized by postcode
@@ -16,7 +18,9 @@ export const ukAddresses: Record<string, Address[]> = {
       city: 'London',
       state: 'Greater London',
       postcode: 'SW1A 2AA',
-      country: 'GB'
+      country: 'GB',
+      latitude: 51.501476,
+      longitude: -0.141099
     },
     {
       fullAddress: 'Buckingham Palace, London SW1A 1AA',
@@ -24,7 +28,9 @@ export const ukAddresses: Record<string, Address[]> = {
       city: 'London',
       state: 'Greater London',
       postcode: 'SW1A 1AA',
-      country: 'GB'
+      country: 'GB',
+      latitude: 51.501476,
+      longitude: -0.141099
     },
     {
       fullAddress: 'Houses of Parliament, London SW1A 0AA',
@@ -32,7 +38,9 @@ export const ukAddresses: Record<string, Address[]> = {
       city: 'London',
       state: 'Greater London',
       postcode: 'SW1A 0AA',
-      country: 'GB'
+      country: 'GB',
+      latitude: 51.501476,
+      longitude: -0.141099
     }
   ],
   'E1': [
@@ -42,7 +50,9 @@ export const ukAddresses: Record<string, Address[]> = {
       city: 'London',
       state: 'Greater London',
       postcode: 'E1 6QL',
-      country: 'GB'
+      country: 'GB',
+      latitude: 51.501476,
+      longitude: -0.141099
     },
     {
       fullAddress: '45 Commercial Street, London E1 6LT',
@@ -50,7 +60,9 @@ export const ukAddresses: Record<string, Address[]> = {
       city: 'London',
       state: 'Greater London',
       postcode: 'E1 6LT',
-      country: 'GB'
+      country: 'GB',
+      latitude: 51.501476,
+      longitude: -0.141099
     },
     {
       fullAddress: '78 Whitechapel High Street, London E1 7QX',
@@ -58,7 +70,9 @@ export const ukAddresses: Record<string, Address[]> = {
       city: 'London',
       state: 'Greater London',
       postcode: 'E1 7QX',
-      country: 'GB'
+      country: 'GB',
+      latitude: 51.501476,
+      longitude: -0.141099
     }
   ],
   'M1': [
@@ -68,7 +82,9 @@ export const ukAddresses: Record<string, Address[]> = {
       city: 'Manchester',
       state: 'Greater Manchester',
       postcode: 'M1 4GX',
-      country: 'GB'
+      country: 'GB',
+      latitude: 53.4808,
+      longitude: -2.2426
     },
     {
       fullAddress: '25 Piccadilly, Manchester M1 1LY',
@@ -76,7 +92,9 @@ export const ukAddresses: Record<string, Address[]> = {
       city: 'Manchester',
       state: 'Greater Manchester',
       postcode: 'M1 1LY',
-      country: 'GB'
+      country: 'GB',
+      latitude: 53.4808,
+      longitude: -2.2426
     },
     {
       fullAddress: '100 Oxford Road, Manchester M1 5QA',
@@ -84,7 +102,9 @@ export const ukAddresses: Record<string, Address[]> = {
       city: 'Manchester',
       state: 'Greater Manchester',
       postcode: 'M1 5QA',
-      country: 'GB'
+      country: 'GB',
+      latitude: 53.4808,
+      longitude: -2.2426
     }
   ],
   'B1': [
@@ -94,7 +114,9 @@ export const ukAddresses: Record<string, Address[]> = {
       city: 'Birmingham',
       state: 'West Midlands',
       postcode: 'B1 2AA',
-      country: 'GB'
+      country: 'GB',
+      latitude: 52.4808,
+      longitude: -1.8904
     },
     {
       fullAddress: '88 Corporation Street, Birmingham B1 3AB',
@@ -102,7 +124,9 @@ export const ukAddresses: Record<string, Address[]> = {
       city: 'Birmingham',
       state: 'West Midlands',
       postcode: 'B1 3AB',
-      country: 'GB'
+      country: 'GB',
+      latitude: 52.4808,
+      longitude: -1.8904
     },
     {
       fullAddress: '120 Broad Street, Birmingham B1 1AB',
@@ -110,7 +134,9 @@ export const ukAddresses: Record<string, Address[]> = {
       city: 'Birmingham',
       state: 'West Midlands',
       postcode: 'B1 1AB',
-      country: 'GB'
+      country: 'GB',
+      latitude: 52.4808,
+      longitude: -1.8904
     }
   ],
   'G1': [
@@ -120,7 +146,9 @@ export const ukAddresses: Record<string, Address[]> = {
       city: 'Glasgow',
       state: 'Glasgow City',
       postcode: 'G1 2EN',
-      country: 'GB'
+      country: 'GB',
+      latitude: 55.8602,
+      longitude: -4.2518
     },
     {
       fullAddress: '45 Buchanan Street, Glasgow G1 3BA',
@@ -128,7 +156,9 @@ export const ukAddresses: Record<string, Address[]> = {
       city: 'Glasgow',
       state: 'Glasgow City',
       postcode: 'G1 3BA',
-      country: 'GB'
+      country: 'GB',
+      latitude: 55.8602,
+      longitude: -4.2518
     },
     {
       fullAddress: '78 Sauchiehall Street, Glasgow G1 3DL',
@@ -136,7 +166,9 @@ export const ukAddresses: Record<string, Address[]> = {
       city: 'Glasgow',
       state: 'Glasgow City',
       postcode: 'G1 3DL',
-      country: 'GB'
+      country: 'GB',
+      latitude: 55.8602,
+      longitude: -4.2518
     }
   ]
 };

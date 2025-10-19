@@ -4,6 +4,7 @@ import { useBranch } from "@/context/BranchContext";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import axios from "axios";
+import { useCart } from "@/context/CartContext";
   
 interface BranchDetails {
   id: string;
@@ -57,6 +58,7 @@ interface BranchDetails {
 }
 
 const OrderMethodPage = () => {
+  const { setOrderType } = useCart();
   const navigate = useNavigate();
   const [branchDetails, setBranchDetails] = useState<BranchDetails[]>([]);
 
@@ -110,7 +112,7 @@ const OrderMethodPage = () => {
     }
   }, [selectedBranch, navigate]);
 
-  const handleMethodSelect = (method: "collect" | "deliver") => {
+  const handleMethodSelect = (method: "collection" | "delivery") => {
     if (!selectedBranch) {
       navigate("/select-outlet");
       return;
@@ -121,19 +123,22 @@ const OrderMethodPage = () => {
     // Store branch information
     localStorage.setItem("selectedBranchId", selectedBranch.id);
 
-    if (method === "deliver") {
-      navigate("/delivery-address");
+    if (method === "delivery") {
+      // navigate("/delivery-address");
+      setOrderType("delivery");
+      navigate(`/app?branchId=${selectedBranch.id}`);
     } else {
       // For collection, store branch address
-      localStorage.setItem(
-        "collectionAddress",
-        JSON.stringify({
-          fullAddress: selectedBranch.address,
-          postcode: selectedBranch.address.postalCode,
-        })
-      );
+      // localStorage.setItem(
+      //   "collectionAddress",
+      //   JSON.stringify({
+      //     fullAddress: selectedBranch.address,
+      //     postcode: selectedBranch.address.postalCode,
+      //   })
+      // );
 
       // Navigate to app route with branch ID
+      setOrderType("collection");
       navigate(`/app?branchId=${selectedBranch.id}`);
     }
   };
@@ -191,7 +196,7 @@ const OrderMethodPage = () => {
           <div className="grid gap-6">
             {/* Collection Option */}
             <button
-              onClick={() => handleMethodSelect("collect")}
+              onClick={() => handleMethodSelect("collection")}
               disabled={!isCollectionAllowed}
               className={`w-full bg-white/10 backdrop-blur-sm p-6 rounded-2xl border border-white/20 transition-all group 
             ${
@@ -227,7 +232,7 @@ const OrderMethodPage = () => {
 
             {/* Delivery Option */}
             <button
-              onClick={() => handleMethodSelect("deliver")}
+              onClick={() => handleMethodSelect("delivery")}
               disabled={!isDeliveryAllowed}
               className={`w-full bg-white/10 backdrop-blur-sm p-6 rounded-2xl border border-white/20 transition-all group 
             ${

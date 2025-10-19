@@ -16,6 +16,18 @@ export interface User {
   emailVerified?: boolean;
   isActive?: boolean;
   createdAt?: string;
+  deliveryAddresses?: (Address & { default: boolean })[];
+}
+
+export interface Address {
+  street: string;
+  city: string;
+  state: string;
+  zipCode: string;
+  country: string;
+  latitude: number;
+  longitude: number;
+  fullAddress: string;
 }
 
 export interface RegistrationData {

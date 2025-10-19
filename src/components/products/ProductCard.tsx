@@ -268,14 +268,10 @@ const ProductCard: React.FC<ProductCardProps> = ({
     if (!deliveryMethod) return true; // If no delivery method selected, assume supported
 
     switch (deliveryMethod.toLowerCase()) {
-      case "deliver":
+      case "delivery":
         return product.delivery === true;
-      case "pickup":
-      case "collect":
+      case "collection":
         return product.collection === true;
-      case "dine_in":
-      case "table_ordering":
-        return product.dineIn === true;
       default:
         return true;
     }
@@ -286,16 +282,12 @@ const ProductCard: React.FC<ProductCardProps> = ({
     if (!deliveryMethod) return "";
 
     switch (deliveryMethod.toLowerCase()) {
-      case "deliver":
+      case "delivery":
         return product.delivery === false ? "Not available for delivery" : "";
-      case "pickup":
-      case "collect":
+      case "collection":
         return product.collection === false
           ? "Not available for collection"
           : "";
-      case "dine_in":
-      case "table_ordering":
-        return product.dineIn === false ? "Not available for dine-in" : "";
       default:
         return "";
     }

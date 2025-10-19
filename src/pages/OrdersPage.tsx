@@ -88,7 +88,7 @@ interface Order {
     postalCode: string;
   };
   paymentMethod: "card" | "cash";
-  deliveryMethod: "delivery" | "pickup";
+  deliveryMethod: "delivery" | "collection";
   createdAt: string;
   updatedAt: string;
 }

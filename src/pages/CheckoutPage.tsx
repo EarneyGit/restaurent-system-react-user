@@ -372,7 +372,7 @@ const NoImage = () => (
   </div>
 );
 interface CartData {
-  orderType: 'collect' | 'delivery';
+  orderType: "collection" | "delivery";
   subtotal: number;
   deliveryFee: number;
   taxRate: number;
@@ -699,6 +699,8 @@ const CheckoutPage = () => {
   const {
     orderType,
     setOrderType,
+    address,
+    setAddress,
     cartItems,
     formatCurrency,
     clearCart,
@@ -713,7 +715,6 @@ const CheckoutPage = () => {
   const [orderNotes, setOrderNotes] = useState("");
   const [showAddressSearch, setShowAddressSearch] = useState(false);
   const [addressSearchQuery, setAddressSearchQuery] = useState("");
-  const [filteredAddresses, setFilteredAddresses] = useState<Address[]>([]);
   const [addressSearchResults, setAddressSearchResults] = useState<
     AddressResult[]
   >([]);
@@ -722,9 +723,6 @@ const CheckoutPage = () => {
   const [searchTimeout, setSearchTimeout] = useState<NodeJS.Timeout | null>(
     null
   );
-  const [selectedAddressType, setSelectedAddressType] = useState<
-    "user" | "delivery" | "search"
-  >("user");
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [promoCode, setPromoCode] = useState("");
   const [isApplyingPromo, setIsApplyingPromo] = useState(false);
@@ -740,7 +738,7 @@ const CheckoutPage = () => {
     savings: number;
   } | null>(null);
   const [cartSummary, setCartSummary] = useState({
-    orderType: 'collect',
+    orderType: orderType,
     subtotal: 0,
     deliveryFee: 0,
     total: 0,
@@ -773,12 +771,6 @@ const CheckoutPage = () => {
   const [stripeClientSecret, setStripeClientSecret] = useState<string | null>(
     null
   );
-
-  useEffect(() => {
-    if (selectedAddressType === "user" && user?.address) {
-      setAddressError("");
-    }
-  }, [selectedAddressType, user?.address]);
 
   const fetchCartSummary = useCallback(
     async (addressForCalculationParam?: {
@@ -818,23 +810,17 @@ const CheckoutPage = () => {
 
         // Calculate delivery fee if we have an address
         let calculatedDeliveryFee = 0;
-        if (selectedBranch?.id) {
+        if (selectedBranch?.id && orderType === "delivery") {
           try {
             // Determine address to use
-            let addressForCalculation = addressForCalculationParam;
+            let addressForCalculation = address;
             if (!addressForCalculation) {
-              try {
-                const stored = localStorage.getItem("deliveryAddress");
-                if (stored) {
-                  const parsed = JSON.parse(stored);
-                  addressForCalculation = parsed?.postcode ? parsed : undefined;
-                }
-              } catch (e) {
-                console.error(
-                  "Failed to parse deliveryAddress from localStorage",
-                  e
-                );
-              }
+              console.error(
+                "Failed to parse deliveryAddress" + address?.fullAddress
+              );
+              setDeliveryValidationError("Please select a delivery address");
+              setIsDeliveryValid(false);
+              calculatedDeliveryFee = 0;
             }
 
             // Only proceed if we have a valid address with postcode
@@ -889,6 +875,10 @@ const CheckoutPage = () => {
             console.error("Error calculating delivery fee:", deliveryError);
             // Don't show error to user, just default to 0
           }
+        } else {
+          calculatedDeliveryFee = 0;
+          setIsDeliveryValid(false);
+          setDeliveryValidationError(null);
         }
 
         const totals = calculateOrderTotals(
@@ -897,6 +887,7 @@ const CheckoutPage = () => {
           appliedPromo?.discountAmount,
           acceptedOptionalServiceCharges
         );
+        console.log("totals", totals);
 
         setCartSummary({
           subtotal: totals.subtotal,
@@ -915,6 +906,7 @@ const CheckoutPage = () => {
       }
     },
     [
+      orderType,
       isAuthenticated,
       token,
       sessionId,
@@ -922,19 +914,10 @@ const CheckoutPage = () => {
       cartItems,
       appliedPromo?.discountAmount,
       acceptedOptionalServiceCharges,
+      address?.latitude,
+      address?.longitude,
     ]
   );
-
-  // Get delivery method from localStorage
-  const checkDeliveryMethod = localStorage.getItem("deliveryMethod") || "";
-
-  // Helper function to extract postcode from address string
-  const extractPostcodeFromAddress = (address: string): string => {
-    const postcodeMatch = address.match(
-      /([A-Z]{1,2}[0-9][A-Z0-9]?\s?[0-9][A-Z]{2})/i
-    );
-    return postcodeMatch ? postcodeMatch[1].toUpperCase() : "";
-  };
 
   React.useEffect(() => {
     const isGuest = localStorage.getItem("isGuest") === "true";
@@ -989,273 +972,6 @@ const CheckoutPage = () => {
   ) => {
     return [street, city, postcode].filter(Boolean).join(", ");
   };
-
-  // ✅ useState based on user.address string
-  const [deliveryAddress, setDeliveryAddress] = useState<Addresses>(() => {
-    // 1. If user has address (as string), parse it
-    if (user?.address && typeof user.address === "string") {
-      setSelectedAddressType("user");
-      const parsed = parseFullAddress(user.address);
-
-      localStorage.setItem("deliveryAddress", JSON.stringify(parsed));
-
-      return parsed;
-    }
-
-    // 2. Try from localStorage
-    const storedAddress = localStorage.getItem("deliveryAddress");
-    if (storedAddress) {
-      try {
-        const parsedAddress = JSON.parse(storedAddress);
-        setSelectedAddressType("delivery");
-        return parsedAddress;
-      } catch (e) {
-        console.error("Error parsing stored address:", e);
-      }
-    }
-
-    // 3. Fallback default
-    return {
-      street: "",
-      city: "",
-      state: "",
-      postcode: "",
-      country: "GB",
-      fullAddress: "",
-    };
-  });
-
-  useEffect(() => {
-    // Only update if we don't already have a valid address
-    if (
-      !deliveryAddress.street &&
-      !deliveryAddress.city &&
-      !deliveryAddress.postcode
-    ) {
-      const storedAddress = localStorage.getItem("deliveryAddress");
-      const orderDetailsRaw = localStorage.getItem("orderDetails");
-      if (storedAddress) {
-        try {
-          const parsedAddress = JSON.parse(storedAddress);
-          // Ensure the address has proper formatting
-          if (parsedAddress.fullAddress) {
-            const parsedComponents = parseFullAddress(
-              parsedAddress.fullAddress
-            );
-            const updatedAddress = {
-              ...parsedAddress,
-              ...parsedComponents,
-            };
-            setDeliveryAddress(updatedAddress);
-          } else {
-            setDeliveryAddress(parsedAddress);
-          }
-        } catch (e) {
-          console.error("Error parsing stored address:", e);
-        }
-      } else if (orderDetailsRaw) {
-        try {
-          const orderDetails = JSON.parse(orderDetailsRaw);
-          if (
-            orderDetails?.deliveryMethod === "deliver" &&
-            orderDetails?.address
-          ) {
-            const a = orderDetails.address;
-            const updatedAddress = {
-              street: a.street || "",
-              city: a.city || "",
-              state: a.state || "",
-              postcode: a.postcode || a.postalCode || "",
-              country: a.country || "GB",
-              fullAddress:
-                a.fullAddress ||
-                [a.street, a.city, a.postcode || a.postalCode]
-                  .filter(Boolean)
-                  .join(", "),
-            };
-            setDeliveryAddress(updatedAddress);
-            localStorage.setItem(
-              "deliveryAddress",
-              JSON.stringify(updatedAddress)
-            );
-          }
-        } catch (e) {
-          console.error("Error parsing orderDetails from localStorage:", e);
-        }
-      } else if (user?.address && typeof user.address === "string") {
-        // Only parse user address if it's a string and we don't have an address yet
-        const parsed = parseFullAddress(user.address);
-        setDeliveryAddress(parsed);
-        setSelectedAddressType("user");
-      }
-    }
-  }, [user, parseFullAddress]);
-
-  // Fetch cart summary with delivery fee calculation
-  useEffect(() => {
-    fetchCartSummary();
-  }, [
-    isAuthenticated,
-    token,
-    sessionId,
-    cartItems,
-    selectedBranch?.id,
-    appliedPromo?.discountAmount,
-    acceptedOptionalServiceCharges,
-    deliveryAddress?.postcode, // Add deliveryAddress dependency
-  ]);
-
-  // Trigger delivery fee calculation when component mounts if user has a saved address
-  useEffect(() => {
-    if (selectedAddressType === "user" && user?.address && deliveryAddress) {
-      // Ensure we have a valid postcode for the saved address
-      if (!deliveryAddress.postcode) {
-        const extractedPostcode = extractPostcodeFromAddress(
-          typeof user.address === "string" ? user.address : ""
-        );
-        if (extractedPostcode) {
-          setDeliveryAddress((prev) => ({
-            ...prev,
-            postcode: extractedPostcode,
-          }));
-        }
-      }
-
-      // Trigger delivery fee calculation
-      fetchCartSummary();
-    }
-  }, [user, selectedAddressType]);
-
-  // Check delivery method and select address on component mount
-  useEffect(() => {
-    // This will run only once when component mounts
-    const deliveryMethod = localStorage.getItem("deliveryMethod");
-
-    // If delivery method is "deliver", make sure we have an address selected
-    if (
-      deliveryMethod === "deliver" &&
-      (!deliveryAddress || !deliveryAddress.postcode)
-    ) {
-      // Force a re-check of the delivery method to trigger the other useEffect
-      const tempDeliveryMethod = localStorage.getItem("deliveryMethod");
-      localStorage.setItem("deliveryMethod", "");
-      setTimeout(() => {
-        localStorage.setItem("deliveryMethod", tempDeliveryMethod || "deliver");
-      }, 100);
-    }
-  }, []); // Empty dependency array means this runs once on mount
-
-  // Auto-select address based on delivery method and localStorage orderDetails
-  useEffect(() => {
-    const deliveryMethod = localStorage.getItem("deliveryMethod");
-
-    // If delivery method is "deliver", we need to ensure an address is selected
-    if (deliveryMethod === "deliver") {
-      // First check if we have a valid address already selected
-      if (deliveryAddress) {
-        console.log("Address already selected:", deliveryAddress);
-      } else {
-        // Try to use address from orderDetails in localStorage
-        const orderDetailsRaw = localStorage.getItem("orderDetails");
-        if (orderDetailsRaw) {
-          try {
-            const orderDetails = JSON.parse(orderDetailsRaw);
-            if (
-              orderDetails?.deliveryMethod === "deliver" &&
-              orderDetails?.address
-            ) {
-              const a = orderDetails.address;
-              const updatedAddress = {
-                street: a.street || "",
-                city: a.city || "",
-                state: a.state || "",
-                postcode: a.postcode || a.postalCode || "",
-                country: a.country || "GB",
-                fullAddress:
-                  a.fullAddress ||
-                  [a.street, a.city, a.postcode || a.postalCode]
-                    .filter(Boolean)
-                    .join(", "),
-              };
-              setDeliveryAddress(updatedAddress);
-              setSelectedAddressType("delivery");
-              localStorage.setItem(
-                "deliveryAddress",
-                JSON.stringify(updatedAddress)
-              );
-              fetchCartSummary();
-              return;
-            }
-          } catch (e) {
-            console.error("Error parsing orderDetails from localStorage:", e);
-          }
-        }
-        // Try to select user's saved address if available
-        if (user?.address && typeof user.address === "string") {
-          console.log("Auto-selecting user's saved address for delivery");
-          // We can't use handleUserAddressSelect directly in the dependency array
-          // so we'll call it manually here
-          if (user?.address && typeof user.address === "string") {
-            const parsed = parseFullAddress(user.address);
-
-            // Make sure the parsed address has a postcode for delivery calculation
-            if (!parsed.postcode && user.address) {
-              // Try to extract postcode from the address string
-              const extractedPostcode = extractPostcodeFromAddress(
-                user.address
-              );
-              if (extractedPostcode) {
-                parsed.postcode = extractedPostcode;
-              }
-            }
-
-            // Update state and localStorage
-            setDeliveryAddress(parsed);
-            setSelectedAddressType("user");
-            localStorage.setItem("deliveryAddress", JSON.stringify(parsed));
-
-            // Refresh cart summary to get updated delivery fee
-            fetchCartSummary();
-          }
-        } else {
-          // Try to use address from localStorage
-          const storedAddress = localStorage.getItem("deliveryAddress");
-          if (storedAddress) {
-            // so we'll call it manually here
-            try {
-              const parsedAddress = JSON.parse(storedAddress);
-              // Ensure the address has proper formatting
-              if (parsedAddress.fullAddress) {
-                const parsedComponents = parseFullAddress(
-                  parsedAddress.fullAddress
-                );
-                const updatedAddress = {
-                  ...parsedAddress,
-                  ...parsedComponents,
-                };
-                setDeliveryAddress(updatedAddress);
-              } else {
-                setDeliveryAddress(parsedAddress);
-              }
-              setSelectedAddressType("delivery");
-
-              // Refresh cart summary to get updated delivery fee
-              fetchCartSummary();
-            } catch (e) {
-              console.error("Error parsing stored address:", e);
-            }
-          }
-        }
-      }
-    }
-    // Run this effect when component mounts and when delivery method changes
-  }, [
-    checkDeliveryMethod,
-    user,
-    parseFullAddress,
-    fetchCartSummary,
-    deliveryAddress?.postcode,
-  ]);
 
   // Add click outside handler and cleanup timeout
   useEffect(() => {
@@ -1331,109 +1047,77 @@ const CheckoutPage = () => {
   };
 
   // Handle address selection from API results
-  const handleAddressSelect = async (address: AddressResult) => {
-    const street =
-      address.line_1 ||
-      `${address.building_number} ${address.thoroughfare}`.trim();
-    const city = address.post_town || "";
+  const handleAddressSelect = async (address: AddressResult | Address) => {
+    const latitude = address.latitude;
+    const longitude = address.longitude;
+    let street = "";
+
+    if ("street" in address) {
+      street = address.street;
+    } else {
+      street =
+        address.line_1 ||
+        `${address.building_number} ${address.thoroughfare}`.trim();
+    }
+    let city = "";
+    if ("post_town" in address) {
+      city = address.post_town;
+    } else {
+      city = address.city;
+    }
+    let state = "";
+    if ("county" in address) {
+      state = address.county;
+    } else {
+      state = address.state;
+    }
+
     const postcode = address.postcode || "";
 
-    const fullAddress = formatFullAddress(street, city, postcode);
+    const fullAddress =
+      "fullAddress" in address
+        ? (address as Address).fullAddress
+        : formatFullAddress(street, city, postcode);
 
     const formattedAddress: Address = {
       street,
       city,
-      state: address.county || "",
+      state,
       postcode,
       country: address.country || "GB",
       fullAddress,
+      latitude: latitude,
+      longitude: longitude,
     };
-
-    setDeliveryAddress(formattedAddress);
+    console.log("formattedAddress", formattedAddress);
+    setAddress(formattedAddress);
     setAddressSearchQuery(formattedAddress.fullAddress);
     setShowAddressSearch(false);
     setShowSearchInput(false);
-    setSelectedAddressType("search");
-    setSelectedSearchedAddress(address);
-
-    // Update localStorage with the new address
-    localStorage.setItem("deliveryAddress", JSON.stringify(formattedAddress));
-
     // Refresh cart summary to get updated delivery fee
     fetchCartSummary();
   };
 
-  const handleClearSearchedAddress = () => {
-    setSelectedSearchedAddress(null);
-    setDeliveryAddress({
-      street: "",
-      city: "",
-      state: "",
-      postcode: "",
-      country: "",
-      fullAddress: "",
-    });
-    setAddressSearchQuery("");
-    setSelectedAddressType("user");
-  };
-
-  // Handle user address selection
-  const handleUserAddressSelect = async () => {
-    if (user?.address && typeof user.address === "string") {
-      // Parse the address string into structured format
-      const parsed = parseFullAddress(user.address);
-
-      // Make sure the parsed address has a postcode for delivery calculation
-      if (!parsed.postcode && user.address) {
-        // Try to extract postcode from the address string
-        const extractedPostcode = extractPostcodeFromAddress(user.address);
-        if (extractedPostcode) {
-          parsed.postcode = extractedPostcode;
-        }
-      }
-
-      // If user has postalCode in profile, use that as a fallback
-      if (!parsed.postcode && user?.address) {
-        // Try to extract postcode from the address string
-        const extractedPostcode = extractPostcodeFromAddress(
-          typeof user.address === "string" ? user.address : ""
-        );
-        if (extractedPostcode) {
-          parsed.postcode = extractedPostcode;
-        }
-      }
-
-      // Update state and localStorage
-      setDeliveryAddress(parsed);
-      setSelectedAddressType("user");
-      localStorage.setItem("deliveryAddress", JSON.stringify(parsed));
-
-      // Refresh cart summary to get updated delivery fee
-      fetchCartSummary();
-    }
-  };
+  // Fetch cart summary with delivery fee calculation
+  useEffect(() => {
+    fetchCartSummary();
+  }, [
+    orderType,
+    isAuthenticated,
+    token,
+    sessionId,
+    cartItems,
+    selectedBranch?.id,
+    appliedPromo?.discountAmount,
+    acceptedOptionalServiceCharges,
+    address?.postcode, // Add deliveryAddress dependency
+  ]);
 
   // Handle search for new address
   const handleSearchAddressSelect = () => {
-    setSelectedAddressType("search");
     setShowSearchInput(true);
-    setSelectedSearchedAddress(null);
-    setDeliveryAddress({
-      street: "",
-      city: "",
-      state: "",
-      postcode: "",
-      country: "",
-      fullAddress: "",
-    });
     setAddressSearchQuery("");
   };
-
-  // Calculate order totals using CartContext methods
-  const subtotal = cartSummary.subtotal;
-  const deliveryFee = cartSummary.deliveryFee;
-  const total = cartSummary.total;
-
 
   const handleApplyPromo = async () => {
     if (!promoCode.trim()) return;
@@ -1465,18 +1149,8 @@ const CheckoutPage = () => {
         code: promoCode.trim(),
         branchId: selectedBranch.id,
         orderTotal: currentOrderTotal,
-        deliveryMethod:
-          deliveryMethod === "deliver"
-            ? "delivery"
-            : deliveryMethod === "collect"
-            ? "collect"
-            : "dine_in",
-        orderType:
-          deliveryMethod === "deliver"
-            ? "delivery"
-            : deliveryMethod === "collect"
-            ? "collect"
-            : "dine_in",
+        deliveryMethod: orderType === "delivery" ? "delivery" : "collection",
+        orderType: orderType === "delivery" ? "delivery" : "collection",
         userId: user?._id || null,
       };
 
@@ -1531,7 +1205,7 @@ const CheckoutPage = () => {
     // Basic validation for all users
     if (
       !selectedTimeSlot ||
-      (orderType !== "collect" && !deliveryAddress.fullAddress) ||
+      (orderType === "delivery" && !address?.fullAddress) ||
       !personalDetails.firstName
     ) {
       toast.error("Please fill in all required fields");
@@ -1601,7 +1275,7 @@ const CheckoutPage = () => {
       if (
         !personalDetails.firstName ||
         !personalDetails.phone ||
-        (checkDeliveryMethod !== "collect" && !deliveryAddress.fullAddress)
+        (orderType === "delivery" && !address?.fullAddress)
       ) {
         toast.error("Please fill in all required fields");
         setIsProcessing(false);
@@ -1659,16 +1333,6 @@ const CheckoutPage = () => {
         finalTotal = subtotal + deliveryFeeAmount + taxAmount - discountAmount;
       }
 
-      // Get deliveryMethod from localStorage and determine orderType
-      const deliveryMethod = localStorage.getItem("deliveryMethod");
-      let orderType = "dine_in"; // default value
-
-      if (deliveryMethod === "deliver") {
-        orderType = "delivery";
-      } else if (deliveryMethod === "collect") {
-        orderType = "pickup";
-      }
-
       // Check if this is a guest user
       const isGuest = localStorage.getItem("isGuest") === "true";
 
@@ -1680,10 +1344,13 @@ const CheckoutPage = () => {
         deliveryAddress:
           orderType === "delivery"
             ? {
-                street: deliveryAddress.street,
-                city: deliveryAddress.city,
-                postalCode: deliveryAddress.postcode,
-                country: deliveryAddress.country || "GB",
+                street: address?.street,
+                city: address?.city,
+                postalCode: address?.postcode,
+                country: address?.country || "GB",
+                fullAddress: address?.fullAddress,
+                latitude: address?.latitude,
+                longitude: address?.longitude,
               }
             : undefined,
         contactNumber: personalDetails.phone,
@@ -1706,7 +1373,9 @@ const CheckoutPage = () => {
                 lastName: personalDetails.lastName,
                 email: personalDetails.email,
                 phone: personalDetails.phone,
-                address: deliveryAddress.fullAddress,
+                address: address?.fullAddress,
+                latitude: address?.latitude,
+                longitude: address?.longitude,
               }
             : undefined,
         couponCode: appliedPromo?.code,
@@ -1988,7 +1657,9 @@ const CheckoutPage = () => {
   };
 
   // hadle change order type
-  const handleChangeOrderType = async (newOrderType: "delivery" | "collect") => {
+  const handleChangeOrderType = async (
+    newOrderType: "delivery" | "collection"
+  ) => {
     // update order type in the cart api
     try {
       const headers: Record<string, string> = {
@@ -2000,13 +1671,19 @@ const CheckoutPage = () => {
       } else if (sessionId) {
         headers["x-session-id"] = sessionId;
       }
-      const response = await axios.put(`${CART_ENDPOINTS.USER_CART_DELIVERY}`, { orderType }, { headers });
+      const response = await axios.put(
+        `${CART_ENDPOINTS.USER_CART_DELIVERY}`,
+        { orderType: newOrderType },
+        { headers }
+      );
       if (response.data?.success && response.data?.data) {
         toast.success("Order type changed successfully");
         setOrderType(newOrderType);
         localStorage.setItem("orderType", newOrderType);
       } else {
-        throw new Error(response.data?.message || "Failed to change order type");
+        throw new Error(
+          response.data?.message || "Failed to change order type"
+        );
       }
     } catch (error: unknown) {
       console.error("Error changing order type:", error);
@@ -2014,6 +1691,7 @@ const CheckoutPage = () => {
     }
   };
 
+  console.log("user", user);
   return (
     <div className="min-h-screen bg-gray-50 py-12">
       <div className="max-w-7xl mx-auto px-4">
@@ -2184,155 +1862,124 @@ const CheckoutPage = () => {
                       value={orderType}
                       onChange={(e) =>
                         handleChangeOrderType(
-                          e.target.value as "delivery" | "collect"
+                          e.target.value as "delivery" | "collection"
                         )
                       }
                       className="w-full px-4 py-3 rounded-xl border border-gray-200"
                     >
                       <option value="delivery">Delivery to me</option>
-                      <option value="collect">I will collect the order</option>
+                      <option value="collection">I'll collect</option>
                     </select>
                   </div>
-                  {/* Delivery Address */}
-                  <div className="relative z-30">
-                    <div className="flex justify-between items-center mb-2">
-                      <label className="block text-sm font-medium text-gray-700">
-                        Delivery Address{" "}
-                        {checkDeliveryMethod !== "collect" &&
-                          !deliveryAddress.fullAddress && (
-                            <span className="text-red-500">*</span>
+                  {/* Delivery Address if order type is delivery */}
+                  {orderType === "delivery" && (
+                    <div className="relative z-30">
+                      <div className="flex justify-between items-center mb-2">
+                        <label className="block text-sm font-medium text-gray-700">
+                          Delivery Address{" "}
+                          {!address?.fullAddress && (
+                            <span className="text-red-500">
+                              <span className="text-red-500">*</span>
+                              (Address is required for delivery)
+                            </span>
                           )}
-                      </label>
-                      <button
-                        type="button"
-                        onClick={handleSearchAddressSelect}
-                        className="flex items-center gap-2 text-xs font-bold bg-yellow-700 text-white px-2.5 py-2 rounded-lg  hover:bg-yellow-700 transition"
-                      >
-                        <Plus size={16} /> Search new address
-                      </button>
-                    </div>
-                    {/* Saved Address Card */}
-                    {user?.address && (
-                      <div
-                        className={`border rounded-xl p-4 mb-4 shadow-sm transition-all ${
-                          selectedAddressType === "user"
-                            ? "border-gray-300 bg-gray-100"
-                            : "border-gray-200 bg-white"
-                        }`}
-                      >
-                        <label className="flex items-center gap-3 cursor-pointer">
-                          <input
-                            type="radio"
-                            name="addressType"
-                            checked={selectedAddressType === "user"}
-                            onChange={handleUserAddressSelect}
-                            className="accent-gray-700 h-4 w-4"
-                          />
-                          <div>
-                            <div className="font-semibold text-gray-900">
-                              Use my saved address
-                            </div>
-                            <div className="text-gray-700">
-                              {user?.address ? deliveryAddress.fullAddress : ""}
-                            </div>
-                          </div>
                         </label>
+                        <button
+                          type="button"
+                          onClick={handleSearchAddressSelect}
+                          className="flex items-center gap-2 text-xs font-bold bg-yellow-700 text-white px-2.5 py-2 rounded-lg  hover:bg-yellow-700 transition"
+                        >
+                          <Plus size={16} /> Search new address
+                        </button>
                       </div>
-                    )}
-                    {/* Address Search - Only show when search is selected */}
-                    {showSearchInput && (
-                      <div ref={addressDropdownRef} className="relative mb-4">
-                        <div className="relative">
-                          <input
-                            type="text"
-                            value={addressSearchQuery}
-                            onChange={(e) =>
-                              handleAddressSearch(e.target.value)
-                            }
-                            placeholder="Search by postcode or address..."
-                            className="w-full px-4 py-3 pl-10 border border-gray-200 rounded-xl  focus:border-transparent"
-                          />
-                          <div className="absolute left-3 top-1/2 transform -translate-y-1/2">
-                            {isAddressLoading ? (
-                              <Loader2
-                                size={20}
-                                className="text-gray-400 animate-spin"
+                      {/* Address Search - Only show when search is selected */}
+                      {showSearchInput && (
+                        <div ref={addressDropdownRef} className="relative mb-4">
+                          <div className="relative">
+                            <input
+                              type="text"
+                              value={addressSearchQuery}
+                              onChange={(e) =>
+                                handleAddressSearch(e.target.value)
+                              }
+                              placeholder="Search by postcode or address..."
+                              className="w-full px-4 py-3 pl-10 border border-gray-200 rounded-xl  focus:border-transparent"
+                            />
+                            <div className="absolute left-3 top-1/2 transform -translate-y-1/2">
+                              {isAddressLoading ? (
+                                <Loader2
+                                  size={20}
+                                  className="text-gray-400 animate-spin"
+                                />
+                              ) : (
+                                <Search size={20} className="text-gray-400" />
+                              )}
+                            </div>
+                          </div>
+                          {/* Error Message */}
+                          {addressError && (
+                            <div className="mt-2 flex items-center gap-2 text-red-600 text-sm">
+                              <AlertCircle
+                                size={16}
+                                className="flex-shrink-0"
                               />
-                            ) : (
-                              <Search size={20} className="text-gray-400" />
-                            )}
-                          </div>
-                        </div>
-                        {/* Error Message */}
-                        {addressError && (
-                          <div className="mt-2 flex items-center gap-2 text-red-600 text-sm">
-                            <AlertCircle size={16} className="flex-shrink-0" />
-                            <span>{addressError}</span>
-                          </div>
-                        )}
-                        {showAddressSearch &&
-                          validAddressSearchResults.length > 0 &&
-                          !addressError && (
-                            <div className="absolute z-50 w-full max-h-60 overflow-y-auto mt-1 bg-white border border-gray-200 rounded-xl shadow-lg">
-                              {validAddressSearchResults.map(
-                                (result, index) => (
-                                  <button
-                                    key={index}
-                                    onClick={() => handleAddressSelect(result)}
-                                    className="w-full px-4 py-3 hover:bg-gray-50 cursor-pointer text-left border-b border-gray-100 last:border-b-0"
-                                  >
-                                    <div className="flex items-start gap-3">
-                                      <MapPin
-                                        size={16}
-                                        className="text-yellow-600 mt-1 flex-shrink-0"
-                                      />
-                                      <div className="flex-1 min-w-0">
-                                        <div className="font-medium text-gray-900 truncate">
-                                          {formatFullAddress(
-                                            result.line_1 ||
-                                              `${result.building_number} ${result.thoroughfare}`.trim(),
-                                            result.post_town || "",
-                                            result.postcode || ""
-                                          )}
+                              <span>{addressError}</span>
+                            </div>
+                          )}
+                          {showAddressSearch &&
+                            validAddressSearchResults.length > 0 &&
+                            !addressError && (
+                              <div className="absolute z-50 w-full max-h-60 overflow-y-auto mt-1 bg-white border border-gray-200 rounded-xl shadow-lg">
+                                {validAddressSearchResults.map(
+                                  (result, index) => (
+                                    <button
+                                      key={index}
+                                      onClick={() =>
+                                        handleAddressSelect(result)
+                                      }
+                                      className="w-full px-4 py-3 hover:bg-gray-50 cursor-pointer text-left border-b border-gray-100 last:border-b-0"
+                                    >
+                                      <div className="flex items-start gap-3">
+                                        <MapPin
+                                          size={16}
+                                          className="text-yellow-600 mt-1 flex-shrink-0"
+                                        />
+                                        <div className="flex-1 min-w-0">
+                                          <div className="font-medium text-gray-900 truncate">
+                                            {formatFullAddress(
+                                              result.line_1 ||
+                                                `${result.building_number} ${result.thoroughfare}`.trim(),
+                                              result.post_town || "",
+                                              result.postcode || ""
+                                            )}
+                                          </div>
                                         </div>
                                       </div>
-                                    </div>
-                                  </button>
-                                )
-                              )}
-                            </div>
-                          )}
-                      </div>
-                    )}
-                    {selectedSearchedAddress &&
-                      selectedAddressType === "search" && (
-                        <div className="mt-4 p-4 bg-gray-50 rounded-xl flex items-start gap-2 relative">
-                          <MapPin
-                            size={18}
-                            className="text-yellow-600 mt-1 flex-shrink-0"
-                          />
-                          <div className="flex-1">
-                            <p className="text-sm font-medium text-gray-900">
-                              {formatFullAddress(
-                                selectedSearchedAddress.line_1 ||
-                                  `${selectedSearchedAddress.building_number} ${selectedSearchedAddress.thoroughfare}`.trim(),
-                                selectedSearchedAddress.post_town || "",
-                                selectedSearchedAddress.postcode || ""
-                              )}
-                            </p>
-                          </div>
-                          <button
-                            onClick={handleClearSearchedAddress}
-                            className="absolute top-2 right-2 text-gray-400 hover:text-gray-600 transition-colors"
-                          >
-                            <X size={16} />
-                          </button>
+                                    </button>
+                                  )
+                                )}
+                              </div>
+                            )}
                         </div>
                       )}
-
-                    {/* Delivery validation error message */}
-                    {deliveryValidationError &&
-                      checkDeliveryMethod === "deliver" && (
+                      {/* Saved Address Card */}
+                      {address && (
+                        <div className="mt-4 p-4 bg-gray-50 border border-gray-200 rounded-xl">
+                          <div className="flex items-start gap-3">
+                            <MapPin
+                              size={18}
+                              className="text-yellow-600 mt-0.5 flex-shrink-0"
+                            />
+                            <div className="flex-1">
+                              <p className="text-sm font-medium text-gray-800 leading-snug">
+                                {address.fullAddress}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                      {/* Delivery validation error message */}
+                      {deliveryValidationError && orderType === "delivery" && (
                         <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-xl">
                           <div className="flex items-start gap-3">
                             <AlertCircle
@@ -2351,25 +1998,69 @@ const CheckoutPage = () => {
                                 <strong>Pickup</strong> instead.
                               </p>
 
-                              {!selectedSearchedAddress &&
-                                deliveryAddress.fullAddress && (
-                                  <div className="mt-6 p-3 bg-gray-50 border border-gray-200 rounded-lg flex items-start gap-2">
-                                    <MapPin
-                                      size={18}
-                                      className="text-yellow-600 mt-0.5 flex-shrink-0"
-                                    />
-                                    <div className="flex-1">
-                                      <p className="text-sm font-medium text-gray-800 leading-snug">
-                                        {deliveryAddress.fullAddress}
-                                      </p>
-                                    </div>
+                              {address && address.fullAddress && (
+                                <div className="mt-6 p-3 bg-gray-50 border border-gray-200 rounded-lg flex items-start gap-2">
+                                  <MapPin
+                                    size={18}
+                                    className="text-yellow-600 mt-0.5 flex-shrink-0"
+                                  />
+                                  <div className="flex-1">
+                                    <p className="text-sm font-medium text-gray-800 leading-snug">
+                                      {address.fullAddress}
+                                    </p>
                                   </div>
-                                )}
+                                </div>
+                              )}
                             </div>
                           </div>
                         </div>
                       )}
-                  </div>
+                    </div>
+                  )}
+                  {/* users recent order deliveryAddresses list */}
+                  {orderType === "delivery" &&
+                    user?.deliveryAddresses &&
+                    user.deliveryAddresses.length > 0 && (
+                      <>
+                        <h2 className="text-lg font-semibold text-gray-900">
+                          {" "}
+                          Recent Order Delivery Addresses
+                        </h2>
+                        <div className="mt-4 p-4 bg-gray-50 border border-gray-200 rounded-xl">
+                          {user.deliveryAddresses.map((userSavedAddress) => (
+                            <div
+                              key={userSavedAddress.fullAddress}
+                              className="flex items-center gap-2 justify-between"
+                            >
+                              <MapPin
+                                size={16}
+                                className="text-yellow-600 mt-0.5 flex-shrink-0"
+                              />
+                              <p className="text-sm font-medium text-gray-800 leading-snug">
+                                {userSavedAddress.fullAddress}
+                              </p>
+                              {userSavedAddress.default && (
+                                <span className="text-xs text-gray-500">
+                                  default address
+                                </span>
+                              )}
+
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  handleAddressSelect(
+                                    userSavedAddress as unknown as Address
+                                  )
+                                }
+                                className="flex items-center gap-2 text-xs font-bold bg-yellow-700 text-white px-2.5 py-2 rounded-lg  hover:bg-yellow-700 transition"
+                              >
+                                <Check size={16} /> Use this address
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      </>
+                    )}
                 </div>
               </div>
             </div>
@@ -2768,10 +2459,9 @@ const CheckoutPage = () => {
                     title={
                       !acceptedTerms
                         ? "Please accept the terms and conditions"
-                        : checkDeliveryMethod !== "collect" &&
-                          !deliveryAddress.fullAddress
+                        : orderType === "delivery" && !address?.fullAddress
                         ? "Please select a delivery address"
-                        : checkDeliveryMethod === "deliver" && !isDeliveryValid
+                        : orderType === "delivery" && !isDeliveryValid
                         ? deliveryValidationError ||
                           "Delivery not available to this location"
                         : ""
@@ -2779,7 +2469,7 @@ const CheckoutPage = () => {
                     disabled={
                       isProcessing ||
                       !acceptedTerms ||
-                      (checkDeliveryMethod === "deliver" && !isDeliveryValid)
+                      (orderType === "delivery" && !isDeliveryValid)
                     }
                     className="w-full bg-yellow-700 text-white py-3 rounded-xl font-semibold hover:bg-yellow-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                   >
@@ -2837,16 +2527,12 @@ const CheckoutPage = () => {
                 (appliedPromo ? appliedPromo.discountAmount : 0),
           originalTotal: appliedPromo?.originalTotal,
           discountAmount: appliedPromo?.discountAmount,
-          address: deliveryAddress
-            ? [
-                deliveryAddress.street,
-                deliveryAddress.city,
-                deliveryAddress.postcode,
-              ]
-                .filter(Boolean) // removes undefined, null, or empty strings
-                .join(", ")
-            : "-",
-
+          address: address?.fullAddress || [
+            address?.street,
+            address?.city,
+            address?.postcode,
+            address?.country,
+          ].filter(Boolean).join(", ") || "-",
           deliveryTime: selectedTimeSlot,
           serviceCharge: cartSummary.serviceCharges.totalMandatory,
         }}

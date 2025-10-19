@@ -192,7 +192,7 @@ const AddressSelector = () => {
     localStorage.setItem(
       "orderDetails",
       JSON.stringify({
-        deliveryMethod: "deliver",
+        deliveryMethod: "delivery",
         address: formattedAddress,
         timestamp: new Date().toISOString(),
       })
@@ -234,7 +234,7 @@ const AddressSelector = () => {
         const parsedOrderDetails = JSON.parse(savedOrderDetails);
 
         // Only use localStorage data if it's a delivery order and has valid address
-        if (parsedOrderDetails.deliveryMethod === "deliver" && parsedAddress) {
+        if (parsedOrderDetails.deliveryMethod === "delivery" && parsedAddress) {
           // Create an AddressResult object from the saved address
           const localStorageAddress: AddressResult = {
             postcode: parsedAddress.postcode || "",
@@ -367,7 +367,7 @@ const AddressSelector = () => {
       localStorage.setItem(
         "orderDetails",
         JSON.stringify({
-          deliveryMethod: "deliver",
+          deliveryMethod: "delivery",
           address: formattedAddress,
           timestamp: new Date().toISOString(),
         })
@@ -393,7 +393,7 @@ const AddressSelector = () => {
       localStorage.setItem(
         "orderDetails",
         JSON.stringify({
-          deliveryMethod: "deliver",
+          deliveryMethod: "delivery",
           address: formattedAddress,
           timestamp: new Date().toISOString(),
         })

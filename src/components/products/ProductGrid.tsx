@@ -243,14 +243,14 @@ const ProductGrid: React.FC<ProductGridProps> = React.memo(
           "Sorry, neither delivery nor collection is available right now."
         );
         setCanOrder(false);
-      } else if (deliveryMethod === "deliver" && deliveryUnavailable) {
+      } else if (deliveryMethod === "delivery" && deliveryUnavailable) {
         setAvailabilityMessage(
           branchAvailability.delivery.reason ||
             "Delivery is not available right now."
         );
         setCanOrder(false);
       } else if (
-        (deliveryMethod === "collect" || deliveryMethod === "pickup") &&
+        (deliveryMethod === "collection") &&
         collectionUnavailable
       ) {
         setAvailabilityMessage(

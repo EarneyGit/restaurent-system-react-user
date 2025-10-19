@@ -47,14 +47,27 @@ export interface CartItem extends Omit<Product, "price"> {
   orderType?: string;
 }
 
+interface Address {
+  fullAddress: string;
+  street: string;
+  city: string;
+  state: string;
+  postcode: string;
+  country: string;
+  latitude: number;
+  longitude: number;
+}
+
 interface BranchCart {
   [branchId: string]: CartItem[];
 }
 
 interface CartContextType {
-  orderType: "delivery" | "collect";
+  address: Address;
+  setAddress: (address: Address) => void;
+  orderType: "delivery" | "collection";
   cartItems: CartItem[];
-  setOrderType: (orderType: "delivery" | "collect") => void;
+  setOrderType: (orderType: "delivery" | "collection") => void;
   addToCart: (product: CartItem) => Promise<void>;
   removeFromCart: (productId: string) => Promise<void>;
   updateCartItemQuantity: (
@@ -81,11 +94,12 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
   const [branchCarts, setBranchCarts] = useState<BranchCart>({});
-  const [orderType, setOrderType] = useState<"delivery" | "collect">(
+  const [orderType, setOrderType] = useState<"delivery" | "collection">(
     "delivery"
   );
   const [acceptedOptionalServiceCharges, setAcceptedOptionalServiceCharges] =
     useState<string[]>([]);
+  const [address, setAddress] = useState<Address | null>(null);
   const { selectedBranch } = useBranch();
   const { isAuthenticated, token, user } = useAuth();
   const { sessionId, cartData: guestCartData } = useGuestCart();
@@ -113,7 +127,14 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({
 
         // Get delivery method from localStorage
         const orderType = localStorage.getItem("deliveryMethod") || "delivery";
-        setOrderType(orderType as "delivery" | "collect");
+        setOrderType(orderType as "delivery" | "collection");
+
+        // Get address from localStorage
+        const address = localStorage.getItem("address");
+
+        if (address) {
+          setAddress(JSON.parse(address));
+        }
 
         // Clear existing cart data for this branch
         setBranchCarts((prev) => {
@@ -164,7 +185,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({
           }
           if (response.data.data.orderType) {
             setOrderType(
-              response.data.data.orderType as "delivery" | "collect"
+              response.data.data.orderType as "delivery" | "collection"
             );
           }
         }
@@ -556,9 +577,14 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({
   return (
     <CartContext.Provider
       value={{
+        address,
+        setAddress: (address: Address) => {
+          setAddress(address);
+          localStorage.setItem("address", JSON.stringify(address));
+        },
         orderType,
         cartItems,
-        setOrderType: (orderType: "delivery" | "collect") => {
+        setOrderType: (orderType: "delivery" | "collection") => {
           setOrderType(orderType);
           localStorage.setItem("deliveryMethod", orderType);
         },
