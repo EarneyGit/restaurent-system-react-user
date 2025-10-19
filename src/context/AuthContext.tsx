@@ -26,7 +26,7 @@ interface AuthContextType {
   sendPasswordResetOTP: (email: string) => Promise<void>;
   verifyResetOTP: (email: string, otp: string) => Promise<string>;
   resetPassword: (data: ResetPasswordData) => Promise<void>;
-  getMe: () => Promise<User | null>;
+  getMe: (silent?: boolean) => Promise<User | null>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -318,9 +318,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const getMe = async (): Promise<User | null> => {
+  const getMe = async (silent: boolean = false): Promise<User | null> => {
     try {
-      setIsLoading(true);
+      if (!silent) {
+        setIsLoading(true);
+      }
       setError(null);
       const response = await axios.get<{ success: boolean; data: User }>(AUTH_ENDPOINTS.GET_ME);
       localStorage.setItem('user', JSON.stringify(response.data.data));
@@ -330,7 +332,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       handleAuthError(error);
       throw error;
     } finally {
-      setIsLoading(false);
+      if (!silent) {
+        setIsLoading(false);
+      }
     }
   };
 

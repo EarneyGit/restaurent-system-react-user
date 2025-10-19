@@ -9,6 +9,7 @@ import {
   ArrowLeft,
   Image as ImageIcon,
   Plus,
+  Trash2,
 } from "lucide-react";
 import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
@@ -772,55 +773,68 @@ const CheckoutPage = () => {
     null
   );
 
-  const fetchCartSummary = useCallback(
-    async () => {
-      try {
-        const headers = isAuthenticated
-          ? {
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "application/json",
-            }
-          : {
-              "x-session-id": sessionId,
-              "Content-Type": "application/json",
-            };
+  const fetchCartSummary = useCallback(async () => {
+    try {
+      const headers = isAuthenticated
+        ? {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          }
+        : {
+            "x-session-id": sessionId,
+            "Content-Type": "application/json",
+          };
 
-        const cartResponse = await axios.get(
-          isAuthenticated
-            ? CART_ENDPOINTS.USER_CART
-            : CART_ENDPOINTS.GUEST_CART,
-          { headers }
-        );
+      const cartResponse = await axios.get(
+        isAuthenticated ? CART_ENDPOINTS.USER_CART : CART_ENDPOINTS.GUEST_CART,
+        { headers }
+      );
 
-        const cartData: CartData = cartResponse.data.data;
+      const cartData: CartData = cartResponse.data.data;
 
-        const serviceCharges = {
-          totalMandatory: cartData.serviceCharges?.totalMandatory || 0,
-          totalOptional: cartData.serviceCharges?.totalOptional || 0,
-          totalAll: cartData.serviceCharges?.totalAll || 0,
-          breakdown: cartData.serviceCharges?.breakdown || [],
-        };
+      const serviceCharges = {
+        totalMandatory: cartData.serviceCharges?.totalMandatory || 0,
+        totalOptional: cartData.serviceCharges?.totalOptional || 0,
+        totalAll: cartData.serviceCharges?.totalAll || 0,
+        breakdown: cartData.serviceCharges?.breakdown || [],
+      };
 
-        // Calculate delivery fee if we have an address
-        let calculatedDeliveryFee = 0;
-        if (selectedBranch?.id && orderType === "delivery") {
-          try {
-            // Determine address to use
-            let addressForCalculation = address;
-            if (!addressForCalculation) {
-              console.error(
-                "Failed to parse deliveryAddress" + address?.fullAddress
+      // Calculate delivery fee if we have an address
+      let calculatedDeliveryFee = 0;
+      if (selectedBranch?.id && orderType === "delivery") {
+        try {
+          // Determine address to use
+          let addressForCalculation = address;
+          if (!addressForCalculation) {
+            console.error(
+              "Failed to parse deliveryAddress" + address?.fullAddress
+            );
+            setDeliveryValidationError("Please select a delivery address");
+            setIsDeliveryValid(false);
+            calculatedDeliveryFee = 0;
+          }
+
+          // Only proceed if we have a valid address with postcode
+          if (addressForCalculation && addressForCalculation.postcode) {
+            try {
+              const validationResponse = await axios.post(
+                "/api/settings/delivery-charges/validate-delivery",
+                {
+                  branchId: selectedBranch.id,
+                  orderTotal: cartData.subtotal,
+                  searchedAddress: addressForCalculation,
+                }
               );
-              setDeliveryValidationError("Please select a delivery address");
-              setIsDeliveryValid(false);
-              calculatedDeliveryFee = 0;
-            }
 
-            // Only proceed if we have a valid address with postcode
-            if (addressForCalculation && addressForCalculation.postcode) {
-              try {
-                const validationResponse = await axios.post(
-                  "/api/settings/delivery-charges/validate-delivery",
+              if (
+                validationResponse.data?.success &&
+                validationResponse.data?.deliverable
+              ) {
+                setDeliveryValidationError(null);
+                setIsDeliveryValid(true);
+
+                const deliveryResponse = await axios.post(
+                  "/api/settings/delivery-charges/calculate-checkout",
                   {
                     branchId: selectedBranch.id,
                     orderTotal: cartData.subtotal,
@@ -828,90 +842,72 @@ const CheckoutPage = () => {
                   }
                 );
 
-                if (
-                  validationResponse.data?.success &&
-                  validationResponse.data?.deliverable
-                ) {
-                  setDeliveryValidationError(null);
-                  setIsDeliveryValid(true);
-
-                  const deliveryResponse = await axios.post(
-                    "/api/settings/delivery-charges/calculate-checkout",
-                    {
-                      branchId: selectedBranch.id,
-                      orderTotal: cartData.subtotal,
-                      searchedAddress: addressForCalculation,
-                    }
-                  );
-
-                  if (deliveryResponse.data?.success) {
-                    calculatedDeliveryFee = deliveryResponse.data.data.charge;
-                  }
-                } else {
-                  const errorMessage =
-                    validationResponse.data?.message ||
-                    "Delivery not available to this location";
-                  setDeliveryValidationError(errorMessage);
-                  setIsDeliveryValid(false);
-                  calculatedDeliveryFee = 0;
+                if (deliveryResponse.data?.success) {
+                  calculatedDeliveryFee = deliveryResponse.data.data.charge;
                 }
-              } catch (validationError) {
-                console.error("Error validating delivery:", validationError);
-                setDeliveryValidationError(
-                  "Unable to validate delivery. Please try again."
-                );
+              } else {
+                const errorMessage =
+                  validationResponse.data?.message ||
+                  "Delivery not available to this location";
+                setDeliveryValidationError(errorMessage);
                 setIsDeliveryValid(false);
                 calculatedDeliveryFee = 0;
               }
+            } catch (validationError) {
+              console.error("Error validating delivery:", validationError);
+              setDeliveryValidationError(
+                "Unable to validate delivery. Please try again."
+              );
+              setIsDeliveryValid(false);
+              calculatedDeliveryFee = 0;
             }
-          } catch (deliveryError) {
-            console.error("Error calculating delivery fee:", deliveryError);
-            // Don't show error to user, just default to 0
           }
-        } else {
-          calculatedDeliveryFee = 0;
-          setIsDeliveryValid(false);
-          setDeliveryValidationError(null);
+        } catch (deliveryError) {
+          console.error("Error calculating delivery fee:", deliveryError);
+          // Don't show error to user, just default to 0
         }
-
-        const totals = calculateOrderTotals(
-          { ...cartData, deliveryFee: calculatedDeliveryFee },
-          cartItems,
-          appliedPromo?.discountAmount,
-          acceptedOptionalServiceCharges
-        );
-        console.log("totals", totals);
-
-        setCartSummary({
-          subtotal: totals.subtotal,
-          deliveryFee: calculatedDeliveryFee,
-          total: totals.total,
-          itemCount: cartData.itemCount || cartItems.length,
-          taxRate: totals.taxRate,
-          serviceCharges,
-          orderType: cartData.orderType,
-        });
-      } catch (error) {
-        console.error("Error fetching cart summary:", error);
-        toast.error("Failed to fetch cart details. Please try again.");
-      } finally {
-        setIsLoading(false);
+      } else {
+        calculatedDeliveryFee = 0;
+        setIsDeliveryValid(false);
+        setDeliveryValidationError(null);
       }
-    },
-    [
-      orderType,
-      isAuthenticated,
-      token,
-      sessionId,
-      selectedBranch?.id,
-      cartItems,
-      appliedPromo?.discountAmount,
-      acceptedOptionalServiceCharges,
-      address,
-      address?.latitude,
-      address?.longitude,
-    ]
-  );
+
+      const totals = calculateOrderTotals(
+        { ...cartData, deliveryFee: calculatedDeliveryFee },
+        cartItems,
+        appliedPromo?.discountAmount,
+        acceptedOptionalServiceCharges
+      );
+      console.log("totals", totals);
+
+      setCartSummary({
+        subtotal: totals.subtotal,
+        deliveryFee: calculatedDeliveryFee,
+        total: totals.total,
+        itemCount: cartData.itemCount || cartItems.length,
+        taxRate: totals.taxRate,
+        serviceCharges,
+        orderType: cartData.orderType,
+      });
+    } catch (error) {
+      console.error("Error fetching cart summary:", error);
+      toast.error("Failed to fetch cart details. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
+  }, [
+    orderType,
+    isAuthenticated,
+    token,
+    sessionId,
+    selectedBranch?.id,
+    cartItems,
+    appliedPromo?.discountAmount,
+    acceptedOptionalServiceCharges,
+    address,
+    address?.latitude,
+    address?.longitude,
+  ]);
 
   React.useEffect(() => {
     const isGuest = localStorage.getItem("isGuest") === "true";
@@ -1090,6 +1086,21 @@ const CheckoutPage = () => {
     setShowSearchInput(false);
     // Refresh cart summary to get updated delivery fee
     fetchCartSummary();
+  };
+
+  const handleRemoveAddress = async (index: number) => {
+    console.log("Removing address:", index);
+    const response = await axios.delete(`/api/users/delivery/address`, {
+      data: {
+        index: index,
+      },
+    });
+    if (response.data.success) {
+      toast.success(response.data.message);
+      getMe(true);
+    } else {
+      toast.error(response.data.message);
+    }
   };
 
   // Fetch cart summary with delivery fee calculation
@@ -1433,7 +1444,7 @@ const CheckoutPage = () => {
           setShowStripeModal(true);
           setShowConfirmation(false);
           setIsProcessing(false);
-          if (isAuthenticated && token) {          
+          if (isAuthenticated && token) {
             getMe();
           }
           return;
@@ -2030,50 +2041,56 @@ const CheckoutPage = () => {
                           Recent Order Delivery Addresses
                         </h2>
                         <div className="mt-4 p-4 bg-gray-50 border border-gray-200 rounded-xl">
-                          {user.deliveryAddresses.map((userSavedAddress) => (
-                            <div
-                              key={userSavedAddress.fullAddress}
-                              onClick={() =>
-                                handleAddressSelect(
-                                  userSavedAddress as unknown as Address
-                                )
-                              }
-                              className={`${
-                                userSavedAddress.fullAddress ===
-                                address?.fullAddress
-                                  ? "bg-gray-100 bg-yellow-50/80"
-                                  : ""
-                              } flex items-center gap-2 justify-between mb-2 hover:bg-gray-100 p-2 rounded-lg cursor-pointer`}
-                            >
-                              <MapPin
-                                size={16}
-                                className="text-yellow-600 mt-0.5 flex-shrink-0"
-                              />
-                              <p className="text-sm font-medium text-gray-800 leading-snug">
-                                {userSavedAddress.default && (
-                                  <span className="text-xs text-gray-500">
-                                    (default) &nbsp;
-                                  </span>
-                                )}
-                                {userSavedAddress.fullAddress}
-                              </p>
-
-                              {/* check box to select the address */}
-                              <input
-                                type="checkbox"
-                                checked={
+                          {user.deliveryAddresses.map(
+                            (userSavedAddress, index) => (
+                              <div
+                                key={userSavedAddress.fullAddress}
+                                className={`${
                                   userSavedAddress.fullAddress ===
                                   address?.fullAddress
-                                }
-                                onClick={() =>
-                                  handleAddressSelect(
-                                    userSavedAddress as unknown as Address
-                                  )
-                                }
-                                className="w-4 h-4 text-yellow-600 bg-gray-100 border-gray-300 rounded"
-                              />
-                            </div>
-                          ))}
+                                    ? "bg-gray-100 bg-yellow-50/80"
+                                    : ""
+                                } flex items-center gap-2 justify-between mb-2 hover:bg-gray-100 p-2 rounded-lg cursor-pointer`}
+                              >
+                                <MapPin
+                                  size={16}
+                                  className="text-yellow-600 mt-0.5 flex-shrink-0"
+                                />
+                                <p className="text-sm font-medium text-gray-800 leading-snug">
+                                  {userSavedAddress.default && (
+                                    <span className="text-xs text-gray-500">
+                                      (last used) &nbsp;
+                                    </span>
+                                  )}
+                                  {userSavedAddress.fullAddress}
+                                </p>
+
+                                {/* check box to select the address */}
+                                <div className="flex items-center gap-2">
+                                  <input
+                                    type="checkbox"
+                                    checked={
+                                      userSavedAddress.fullAddress ===
+                                      address?.fullAddress
+                                    }
+                                    onClick={() =>
+                                      handleAddressSelect(
+                                        userSavedAddress as unknown as Address
+                                      )
+                                    }
+                                    className="w-4 h-4 text-yellow-600 bg-gray-100 border-gray-300 rounded"
+                                  />
+                                  <Trash2
+                                    size={16}
+                                    className="text-red-600 cursor-pointer hover:text-red-700 ml-2"
+                                    onClick={() =>
+                                      handleRemoveAddress(index as number)
+                                    }
+                                  />
+                                </div>
+                              </div>
+                            )
+                          )}
                         </div>
                       </>
                     )}
