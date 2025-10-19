@@ -697,6 +697,8 @@ const CheckoutPage = () => {
   const [paymentMethod, setPaymentMethod] = useState("card");
   const navigate = useNavigate();
   const {
+    orderType,
+    setOrderType,
     cartItems,
     formatCurrency,
     clearCart,
@@ -1432,21 +1434,6 @@ const CheckoutPage = () => {
   const deliveryFee = cartSummary.deliveryFee;
   const total = cartSummary.total;
 
-  // Update the validateAddress function
-  const validateAddress = (address: Address): boolean => {
-    const requiredFields = ["street", "city", "state", "postcode", "country"];
-    const emptyFields = requiredFields.filter(
-      (field) => !address[field as keyof Address]?.trim()
-    );
-
-    if (emptyFields.length > 0) {
-      toast.error(
-        `Please fill in all required address fields: ${emptyFields.join(", ")}`
-      );
-      return false;
-    }
-    return true;
-  };
 
   const handleApplyPromo = async () => {
     if (!promoCode.trim()) return;
@@ -1482,13 +1469,13 @@ const CheckoutPage = () => {
           deliveryMethod === "deliver"
             ? "delivery"
             : deliveryMethod === "collect"
-            ? "pickup"
+            ? "collect"
             : "dine_in",
         orderType:
           deliveryMethod === "deliver"
             ? "delivery"
             : deliveryMethod === "collect"
-            ? "pickup"
+            ? "collect"
             : "dine_in",
         userId: user?._id || null,
       };
@@ -1544,7 +1531,7 @@ const CheckoutPage = () => {
     // Basic validation for all users
     if (
       !selectedTimeSlot ||
-      (checkDeliveryMethod !== "collect" && !deliveryAddress.fullAddress) ||
+      (orderType !== "collect" && !deliveryAddress.fullAddress) ||
       !personalDetails.firstName
     ) {
       toast.error("Please fill in all required fields");
@@ -1552,7 +1539,7 @@ const CheckoutPage = () => {
     }
 
     // Check delivery validation for delivery orders
-    if (checkDeliveryMethod === "deliver" && !isDeliveryValid) {
+    if (orderType === "delivery" && !isDeliveryValid) {
       toast.error(
         deliveryValidationError || "Delivery not available to this location"
       );
@@ -2000,6 +1987,33 @@ const CheckoutPage = () => {
     toast.info("Payment cancelled. You can try again later.");
   };
 
+  // hadle change order type
+  const handleChangeOrderType = async (newOrderType: "delivery" | "collect") => {
+    // update order type in the cart api
+    try {
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+      };
+
+      if (isAuthenticated && token) {
+        headers.Authorization = `Bearer ${token}`;
+      } else if (sessionId) {
+        headers["x-session-id"] = sessionId;
+      }
+      const response = await axios.put(`${CART_ENDPOINTS.USER_CART_DELIVERY}`, { orderType }, { headers });
+      if (response.data?.success && response.data?.data) {
+        toast.success("Order type changed successfully");
+        setOrderType(newOrderType);
+        localStorage.setItem("orderType", newOrderType);
+      } else {
+        throw new Error(response.data?.message || "Failed to change order type");
+      }
+    } catch (error: unknown) {
+      console.error("Error changing order type:", error);
+      toast.error("Failed to change order type");
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 py-12">
       <div className="max-w-7xl mx-auto px-4">
@@ -2160,6 +2174,24 @@ const CheckoutPage = () => {
                       className="w-full px-4 py-3 rounded-xl border border-gray-200"
                       required
                     />
+                  </div>
+                  {/* delivery method checkDeliveryMethod */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Delivery Method <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      value={orderType}
+                      onChange={(e) =>
+                        handleChangeOrderType(
+                          e.target.value as "delivery" | "collect"
+                        )
+                      }
+                      className="w-full px-4 py-3 rounded-xl border border-gray-200"
+                    >
+                      <option value="delivery">Delivery to me</option>
+                      <option value="collect">I will collect the order</option>
+                    </select>
                   </div>
                   {/* Delivery Address */}
                   <div className="relative z-30">
@@ -2541,19 +2573,20 @@ const CheckoutPage = () => {
                     )}
 
                     {/* Delivery Fee */}
-                    {cartSummary.orderType === 'delivery' && <div className="flex justify-between text-sm items-center">
-                      <span className="text-gray-600">Delivery Fee</span>
-                      {cartSummary.deliveryFee === 0 ? (
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-                          Free
-                        </span>
-                      ) : (
-                        <span className="font-medium">
-                          {formatCurrency(cartSummary.deliveryFee)}
-                        </span>
-                      )}
-                    </div>
-}
+                    {orderType === "delivery" && (
+                      <div className="flex justify-between text-sm items-center">
+                        <span className="text-gray-600">Delivery Fee</span>
+                        {cartSummary.deliveryFee === 0 ? (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                            Free
+                          </span>
+                        ) : (
+                          <span className="font-medium">
+                            {formatCurrency(cartSummary.deliveryFee)}
+                          </span>
+                        )}
+                      </div>
+                    )}
                     {/* Service Charges */}
                     {cartSummary.serviceCharges.totalMandatory > 0 && (
                       <div className="flex justify-between text-sm">
