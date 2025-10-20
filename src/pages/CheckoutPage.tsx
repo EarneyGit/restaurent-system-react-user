@@ -596,9 +596,11 @@ const generateTimeSlots = (daySettings, orderType) => {
   // filter slot, more than current time
   const filteredSlots = slots.filter((slot) => {
     const [hour, minute] = slot.split(":").map(Number);
-    // + 45 minutes
+    // + 30 minutes
     const currentTime = new Date();
-    currentTime.setMinutes(currentTime.getMinutes() + 45);
+    currentTime.setMinutes(
+      currentTime.getMinutes() + (settingOfType.leadTime || 30)
+    );
     const currentHour = currentTime.getHours();
     const currentMinute = currentTime.getMinutes();
     if (hour < currentHour) {
