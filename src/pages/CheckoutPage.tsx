@@ -537,7 +537,8 @@ interface CreditCardDetails {
 
 // Generate time slots from 10:00 to 22:00 with 30-minute intervals
 const generateTimeSlots = (daySettings, orderType) => {
-   const settingOfType = daySettings[orderType];
+  console.log("generateTimeSlots", daySettings);
+  const settingOfType = daySettings[orderType];
 
   const openCloseTimes = {
     start: daySettings.defaultTimes.start, // 10:00
@@ -554,10 +555,12 @@ const generateTimeSlots = (daySettings, orderType) => {
     openCloseTimes.start = settingOfType.customTimes.start; // 11:00
     openCloseTimes.end = settingOfType.customTimes.end; // 21:50
   }
+  console.log("settingOfType", settingOfType, orderType);
 
   const slots = [];
   const startHour = parseInt(openCloseTimes.start.split(":")[0]);
   const startMinute = parseInt(openCloseTimes.start.split(":")[1]);
+
   const endHour = parseInt(openCloseTimes.end.split(":")[0]);
   const endMinute = parseInt(openCloseTimes.end.split(":")[1]);
 
@@ -566,8 +569,8 @@ const generateTimeSlots = (daySettings, orderType) => {
   const breakEndHour = parseInt(breakTimes.end.split(":")[0]);
   const breakEndMinute = parseInt(breakTimes.end.split(":")[1]);
 
-  for (let hour = startHour; hour < endHour; hour++) {
-    for (let minute = 0; minute < 60; minute += 30) {
+  for (let hour = startHour; hour <= endHour; hour++) {
+    for (let minute = 0; minute < 60; minute += 15) {
       if (startHour === hour && startMinute > minute) {
         continue;
       }
@@ -593,8 +596,11 @@ const generateTimeSlots = (daySettings, orderType) => {
   // filter slot, more than current time
   const filteredSlots = slots.filter((slot) => {
     const [hour, minute] = slot.split(":").map(Number);
-    const currentHour = new Date().getHours();
-    const currentMinute = new Date().getMinutes();
+    // + 45 minutes
+    const currentTime = new Date();
+    currentTime.setMinutes(currentTime.getMinutes() + 45);
+    const currentHour = currentTime.getHours();
+    const currentMinute = currentTime.getMinutes();
     if (hour < currentHour) {
       return false;
     }
@@ -629,6 +635,7 @@ interface OrderConfirmationModalProps {
   onConfirm: () => void;
   isLoading: boolean;
   orderDetails: {
+    orderType: string;
     items: CartItemType[];
     total: number;
     originalTotal?: number;
@@ -678,15 +685,17 @@ const OrderConfirmationModal: React.FC<OrderConfirmationModalProps> = ({
 
           {/* Delivery Details */}
 
-          <div>
-            <h4 className="font-medium text-gray-900">Delivery Address:</h4>
-            <p className="text-sm text-gray-600">
-              {orderDetails.address ? orderDetails.address : "-"}
-            </p>
-          </div>
+          {orderDetails.orderType === "delivery" && (
+            <div>
+              <h4 className="font-medium text-gray-900">Delivery Address:</h4>
+              <p className="text-sm text-gray-600">
+                {orderDetails.address ? orderDetails.address : "-"}
+              </p>
+            </div>
+          )}
 
           <div>
-            <h4 className="font-medium text-gray-900">Delivery Time:</h4>
+            <h4 className="font-medium text-gray-900">{orderDetails.orderType === "delivery" ? "Delivery Time:" : "Collection Time:"}</h4>
             <p className="text-sm text-gray-600">{orderDetails.deliveryTime}</p>
           </div>
 
@@ -770,7 +779,7 @@ const CheckoutPage = () => {
   const [showConfirmation, setShowConfirmation] = useState(false);
   // const [selectedTimeSlot, setSelectedTimeSlot] = useState(timeSlots[0]);
   const [slots, setSlots] = useState([]);
-  const [selectedTimeSlot, setSelectedTimeSlot] = useState('');
+  const [selectedTimeSlot, setSelectedTimeSlot] = useState("");
   const [orderNotes, setOrderNotes] = useState("");
   const [showAddressSearch, setShowAddressSearch] = useState(false);
   const [addressSearchQuery, setAddressSearchQuery] = useState("");
@@ -1178,37 +1187,44 @@ const CheckoutPage = () => {
     address?.longitude,
     address?.fullAddress,
   ]);
-  useEffect(() => {
+
+  const refreshTimeSlots = (orderTypeX: string) => {
     console.log("selectedBranch", selectedBranch);
-     const currentDate = new Date();
-     const dayNames = [
-       "sunday",
-       "monday",
-       "tuesday",
-       "wednesday",
-       "thursday",
-       "friday",
-       "saturday",
-     ];
+    const currentDate = new Date();
+    const dayNames = [
+      "sunday",
+      "monday",
+      "tuesday",
+      "wednesday",
+      "thursday",
+      "friday",
+      "saturday",
+    ];
     const currentDay = dayNames[currentDate.getDay()];
+    console.log("currentDay", currentDay);
     const daySettings = selectedBranch.orderingTimes.weeklySchedule[currentDay];
-    const generatedSlots = generateTimeSlots(daySettings, orderType);
+    const generatedSlots = generateTimeSlots(daySettings, orderTypeX);
+    console.log("generatedSlots", generatedSlots);
     if (selectedTimeSlot) {
       if (!generatedSlots.includes(selectedTimeSlot)) {
-         setSelectedTimeSlot(generatedSlots[0]);
+        setSelectedTimeSlot(generatedSlots[0]);
       }
     } else {
-      setSelectedTimeSlot(generatedSlots[0])
+      setSelectedTimeSlot(generatedSlots[0]);
     }
     setSlots(generatedSlots);
     let canOrder = false;
-    if (orderType === 'delivery') {
+    if (orderType === "delivery") {
       canOrder = daySettings.isDeliveryAllowed || false;
     } else {
       canOrder = daySettings.isCollectionAllowed || false;
     }
     setDisablePlaceOrder(!canOrder);
-  }, [selectedBranch, orderType]);
+  };
+
+  useEffect(() => {
+    refreshTimeSlots(orderType);
+  }, [selectedBranch]);
 
   // Handle search for new address
   const handleSearchAddressSelect = () => {
@@ -1783,6 +1799,7 @@ const CheckoutPage = () => {
         toast.success("Order type changed successfully");
         setOrderType(newOrderType);
         localStorage.setItem("orderType", newOrderType);
+        refreshTimeSlots(newOrderType);
       } else {
         throw new Error(
           response.data?.message || "Failed to change order type"
@@ -2642,6 +2659,7 @@ const CheckoutPage = () => {
         onConfirm={handleConfirmOrder}
         isLoading={isProcessing}
         orderDetails={{
+          orderType: orderType,
           items: cartItems,
           total:
             appliedPromo && appliedPromo.newTotal
