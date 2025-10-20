@@ -536,20 +536,8 @@ interface CreditCardDetails {
 }
 
 // Generate time slots from 10:00 to 22:00 with 30-minute intervals
-const generateTimeSlots = (weeklySchedule, orderType) => {
-  const currentDate = new Date();
-  const dayNames = [
-    "sunday",
-    "monday",
-    "tuesday",
-    "wednesday",
-    "thursday",
-    "friday",
-    "saturday",
-  ];
-  const currentDay = dayNames[currentDate.getDay()];
-  const daySettings = weeklySchedule[currentDay];
-  const settingOfType = daySettings[orderType];
+const generateTimeSlots = (daySettings, orderType) => {
+   const settingOfType = daySettings[orderType];
 
   const openCloseTimes = {
     start: daySettings.defaultTimes.start, // 10:00
@@ -566,18 +554,18 @@ const generateTimeSlots = (weeklySchedule, orderType) => {
     openCloseTimes.start = settingOfType.customTimes.start; // 11:00
     openCloseTimes.end = settingOfType.customTimes.end; // 21:50
   }
-  
+
   const slots = [];
   const startHour = parseInt(openCloseTimes.start.split(":")[0]);
   const startMinute = parseInt(openCloseTimes.start.split(":")[1]);
   const endHour = parseInt(openCloseTimes.end.split(":")[0]);
   const endMinute = parseInt(openCloseTimes.end.split(":")[1]);
-  
+
   const breakStartHour = parseInt(breakTimes.start.split(":")[0]);
   const breakStartMinute = parseInt(breakTimes.start.split(":")[1]);
   const breakEndHour = parseInt(breakTimes.end.split(":")[0]);
   const breakEndMinute = parseInt(breakTimes.end.split(":")[1]);
- 
+
   for (let hour = startHour; hour < endHour; hour++) {
     for (let minute = 0; minute < 60; minute += 30) {
       if (startHour === hour && startMinute > minute) {
@@ -586,31 +574,37 @@ const generateTimeSlots = (weeklySchedule, orderType) => {
       if (endHour === hour && endMinute < minute) {
         continue;
       }
-      if (breakTimes.enabled && hour >= breakStartHour && hour <= breakEndHour) {
+      if (
+        breakTimes.enabled &&
+        hour >= breakStartHour &&
+        hour <= breakEndHour
+      ) {
         if (breakStartMinute <= minute && breakEndMinute >= minute) {
           continue;
         }
       }
       slots.push(
-        `${hour.toString().padStart(2, "0")}:${minute.toString().padStart(2, "0")}`
+        `${hour.toString().padStart(2, "0")}:${minute
+          .toString()
+          .padStart(2, "0")}`
       );
     }
   }
   // filter slot, more than current time
-  const filteredSlots = slots.filter(slot => {
+  const filteredSlots = slots.filter((slot) => {
     const [hour, minute] = slot.split(":").map(Number);
     const currentHour = new Date().getHours();
     const currentMinute = new Date().getMinutes();
-    if(hour < currentHour) {
+    if (hour < currentHour) {
       return false;
     }
-    if(hour === currentHour && minute < currentMinute) {
+    if (hour === currentHour && minute < currentMinute) {
       return false;
     }
     return true;
   });
   return filteredSlots;
-}
+};
 
 interface PriceObject {
   base: number;
@@ -772,6 +766,7 @@ const CheckoutPage = () => {
   } = useCart();
   const { sessionId } = useGuestCart();
   const [isProcessing, setIsProcessing] = useState(false);
+  const [disablePlaceOrder, setDisablePlaceOrder] = useState(false);
   const [showConfirmation, setShowConfirmation] = useState(false);
   // const [selectedTimeSlot, setSelectedTimeSlot] = useState(timeSlots[0]);
   const [slots, setSlots] = useState([]);
@@ -1185,8 +1180,27 @@ const CheckoutPage = () => {
   ]);
   useEffect(() => {
     console.log("selectedBranch", selectedBranch);
-    const slots = generateTimeSlots(selectedBranch.orderingTimes.weeklySchedule, orderType);
-    setSlots(slots)
+     const currentDate = new Date();
+     const dayNames = [
+       "sunday",
+       "monday",
+       "tuesday",
+       "wednesday",
+       "thursday",
+       "friday",
+       "saturday",
+     ];
+    const currentDay = dayNames[currentDate.getDay()];
+    const daySettings = selectedBranch.orderingTimes.weeklySchedule[currentDay];
+    const slots = generateTimeSlots(daySettings, orderType);
+    setSlots(slots);
+    let canOrder = false;
+    if (orderType === 'delivery') {
+      canOrder = daySettings.isDeliveryAllowed || false;
+    } else {
+      canOrder = daySettings.isCollectionAllowed || false;
+    }
+    setDisablePlaceOrder(!canOrder);
   }, [selectedBranch, orderType]);
 
   // Handle search for new address
@@ -2568,6 +2582,7 @@ const CheckoutPage = () => {
                         : ""
                     }
                     disabled={
+                      disablePlaceOrder ||
                       isProcessing ||
                       !acceptedTerms ||
                       (orderType === "delivery" && !isDeliveryValid)
