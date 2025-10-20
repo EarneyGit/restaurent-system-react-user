@@ -1192,8 +1192,15 @@ const CheckoutPage = () => {
      ];
     const currentDay = dayNames[currentDate.getDay()];
     const daySettings = selectedBranch.orderingTimes.weeklySchedule[currentDay];
-    const slots = generateTimeSlots(daySettings, orderType);
-    setSlots(slots);
+    const generatedSlots = generateTimeSlots(daySettings, orderType);
+    if (selectedTimeSlot) {
+      if (!generatedSlots.includes(selectedTimeSlot)) {
+         setSelectedTimeSlot(generatedSlots[0]);
+      }
+    } else {
+      setSelectedTimeSlot(generatedSlots[0])
+    }
+    setSlots(generatedSlots);
     let canOrder = false;
     if (orderType === 'delivery') {
       canOrder = daySettings.isDeliveryAllowed || false;
