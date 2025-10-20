@@ -536,20 +536,81 @@ interface CreditCardDetails {
 }
 
 // Generate time slots from 10:00 to 22:00 with 30-minute intervals
-const generateTimeSlots = () => {
+const generateTimeSlots = (weeklySchedule, orderType) => {
+  const currentDate = new Date();
+  const dayNames = [
+    "sunday",
+    "monday",
+    "tuesday",
+    "wednesday",
+    "thursday",
+    "friday",
+    "saturday",
+  ];
+  const currentDay = dayNames[currentDate.getDay()];
+  const daySettings = weeklySchedule[currentDay];
+  const settingOfType = daySettings[orderType];
+
+  const openCloseTimes = {
+    start: daySettings.defaultTimes.start, // 10:00
+    end: daySettings.defaultTimes.end, // 23:55
+  };
+
+  const breakTimes = {
+    enabled: daySettings.breakTime.enabled || false,
+    start: daySettings.breakTime.start, // 14:00
+    end: daySettings.breakTime.end, // 14:40
+  };
+
+  if (settingOfType.useDifferentTimes) {
+    openCloseTimes.start = settingOfType.customTimes.start; // 11:00
+    openCloseTimes.end = settingOfType.customTimes.end; // 21:50
+  }
+  
   const slots = [];
-  for (let hour = 10; hour < 22; hour++) {
+  const startHour = parseInt(openCloseTimes.start.split(":")[0]);
+  const startMinute = parseInt(openCloseTimes.start.split(":")[1]);
+  const endHour = parseInt(openCloseTimes.end.split(":")[0]);
+  const endMinute = parseInt(openCloseTimes.end.split(":")[1]);
+  
+  const breakStartHour = parseInt(breakTimes.start.split(":")[0]);
+  const breakStartMinute = parseInt(breakTimes.start.split(":")[1]);
+  const breakEndHour = parseInt(breakTimes.end.split(":")[0]);
+  const breakEndMinute = parseInt(breakTimes.end.split(":")[1]);
+ 
+  for (let hour = startHour; hour < endHour; hour++) {
     for (let minute = 0; minute < 60; minute += 30) {
-      const time = `${hour.toString().padStart(2, "0")}:${minute
-        .toString()
-        .padStart(2, "0")}`;
-      slots.push(time);
+      if (startHour === hour && startMinute > minute) {
+        continue;
+      }
+      if (endHour === hour && endMinute < minute) {
+        continue;
+      }
+      if (breakTimes.enabled && hour >= breakStartHour && hour <= breakEndHour) {
+        if (breakStartMinute <= minute && breakEndMinute >= minute) {
+          continue;
+        }
+      }
+      slots.push(
+        `${hour.toString().padStart(2, "0")}:${minute.toString().padStart(2, "0")}`
+      );
     }
   }
-  return slots;
-};
-
-const timeSlots = generateTimeSlots();
+  // filter slot, more than current time
+  const filteredSlots = slots.filter(slot => {
+    const [hour, minute] = slot.split(":").map(Number);
+    const currentHour = new Date().getHours();
+    const currentMinute = new Date().getMinutes();
+    if(hour < currentHour) {
+      return false;
+    }
+    if(hour === currentHour && minute < currentMinute) {
+      return false;
+    }
+    return true;
+  });
+  return filteredSlots;
+}
 
 interface PriceObject {
   base: number;
@@ -712,7 +773,9 @@ const CheckoutPage = () => {
   const { sessionId } = useGuestCart();
   const [isProcessing, setIsProcessing] = useState(false);
   const [showConfirmation, setShowConfirmation] = useState(false);
-  const [selectedTimeSlot, setSelectedTimeSlot] = useState(timeSlots[0]);
+  // const [selectedTimeSlot, setSelectedTimeSlot] = useState(timeSlots[0]);
+  const [slots, setSlots] = useState([]);
+  const [selectedTimeSlot, setSelectedTimeSlot] = useState('');
   const [orderNotes, setOrderNotes] = useState("");
   const [showAddressSearch, setShowAddressSearch] = useState(false);
   const [addressSearchQuery, setAddressSearchQuery] = useState("");
@@ -1120,6 +1183,11 @@ const CheckoutPage = () => {
     address?.longitude,
     address?.fullAddress,
   ]);
+  useEffect(() => {
+    console.log("selectedBranch", selectedBranch);
+    const slots = generateTimeSlots(selectedBranch.orderingTimes.weeklySchedule, orderType);
+    setSlots(slots)
+  }, [selectedBranch, orderType]);
 
   // Handle search for new address
   const handleSearchAddressSelect = () => {
@@ -1752,7 +1820,7 @@ const CheckoutPage = () => {
                     onChange={(e) => setSelectedTimeSlot(e.target.value)}
                     className="w-full px-4 py-3 rounded-xl border border-gray-200 "
                   >
-                    {timeSlots.map((time) => (
+                    {slots.map((time) => (
                       <option key={time} value={time}>
                         {time}
                       </option>
