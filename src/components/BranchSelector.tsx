@@ -6,11 +6,13 @@ import { Branch, BranchResponse } from '../types/branch.types';
 import { useBranch } from '../context/BranchContext';
 import { toast } from 'sonner';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useCart } from '@/context/CartContext';
 
 const BranchSelector = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [branches, setBranches] = useState<Branch[]>([]);
   const { selectedBranch, setSelectedBranch } = useBranch();
+  const { clearCart, clearBranchCart, setAddress } = useCart();
   const navigate = useNavigate();
   const location = useLocation();
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -91,6 +93,7 @@ const BranchSelector = () => {
   };
 
   const handleStartOver = () => {
+    clearCart();
     setSelectedBranch(null);
     localStorage.removeItem('selectedBranchId');
     navigate('/select-outlet');

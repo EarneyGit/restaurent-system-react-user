@@ -12,9 +12,11 @@ import {
   Settings,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
+import { useCart } from "@/context/CartContext";
 
 const Welcome = () => {
   const navigate = useNavigate();
+  const { clearCart } = useCart();
   const { user, isAuthenticated, logout } = useAuth();
   const [showAccountOptions, setShowAccountOptions] = useState(false);
 
@@ -30,6 +32,10 @@ const Welcome = () => {
     await logout();
     setShowAccountOptions(false);
     navigate("/login");
+  };
+  const startOver = () => {
+    clearCart();
+    navigate("/select-outlet");
   };
 
   return (
@@ -64,7 +70,7 @@ const Welcome = () => {
             excellent service.
           </p>
           <button
-            onClick={() => navigate("/select-outlet")}
+            onClick={() => startOver()}
             className="px-8 py-3 rounded-xl text-lg font-semibold bg-yellow-700/90 text-white shadow-md relative overflow-hidden border border-black/10 transition hover:scale-x-100  "
           >
             <span className="relative z-10 uppercase text-white font-bold">

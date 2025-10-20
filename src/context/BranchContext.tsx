@@ -47,6 +47,18 @@ export const BranchProvider: React.FC<{ children: React.ReactNode }> = ({
       const response = await axios.get(BRANCH_ENDPOINTS.GET_ALL_BRANCHES);
       if (response.data?.success) {
         setBranches(response.data.data);
+        if (selectedBranch) {
+          const selectedBranchIndex = response.data.data.findIndex(
+            (branch: Branch) => branch.id === selectedBranch.id
+          );
+          if (selectedBranchIndex !== -1) {
+            setSelectedBranch(response.data.data[selectedBranchIndex]);
+            localStorage.setItem(
+              "selectedBranch",
+              JSON.stringify(response.data.data[selectedBranchIndex])
+            );
+          }
+        }
       } else {
         toast.error("Failed to load branches");
       }
