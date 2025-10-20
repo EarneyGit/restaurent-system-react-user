@@ -697,7 +697,11 @@ const OrderConfirmationModal: React.FC<OrderConfirmationModalProps> = ({
           )}
 
           <div>
-            <h4 className="font-medium text-gray-900">{orderDetails.orderType === "delivery" ? "Delivery Time:" : "Collection Time:"}</h4>
+            <h4 className="font-medium text-gray-900">
+              {orderDetails.orderType === "delivery"
+                ? "Delivery Time:"
+                : "Collection Time:"}
+            </h4>
             <p className="text-sm text-gray-600">{orderDetails.deliveryTime}</p>
           </div>
 
@@ -1481,6 +1485,7 @@ const CheckoutPage = () => {
         },
         // Add guest user flag and information for account creation
         isGuest: !isAuthenticated && isGuest,
+        isGuestOrder: !isAuthenticated && isGuest,
         guestUserInfo:
           !isAuthenticated && isGuest
             ? {
@@ -1493,6 +1498,15 @@ const CheckoutPage = () => {
                 longitude: address?.longitude,
               }
             : undefined,
+        orderCustomerDetails: {
+          firstName: personalDetails.firstName,
+          lastName: personalDetails.lastName,
+          email: personalDetails.email,
+          phone: personalDetails.phone,
+          address: address?.fullAddress,
+          latitude: address?.latitude,
+          longitude: address?.longitude,
+        },
         couponCode: appliedPromo?.code,
         subtotal,
         deliveryFee: deliveryFeeAmount,
