@@ -766,7 +766,9 @@ const CheckoutPage = () => {
   const { user, isAuthenticated, token, getMe } = useAuth();
   const { selectedBranch, fetchBranches } = useBranch();
   const [paymentMethod, setPaymentMethod] = useState("card");
-  const [orderTypeErrorMsg, setOrderTypeErrorMsg] = useState<string | null>(null);
+  const [orderTypeErrorMsg, setOrderTypeErrorMsg] = useState<string | null>(
+    null
+  );
   const navigate = useNavigate();
   const {
     orderType,
@@ -1015,6 +1017,10 @@ const CheckoutPage = () => {
       });
     }
   }, [user]);
+
+  useEffect(() => {
+    fetchBranches(true);
+  }, [orderType]);
 
   const parseFullAddress = useCallback((fullAddress: string) => {
     const parts = fullAddress.split(",").map((part) => part.trim());
@@ -2655,7 +2661,9 @@ const CheckoutPage = () => {
                     )}
                   </button>
                   {orderTypeErrorMsg && (
-                    <div className="text-red-500 text-sm text-center">{orderTypeErrorMsg}</div>
+                    <div className="text-red-500 text-sm text-center">
+                      {orderTypeErrorMsg}
+                    </div>
                   )}
 
                   <div className="mt-3">

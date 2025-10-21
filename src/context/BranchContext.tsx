@@ -10,7 +10,7 @@ interface BranchContextType {
   clearSelectedBranch: () => void;
   branches: Branch[];
   isLoading: boolean;
-  fetchBranches: () => Promise<void>;
+  fetchBranches: (silent: boolean) => Promise<void>;
 }
 
 const BranchContext = createContext<BranchContextType | undefined>(undefined);
@@ -41,9 +41,11 @@ export const BranchProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   }, [selectedBranch]);
 
-  const fetchBranches = async () => {
+  const fetchBranches = async (silent: boolean = false) => {
     try {
-      setIsLoading(true);
+      if (!silent) {
+        setIsLoading(true);
+      }
       const response = await axios.get(BRANCH_ENDPOINTS.GET_ALL_BRANCHES);
       if (response.data?.success) {
         setBranches(response.data.data);
@@ -60,13 +62,19 @@ export const BranchProvider: React.FC<{ children: React.ReactNode }> = ({
           }
         }
       } else {
-        toast.error("Failed to load branches");
+        if (!silent) {
+          toast.error("Failed to load branches");
+        }
       }
     } catch (error) {
       console.error("Error fetching branches:", error);
-      toast.error("Failed to load branches");
+      if (!silent) {
+        toast.error("Failed to load branches");
+      }
     } finally {
-      setIsLoading(false);
+      if (!silent) {
+        setIsLoading(false);
+      }
     }
   };
 
