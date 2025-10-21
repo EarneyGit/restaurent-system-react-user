@@ -766,7 +766,7 @@ const CheckoutPage = () => {
   const { user, isAuthenticated, token, getMe } = useAuth();
   const { selectedBranch, fetchBranches } = useBranch();
   const [paymentMethod, setPaymentMethod] = useState("card");
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [orderTypeErrorMsg, setOrderTypeErrorMsg] = useState<string | null>(null);
   const navigate = useNavigate();
   const {
     orderType,
@@ -1234,7 +1234,7 @@ const CheckoutPage = () => {
       }
     }
     setDisablePlaceOrder(!canOrder);
-    setErrorMsg(errMsg || null);
+    setOrderTypeErrorMsg(errMsg || null);
   };
 
   useEffect(() => {
@@ -2632,7 +2632,7 @@ const CheckoutPage = () => {
                         : ""
                     }
                     disabled={
-                      errorMsg
+                      orderTypeErrorMsg
                         ? true
                         : false ||
                           disablePlaceOrder ||
@@ -2654,8 +2654,8 @@ const CheckoutPage = () => {
                       </>
                     )}
                   </button>
-                  {errorMsg && (
-                    <div className="text-red-500 text-sm text-center">{errorMsg}</div>
+                  {orderTypeErrorMsg && (
+                    <div className="text-red-500 text-sm text-center">{orderTypeErrorMsg}</div>
                   )}
 
                   <div className="mt-3">
