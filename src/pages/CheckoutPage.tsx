@@ -28,6 +28,7 @@ import {
   useStripe,
   useElements,
 } from "@stripe/react-stripe-js";
+import { isEmpty } from "@/lib/utils";
 
 const stripePromise = loadStripe(
   import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY ||
@@ -1895,6 +1896,16 @@ const CheckoutPage = () => {
                       </option>
                     ))}
                   </select>
+                  {isEmpty(slots) && (
+                    <div className="text-red-500 text-sm text-center">
+                      No time slots available
+                    </div>
+                  )}
+                  {isEmpty(selectedTimeSlot) && (
+                    <div className="text-red-500 text-sm text-center">
+                      Please select a time slot
+                    </div>
+                  )}
                 </div>
 
                 {/* Order Notes */}
@@ -2021,6 +2032,11 @@ const CheckoutPage = () => {
                       <option value="delivery">Delivery to me</option>
                       <option value="collection">I'll collect</option>
                     </select>
+                    {orderTypeErrorMsg && (
+                      <div className="text-red-500 text-sm text-center">
+                        {orderTypeErrorMsg}
+                      </div>
+                    )}
                   </div>
                   {/* Delivery Address if order type is delivery */}
                   {orderType === "delivery" && (
@@ -2660,11 +2676,6 @@ const CheckoutPage = () => {
                       </>
                     )}
                   </button>
-                  {orderTypeErrorMsg && (
-                    <div className="text-red-500 text-sm text-center">
-                      {orderTypeErrorMsg}
-                    </div>
-                  )}
 
                   <div className="mt-3">
                     <label className="flex items-start gap-2">
