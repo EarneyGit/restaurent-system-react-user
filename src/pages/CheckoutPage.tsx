@@ -1566,7 +1566,7 @@ const CheckoutPage = () => {
           setShowConfirmation(false);
           setIsProcessing(false);
           if (isAuthenticated && token) {
-            getMe();
+            getMe(true);
           }
           return;
         } catch (error: unknown) {
@@ -1643,7 +1643,7 @@ const CheckoutPage = () => {
 
           setShowConfirmation(false);
           if (isAuthenticated && token) {
-            getMe();
+            getMe(true);
           }
           toast.success("Order placed successfully!");
         } else {
