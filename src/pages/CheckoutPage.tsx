@@ -766,6 +766,7 @@ const CheckoutPage = () => {
   const { user, isAuthenticated, token, getMe } = useAuth();
   const { selectedBranch, fetchBranches } = useBranch();
   const [paymentMethod, setPaymentMethod] = useState("card");
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const navigate = useNavigate();
   const {
     orderType,
@@ -1220,12 +1221,20 @@ const CheckoutPage = () => {
     }
     setSlots(generatedSlots);
     let canOrder = false;
-    if (orderType === "delivery") {
+    let errMsg = null;
+    if (orderTypeX === "delivery") {
       canOrder = daySettings.isDeliveryAllowed || false;
+      if (!canOrder) {
+        errMsg = "Delivery not available";
+      }
     } else {
       canOrder = daySettings.isCollectionAllowed || false;
+      if (!canOrder) {
+        errMsg = "Collection not available";
+      }
     }
     setDisablePlaceOrder(!canOrder);
+    setErrorMsg(errMsg || null);
   };
 
   useEffect(() => {
@@ -2623,10 +2632,13 @@ const CheckoutPage = () => {
                         : ""
                     }
                     disabled={
-                      disablePlaceOrder ||
-                      isProcessing ||
-                      !acceptedTerms ||
-                      (orderType === "delivery" && !isDeliveryValid)
+                      errorMsg
+                        ? true
+                        : false ||
+                          disablePlaceOrder ||
+                          isProcessing ||
+                          !acceptedTerms ||
+                          (orderType === "delivery" && !isDeliveryValid)
                     }
                     className="w-full bg-yellow-700 text-white py-3 rounded-xl font-semibold hover:bg-yellow-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                   >
@@ -2642,6 +2654,9 @@ const CheckoutPage = () => {
                       </>
                     )}
                   </button>
+                  {errorMsg && (
+                    <div className="text-red-500 text-sm text-center">{errorMsg}</div>
+                  )}
 
                   <div className="mt-3">
                     <label className="flex items-start gap-2">
