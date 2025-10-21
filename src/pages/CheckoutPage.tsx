@@ -2187,28 +2187,29 @@ const CheckoutPage = () => {
                                   {userSavedAddress.fullAddress}
                                 </p>
 
-                                {/* check box to select the address */}
+                                {/* button to select the address */}
                                 <div className="flex items-center gap-2">
-                                  <input
-                                    type="checkbox"
-                                    checked={
-                                      userSavedAddress.fullAddress ===
-                                      address?.fullAddress
-                                    }
+                                  <button
                                     onClick={() =>
                                       handleAddressSelect(
                                         userSavedAddress as unknown as Address
                                       )
                                     }
-                                    className="w-4 h-4 text-yellow-600 bg-gray-100 border-gray-300 rounded"
-                                  />
-                                  <Trash2
-                                    size={16}
-                                    className="text-red-600 cursor-pointer hover:text-red-700 ml-2"
+                                    className="text-yellow-600 cursor-pointer hover:text-yellow-700 ml-2"
+                                  >
+                                    <Check size={16} />
+                                    Select
+                                  </button>
+                                  {/* button to remove the address */}
+                                  <button
                                     onClick={() =>
                                       handleRemoveAddress(index as number)
                                     }
-                                  />
+                                    className="text-red-600 cursor-pointer hover:text-red-700 ml-2"
+                                  >
+                                    <Trash2 size={16} />
+                                    Remove
+                                  </button>
                                 </div>
                               </div>
                             )
