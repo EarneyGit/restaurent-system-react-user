@@ -69,6 +69,15 @@ interface Product {
     id?: string;
   }>;
 }
+interface CustomerDetails {
+  address: string;
+  lastName: string;
+  firstName: string;
+  phone: string;
+  email: string;
+  latitude: number;
+  longitude: number;
+}
 
 interface Order {
   _id: string;
@@ -89,6 +98,7 @@ interface Order {
   };
   paymentMethod: "card" | "cash";
   deliveryMethod: "delivery" | "collection";
+  orderCustomerDetails: CustomerDetails;
   createdAt: string;
   updatedAt: string;
 }
@@ -608,14 +618,15 @@ const OrdersPage = () => {
                   </ul>
                 </div>
                 {modalOrder.deliveryMethod === "delivery" &&
-                  modalOrder.deliveryAddress && (
+                  modalOrder.orderCustomerDetails && (
                     <div className="mb-4">
                       <h3 className="font-semibold mb-2">Delivery Address</h3>
                       <div className="text-sm text-gray-700">
-                        {modalOrder.deliveryAddress.street},{" "}
+                        {/* {modalOrder.deliveryAddress.street},{" "}
                         {modalOrder.deliveryAddress.city},{" "}
                         {modalOrder.deliveryAddress.state},{" "}
-                        {modalOrder.deliveryAddress.postalCode}
+                        {modalOrder.deliveryAddress.postalCode} */}
+                        {modalOrder?.orderCustomerDetails?.address || ""}
                       </div>
                     </div>
                   )}

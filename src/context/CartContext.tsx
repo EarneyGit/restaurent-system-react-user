@@ -241,7 +241,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({
         quantity: product.quantity,
         branchId: selectedBranch.id,
         specialRequirements: product.specialRequirements,
-        orderType: deliveryMethod,
+        orderType: deliveryMethod === "collect" ? "collection" : deliveryMethod,
         selectedAttributes:
           product.selectedAttributes && product.selectedAttributes.length > 0
             ? product.selectedAttributes.map((sa) => ({

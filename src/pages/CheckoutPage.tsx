@@ -542,8 +542,8 @@ const generateTimeSlots = (daySettings, orderType) => {
   const settingOfType = daySettings[orderType];
 
   const openCloseTimes = {
-    start: daySettings.defaultTimes.start, // 10:00
-    end: daySettings.defaultTimes.end, // 23:55
+    start: daySettings?.defaultTimes?.start, // 10:00
+    end: daySettings?.defaultTimes?.end, // 23:55
   };
 
   const breakTimes = {
@@ -552,7 +552,7 @@ const generateTimeSlots = (daySettings, orderType) => {
     end: daySettings.breakTime.end, // 14:40
   };
 
-  if (settingOfType.useDifferentTimes) {
+  if (settingOfType?.useDifferentTimes) {
     openCloseTimes.start = settingOfType.customTimes.start; // 11:00
     openCloseTimes.end = settingOfType.customTimes.end; // 21:50
   }
@@ -600,7 +600,7 @@ const generateTimeSlots = (daySettings, orderType) => {
     // + 30 minutes
     const currentTime = new Date();
     currentTime.setMinutes(
-      currentTime.getMinutes() + (settingOfType.leadTime || 30)
+      currentTime.getMinutes() + (settingOfType?.leadTime || 30)
     );
     const currentHour = currentTime.getHours();
     const currentMinute = currentTime.getMinutes();
@@ -1160,7 +1160,6 @@ const CheckoutPage = () => {
       latitude: latitude,
       longitude: longitude,
     };
-    console.log("formattedAddress", formattedAddress);
     setAddress(formattedAddress);
     setAddressSearchQuery(formattedAddress.fullAddress);
     setShowAddressSearch(false);
@@ -1170,7 +1169,6 @@ const CheckoutPage = () => {
   };
 
   const handleRemoveAddress = async (index: number) => {
-    console.log("Removing address:", index);
     const response = await axios.delete(`/api/users/delivery/address`, {
       data: {
         index: index,
@@ -1203,7 +1201,6 @@ const CheckoutPage = () => {
   ]);
 
   const refreshTimeSlots = (orderTypeX: string) => {
-    console.log("selectedBranch", selectedBranch);
     const currentDate = new Date();
     const dayNames = [
       "sunday",
@@ -1215,10 +1212,8 @@ const CheckoutPage = () => {
       "saturday",
     ];
     const currentDay = dayNames[currentDate.getDay()];
-    console.log("currentDay", currentDay);
     const daySettings = selectedBranch.orderingTimes.weeklySchedule[currentDay];
     const generatedSlots = generateTimeSlots(daySettings, orderTypeX);
-    console.log("generatedSlots", generatedSlots);
     if (selectedTimeSlot) {
       if (!generatedSlots.includes(selectedTimeSlot)) {
         setSelectedTimeSlot(generatedSlots[0]);

@@ -922,16 +922,6 @@ const OrderSuccessPage = () => {
                     </div>
                   )}
 
-                  {/* Service Charge */}
-                  {orderDetails.serviceCharge && (
-                    <div className="flex justify-between items-center py-2">
-                      <span className="text-gray-700">Service Charge</span>
-                      <span className="font-medium text-gray-900">
-                        {safeFormatCurrency(orderDetails.serviceCharge)}
-                      </span>
-                    </div>
-                  )}
-
                   {/* Subtotal */}
                   <div className="flex justify-between items-center py-2">
                     <span className="text-gray-700">Subtotal</span>
