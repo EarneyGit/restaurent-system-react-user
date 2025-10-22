@@ -1288,20 +1288,19 @@ const CheckoutPage = () => {
 
     setIsApplyingPromo(true);
     try {
+      const otherFeesTotal = cartSummary.deliveryFee + (cartSummary.serviceCharges?.totalAll || 0);
+      
       // Calculate current order total for validation
-      const currentOrderTotal =
-        cartItems.reduce(
-          (total, item) =>
-            total +
-            (isPriceObject(item.price) ? item.price.total * item.quantity : 0),
-          0
-        ) +
-        cartSummary.deliveryFee +
-        (cartSummary.serviceCharges?.totalAll || 0);
-
-      // Get delivery method from localStorage
-      const deliveryMethod =
-        localStorage.getItem("deliveryMethod") || "delivery";
+      const currentOrderTotal = cartItems.reduce(
+        (total, item) =>
+          total +
+          (isPriceObject(item.price) ? item.price.total * item.quantity : 0),
+        0
+      );
+      // // should not apply delivey and service fee for discount if needed
+      // +
+      // cartSummary.deliveryFee +
+      // (cartSummary.serviceCharges?.totalAll || 0);
 
       // Prepare validation request
       const validationData = {
@@ -1333,8 +1332,8 @@ const CheckoutPage = () => {
           discountType: discountData.discountType,
           discountValue: discountData.discountValue,
           discountAmount: discountData.discountAmount,
-          originalTotal: discountData.originalTotal,
-          newTotal: discountData.newTotal,
+          originalTotal: discountData.originalTotal + otherFeesTotal,
+          newTotal: discountData.newTotal + otherFeesTotal,
           savings: discountData.savings,
         });
         toast.success(
