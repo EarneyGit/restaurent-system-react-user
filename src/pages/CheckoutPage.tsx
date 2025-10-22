@@ -1229,23 +1229,7 @@ const CheckoutPage = () => {
     setSlots(generatedSlots);
     let canOrder = false;
     let errMsg = null;
-    const defaultTimes = daySettings.defaultTimes; // { start: 12:00, end: 23:00 }
-    const [defaultStartHour, defaultStartMinute] = defaultTimes.start
-      .split(":")
-      .map(Number);
-    const [defaultEndHour, defaultEndMinute] = defaultTimes.end
-      .split(":")
-      .map(Number);
-    
-    const currentHour = new Date().getHours();
-    const currentMinute = new Date().getMinutes();
-    if (currentHour < defaultStartHour || currentHour > defaultEndHour) {
-      errMsg = "Outlet Currently Unavailable";
-    } else if (currentHour === defaultStartHour && currentMinute <= defaultStartMinute) {
-      errMsg = "Outlet Currently Unavailable";
-    } else if (currentHour === defaultEndHour && currentMinute >= defaultEndMinute) {
-      errMsg = "Outlet Currently Unavailable";
-    }
+
     if (orderTypeX === "delivery") {
       canOrder = daySettings.isDeliveryAllowed || false;
       if (!canOrder) {
@@ -1256,6 +1240,29 @@ const CheckoutPage = () => {
       if (!canOrder) {
         errMsg = "Collection not available";
       }
+    }
+
+    const defaultTimes = daySettings.defaultTimes; // { start: 12:00, end: 23:00 }
+    const [defaultStartHour, defaultStartMinute] = defaultTimes.start
+      .split(":")
+      .map(Number);
+    const [defaultEndHour, defaultEndMinute] = defaultTimes.end
+      .split(":")
+      .map(Number);
+    const currentHour = new Date().getHours();
+    const currentMinute = new Date().getMinutes();
+    if (currentHour < defaultStartHour || currentHour > defaultEndHour) {
+      errMsg = "Outlet Currently Unavailable";
+    } else if (
+      currentHour === defaultStartHour &&
+      currentMinute <= defaultStartMinute
+    ) {
+      errMsg = "Outlet Currently Unavailable";
+    } else if (
+      currentHour === defaultEndHour &&
+      currentMinute >= defaultEndMinute
+    ) {
+      errMsg = "Outlet Currently Unavailable";
     }
     setDisablePlaceOrder(!canOrder);
     setOrderTypeErrorMsg(errMsg || null);
@@ -2769,4 +2776,5 @@ const CheckoutPage = () => {
   );
 };
 
+export default CheckoutPage;
 export default CheckoutPage;
