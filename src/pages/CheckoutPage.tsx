@@ -106,6 +106,8 @@ interface OrderData {
 
 // Stripe Form Component
 const StripeForm: React.FC<{
+
+
   clientSecret: string;
   orderData: OrderData;
   onSuccess: (orderId: string) => void;
@@ -646,6 +648,7 @@ interface OrderConfirmationModalProps {
     address: string;
     deliveryTime: string;
     serviceCharge?: number;
+    deliveryCharge: number;
   };
 }
 
@@ -720,12 +723,21 @@ const OrderConfirmationModal: React.FC<OrderConfirmationModalProps> = ({
                 </div>
               </>
             ) : null}
+
+            {orderDetails.deliveryCharge ? (
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-600">Delivery Charge:</span>
+                <span>{formatCurrency(orderDetails.deliveryCharge)}</span>
+              </div>
+            ) : null}
+
             {orderDetails.serviceCharge ? (
               <div className="flex justify-between text-sm">
                 <span className="text-gray-600">Service Charge:</span>
                 <span>{formatCurrency(orderDetails.serviceCharge)}</span>
               </div>
             ) : null}
+
             <div className="flex justify-between font-medium">
               <span>Total Amount:</span>
               <span className="text-yellow-700">
@@ -957,7 +969,6 @@ const CheckoutPage = () => {
         appliedPromo?.discountAmount,
         acceptedOptionalServiceCharges
       );
-      console.log("totals", totals);
 
       setCartSummary({
         subtotal: totals.subtotal,
@@ -1859,7 +1870,6 @@ const CheckoutPage = () => {
     }
   };
 
-  console.log("user", user);
   return (
     <div className="min-h-screen bg-gray-50 py-12">
       <div className="max-w-7xl mx-auto px-4">
@@ -2219,21 +2229,22 @@ const CheckoutPage = () => {
                                   address?.fullAddress
                                     ? "bg-gray-100 bg-yellow-50/80"
                                     : ""
-                                } flex items-center gap-2 justify-between mb-2 hover:bg-gray-100 p-2 rounded-lg cursor-pointer`}
+                                } flex items-center justify-between gap-2 mb-2 hover:bg-gray-100 p-2 rounded-lg cursor-pointer`}
                               >
-                                <MapPin
-                                  size={16}
-                                  className="text-yellow-600 mt-0.5 flex-shrink-0"
-                                />
-                                <p className="text-sm font-medium text-gray-800 leading-snug">
-                                  {userSavedAddress.default && (
-                                    <span className="text-xs text-gray-500">
-                                      (last used) &nbsp;
-                                    </span>
-                                  )}
-                                  {userSavedAddress.fullAddress}
-                                </p>
-
+                                <div className="flex items-center gap-1">
+                                  <MapPin
+                                    size={16}
+                                    className="text-yellow-600 mt-0.5 flex-shrink-0"
+                                  />
+                                  <p className="text-sm font-medium text-gray-800 leading-snug">
+                                    {userSavedAddress.default && (
+                                      <span className=" text-gray-500">
+                                        (last used) &nbsp;
+                                      </span>
+                                    )}
+                                    {userSavedAddress.fullAddress}
+                                  </p>
+                                </div>
                                 {/* button to select the address */}
                                 <div className="flex items-center gap-2">
                                   <button
@@ -2242,7 +2253,7 @@ const CheckoutPage = () => {
                                         userSavedAddress as unknown as Address
                                       )
                                     }
-                                    className="text-yellow-600 cursor-pointer hover:text-yellow-700 ml-2"
+                                    className="text-yellow-600 flex items-center gap-1 cursor-pointer hover:text-yellow-700 ml-2"
                                   >
                                     <Check size={16} />
                                     Select
@@ -2252,7 +2263,7 @@ const CheckoutPage = () => {
                                     onClick={() =>
                                       handleRemoveAddress(index as number)
                                     }
-                                    className="text-red-600 cursor-pointer hover:text-red-700 ml-2"
+                                    className="text-red-600 cursor-pointer flex items-center gap-1 hover:text-red-700 ml-2"
                                   >
                                     <Trash2 size={16} />
                                     Remove
@@ -2747,6 +2758,7 @@ const CheckoutPage = () => {
               .join(", ") ||
             "-",
           deliveryTime: selectedTimeSlot,
+          deliveryCharge: cartSummary.deliveryFee || 0,
           serviceCharge: cartSummary.serviceCharges.totalMandatory,
         }}
       />

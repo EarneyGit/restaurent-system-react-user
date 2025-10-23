@@ -192,8 +192,6 @@ const OrderFailurePage = () => {
         }
       );
 
-      console.log('Order API response:', response.data);
-
       if (response.data.success) {
         const order = response.data.data;
         
@@ -312,18 +310,18 @@ const OrderFailurePage = () => {
                 Login to View Order
               </Link>
               <Link
-                to="/app"
+                to="/"
                 className="block w-full px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
               >
-                Go to Menu
+                Go to Home
               </Link>
             </>
           ) : (
             <Link
-              to="/app"
+              to="/"
               className="block w-full px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
             >
-              Go to Menu
+              Go to Home
             </Link>
           )}
         </div>
@@ -350,7 +348,7 @@ const OrderFailurePage = () => {
           <h2 className="text-xl font-semibold text-gray-900 mb-2">Order Not Found</h2>
           <p className="text-gray-600 mb-4">Could not find order details.</p>
           <Link
-            to="/app"
+            to="/"
             className="inline-flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
           >
             Return to Home
@@ -421,7 +419,7 @@ const OrderFailurePage = () => {
                 New Order
               </Link>
               <Link
-                to="/app"
+                to="/"
                 className="flex-1 flex items-center justify-center gap-2 px-6 py-3 border border-gray-300 text-gray-700 font-semibold rounded-xl hover:bg-gray-50 transition-colors"
               >
                 <Home size={18} />

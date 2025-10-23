@@ -402,11 +402,6 @@ const OrderSuccessPage = () => {
     if (orderDetails?.branchId?._id) {
       const socket = initializeSocket();
 
-      console.log(
-        "Socket initialized, joining branch room:",
-        orderDetails.branchId._id
-      );
-
       const unsubscribe = subscribeToOrderUpdates((data: OrderUpdate) => {
         if (data.orderId === orderId) {
           setCurrentStatus(data.status);
@@ -417,8 +412,7 @@ const OrderSuccessPage = () => {
       joinBranchRoom(orderDetails.branchId._id);
 
       return () => {
-        console.log("Cleaning up socket connection");
-        unsubscribe();
+          unsubscribe();
         leaveBranchRoom(orderDetails.branchId._id);
       };
     }
@@ -507,18 +501,18 @@ const OrderSuccessPage = () => {
                   </button>
                 )}
                 <Link
-                  to="/app"
+                  to="/"
                   className="block w-full px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
                 >
-                  Go to Menu
+                  Go to Home
                 </Link>
               </>
             ) : (
               <Link
-                to="/app"
+                to="/"
                 className="block w-full px-4 py-2 text-sm font-medium text-white bg-yellow-600 rounded-md hover:bg-yellow-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500"
               >
-                Go to Menu
+                Go to Home
               </Link>
             )}
           </div>
@@ -548,7 +542,7 @@ const OrderSuccessPage = () => {
           </h2>
           <p className="text-gray-600 mb-4">Could not find order details.</p>
           <Link
-            to="/app"
+            to="/"
             className="inline-flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-yellow-600 hover:bg-yellow-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500"
           >
             Return to Home
@@ -622,7 +616,7 @@ const OrderSuccessPage = () => {
                   </p>
                   <div className=" ">
                     <Link
-                      to="/app"
+                      to="/"
                       className={`inline-flex  px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-black hover:bg-opacity-80 focus:outline-none focus:ring-2 focus:ring-offset-2 ${
                         isCancelled
                           ? "focus:ring-red-500"
@@ -949,7 +943,7 @@ const OrderSuccessPage = () => {
                     )}
                   </div>
 
-                  {/* Service Charges */}
+                  {/* Service Charges */} 
                   {orderDetails.serviceCharges &&
                     orderDetails.serviceCharges.totalAll > 0 && (
                       <div className="flex justify-between items-center py-2">
