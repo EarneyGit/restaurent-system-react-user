@@ -4,6 +4,7 @@ import PromotionalBanners from "@/components/home/PromotionalBanners";
 import RecommendedItems from "@/components/home/RecommendedItems";
 import RestaurantBanner from "@/components/home/RestaurantBanner";
 import RasoieFoodSection from "@/components/home/VietnamFoodSection";
+import BannerSection from "@/components/home/BannerSection";
 
 const Index = () => {
   return (
@@ -30,7 +31,7 @@ const Index = () => {
 
         {/* Restaurant Banner Section */}
         <section className="mb-20">
-          {/* <RestaurantBanner /> */}
+          {/* <BannerSection />` */}
         </section>
       </div>
     </div>

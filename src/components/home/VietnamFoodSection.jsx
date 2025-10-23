@@ -129,12 +129,12 @@ export default function RasoieFoodSection() {
           <h2 className="text-3xl md:text-4xl font-extrabold text-gray-900 mb-6">
             Key Features of Rasoie's Menu
           </h2>
-          <p className="text-gray-700 max-w-xl mb-8">
+          <p className="text-gray-700 max-w-xl mb-8 text-base">
             Rasoie offers authentic Indian cuisine with fresh ingredients, rich
             flavors, and carefully curated dishes to delight every taste.
           </p>
 
-          <ul className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <ul className="grid grid-cols-1 text-base md:grid-cols-2 gap-4">
             {[
               "Fresh Ingredients",
               "Traditional Recipes",
@@ -152,7 +152,7 @@ export default function RasoieFoodSection() {
         </div>
 
         {/* Right Images */}
-        <div className="grid grid-cols-2 gap-4 md:gap-6">
+        <div className="grid grid-cols-2 gap-4 md:gap-6 md:mt-0 mt-4">
           <div className="relative overflow-hidden rounded-3xl shadow-lg transition hover:scale-100">
             <img
               src="/food_img_2.jpg"
