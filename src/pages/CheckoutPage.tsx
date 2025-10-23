@@ -763,10 +763,12 @@ const OrderConfirmationModal: React.FC<OrderConfirmationModalProps> = ({
   );
 };
 
+type PaymentMethod = "card" | "cash";
+
 const CheckoutPage = () => {
   const { user, isAuthenticated, token, getMe } = useAuth();
   const { selectedBranch, fetchBranches } = useBranch();
-  const [paymentMethod, setPaymentMethod] = useState("card");
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("card");
   const [orderTypeErrorMsg, setOrderTypeErrorMsg] = useState<string | null>(
     null
   );
@@ -1286,16 +1288,13 @@ const CheckoutPage = () => {
       const otherFeesTotal = cartSummary.deliveryFee + (cartSummary.serviceCharges?.totalAll || 0);
       
       // Calculate current order total for validation
-      const currentOrderTotal = cartItems.reduce(
-        (total, item) =>
-          total +
-          (isPriceObject(item.price) ? item.price.total * item.quantity : 0),
-        0
-      );
-      // // should not apply delivey and service fee for discount if needed
-      // +
-      // cartSummary.deliveryFee +
-      // (cartSummary.serviceCharges?.totalAll || 0);
+      const currentOrderTotal =
+        cartItems.reduce(
+          (total, item) =>
+            total +
+            (isPriceObject(item.price) ? item.price.total * item.quantity : 0),
+          0
+        ) + otherFeesTotal;
 
       // Prepare validation request
       const validationData = {
@@ -1327,8 +1326,8 @@ const CheckoutPage = () => {
           discountType: discountData.discountType,
           discountValue: discountData.discountValue,
           discountAmount: discountData.discountAmount,
-          originalTotal: discountData.originalTotal + otherFeesTotal,
-          newTotal: discountData.newTotal + otherFeesTotal,
+          originalTotal: discountData.originalTotal,
+          newTotal: discountData.newTotal,
           savings: discountData.savings,
         });
         toast.success(
@@ -1507,8 +1506,7 @@ const CheckoutPage = () => {
               }
             : undefined,
         contactNumber: personalDetails.phone,
-        paymentMethod:
-          paymentMethod === "cash" ? "cash_on_delivery" : paymentMethod,
+        paymentMethod: paymentMethod,
         customerNotes: orderNotes,
         selectedTimeSlot,
         personalDetails: {
@@ -2368,7 +2366,7 @@ const CheckoutPage = () => {
                     ].map(({ id, label, icon: Icon }) => (
                       <button
                         key={id}
-                        onClick={() => setPaymentMethod(id)}
+                        onClick={() => setPaymentMethod(id as PaymentMethod)}
                         className={`p-3 rounded-xl border-2 transition-all ${
                           paymentMethod === id
                             ? "border-yellow-500/50 bg-yellow-50/80 text-yellow-700"
