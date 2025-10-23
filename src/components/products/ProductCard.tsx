@@ -50,7 +50,7 @@ const isCategoryAvailable = (category: any): boolean => {
   if (!category?.availability) return true; // If no availability data, assume available
 
   const now = new Date();
-  const currentDay = now.toLocaleDateString("en-US", { weekday: "long" }); // Get full day name (Monday, Tuesday, etc.)
+  const currentDay = now.toLocaleDateString("en-GB", { weekday: "long" }); // Get full day name (Monday, Tuesday, etc.)
   const currentTime = now.toTimeString().substring(0, 5); // Get time in HH:MM format
 
   const dayAvailability = category.availability[currentDay];
@@ -98,7 +98,7 @@ const isProductAvailable = (product: Product): boolean => {
 
   const now = new Date();
   const currentDay = now
-    .toLocaleDateString("en-US", { weekday: "short" })
+    .toLocaleDateString("en-GB", { weekday: "short" })
     .toLowerCase(); // Get day name (mon, tue, etc.)
   const currentTime = now.toTimeString().substring(0, 5); // Get time in HH:MM format
 
@@ -164,7 +164,7 @@ const getAvailabilityMessage = (product: Product): string => {
 
   const now = new Date();
   const currentDay = now
-    .toLocaleDateString("en-US", { weekday: "short" })
+    .toLocaleDateString("en-GB", { weekday: "short" })
     .toLowerCase();
 
   const dayMap: { [key: string]: keyof typeof product.availability } = {

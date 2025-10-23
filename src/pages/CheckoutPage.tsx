@@ -106,8 +106,6 @@ interface OrderData {
 
 // Stripe Form Component
 const StripeForm: React.FC<{
-
-
   clientSecret: string;
   orderData: OrderData;
   onSuccess: (orderId: string) => void;
@@ -644,6 +642,7 @@ interface OrderConfirmationModalProps {
     items: CartItemType[];
     total: number;
     originalTotal?: number;
+    subtotal?: number;
     discountAmount?: number;
     address: string;
     deliveryTime: string;
@@ -711,18 +710,11 @@ const OrderConfirmationModal: React.FC<OrderConfirmationModalProps> = ({
 
           {/* Total */}
           <div className="border-t pt-2 space-y-2">
-            {orderDetails.originalTotal && orderDetails.discountAmount ? (
-              <>
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">Subtotal:</span>
-                  <span>{formatCurrency(orderDetails.originalTotal)}</span>
-                </div>
-                <div className="flex justify-between text-sm text-yellow-700">
-                  <span>Discount:</span>
-                  <span>-{formatCurrency(orderDetails.discountAmount)}</span>
-                </div>
-              </>
-            ) : null}
+            {/* sub total */}
+            <div className="flex justify-between text-sm">
+              <span className="text-gray-600">Subtotal:</span>
+              <span>{formatCurrency(orderDetails.subtotal)}</span>
+            </div>
 
             {orderDetails.deliveryCharge ? (
               <div className="flex justify-between text-sm">
@@ -736,6 +728,15 @@ const OrderConfirmationModal: React.FC<OrderConfirmationModalProps> = ({
                 <span className="text-gray-600">Service Charge:</span>
                 <span>{formatCurrency(orderDetails.serviceCharge)}</span>
               </div>
+            ) : null}
+
+            {orderDetails.discountAmount ? (
+              <>
+                <div className="flex justify-between text-sm text-yellow-700">
+                  <span>Discount:</span>
+                  <span>-{formatCurrency(orderDetails.discountAmount)}</span>
+                </div>
+              </>
             ) : null}
 
             <div className="flex justify-between font-medium">
@@ -1296,8 +1297,9 @@ const CheckoutPage = () => {
 
     setIsApplyingPromo(true);
     try {
-      const otherFeesTotal = cartSummary.deliveryFee + (cartSummary.serviceCharges?.totalAll || 0);
-      
+      const otherFeesTotal =
+        cartSummary.deliveryFee + (cartSummary.serviceCharges?.totalAll || 0);
+
       // Calculate current order total for validation
       const currentOrderTotal =
         cartItems.reduce(
@@ -2746,6 +2748,7 @@ const CheckoutPage = () => {
                 (appliedPromo ? appliedPromo.discountAmount : 0),
           originalTotal: appliedPromo?.originalTotal,
           discountAmount: appliedPromo?.discountAmount,
+          subtotal: cartSummary.subtotal,
           address:
             address?.fullAddress ||
             [

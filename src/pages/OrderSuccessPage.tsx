@@ -203,8 +203,6 @@ const OrderSuccessPage = () => {
           "Please ensure you have the correct order ID and branch selected. For guest users, you can only view orders placed in the current session.",
         requiresAuth: false, // Don't show login requirement for guests
       });
-
-
     } else {
       setError({ message: errorMessage, requiresAuth });
     }
@@ -412,7 +410,7 @@ const OrderSuccessPage = () => {
       joinBranchRoom(orderDetails.branchId._id);
 
       return () => {
-          unsubscribe();
+        unsubscribe();
         leaveBranchRoom(orderDetails.branchId._id);
       };
     }
@@ -918,7 +916,7 @@ const OrderSuccessPage = () => {
 
                   {/* Subtotal */}
                   <div className="flex justify-between items-center py-2">
-                    <span className="text-gray-700">Subtotal</span>
+                    <span className="text-gray-700 font-medium">Subtotal</span>
                     <span className="font-medium text-gray-900">
                       {safeFormatCurrency(orderDetails.subtotal)}
                     </span>
@@ -943,15 +941,13 @@ const OrderSuccessPage = () => {
                     )}
                   </div>
 
-                  {/* Service Charges */} 
-                  {orderDetails.serviceCharges &&
-                    orderDetails.serviceCharges.totalAll > 0 && (
+                  {/* Service Charges */}
+                  {orderDetails.serviceCharge &&
+                    orderDetails.serviceCharge > 0 && (
                       <div className="flex justify-between items-center py-2">
                         <span className="text-gray-700">Service Charge</span>
                         <span className="font-medium text-gray-900">
-                          {safeFormatCurrency(
-                            orderDetails.serviceCharges.totalAll
-                          )}
+                          {safeFormatCurrency(orderDetails.serviceCharge)}
                         </span>
                       </div>
                     )}
