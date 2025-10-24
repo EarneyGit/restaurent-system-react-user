@@ -1305,7 +1305,9 @@ const CheckoutPage = () => {
         cartItems.reduce(
           (total, item) =>
             total +
-            (isPriceObject(item.price) ? item.price.total * item.quantity : 0),
+            (isPriceObject(item.price)
+              ? item.price.currentEffectivePrice * item.quantity
+              : 0),
           0
         ) + otherFeesTotal;
 
