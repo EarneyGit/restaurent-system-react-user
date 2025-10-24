@@ -75,6 +75,7 @@ interface OrderProduct {
 interface OrderDetails {
   _id: string;
   orderNumber: string;
+  orderType: "delivery" | "collection";
   products: OrderProduct[];
   totalAmount: number;
   finalTotal: number;
@@ -923,23 +924,25 @@ const OrderSuccessPage = () => {
                   </div>
 
                   {/* Delivery Fee */}
-                  <div className="flex justify-between items-center py-2">
-                    <span className="text-gray-700">Delivery Fee</span>
-                    {!orderDetails.deliveryFee ||
-                    orderDetails.deliveryFee <= 0 ? (
-                      <div
-                        className={`${
-                          isCancelled ? "bg-red-600" : "bg-yellow-600"
-                        } text-white px-3 py-1 rounded-full text-xs font-medium`}
-                      >
-                        FREE
-                      </div>
-                    ) : (
-                      <span className="font-medium text-gray-900">
-                        {safeFormatCurrency(orderDetails.deliveryFee)}
-                      </span>
-                    )}
-                  </div>
+                  {orderDetails?.orderType === "delivery" && (
+                    <div className="flex justify-between items-center py-2">
+                      <span className="text-gray-700">Delivery Fee</span>
+                      {!orderDetails.deliveryFee ||
+                      orderDetails.deliveryFee <= 0 ? (
+                        <div
+                          className={`${
+                            isCancelled ? "bg-red-600" : "bg-yellow-600"
+                          } text-white px-3 py-1 rounded-full text-xs font-medium`}
+                        >
+                          FREE
+                        </div>
+                      ) : (
+                        <span className="font-medium text-gray-900">
+                          {safeFormatCurrency(orderDetails.deliveryFee)}
+                        </span>
+                      )}
+                    </div>
+                  )}
 
                   {/* Service Charges */}
                   {orderDetails.serviceCharge &&
