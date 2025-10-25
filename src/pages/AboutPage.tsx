@@ -101,6 +101,8 @@ interface TabState {
   [branchId: string]: "info" | "hours" | "closed";
 }
 
+const weekdays = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+
 const AboutPage = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -112,7 +114,10 @@ const AboutPage = () => {
   const [activeTabs, setActiveTabs] = useState<TabState>(() => ({
     [branchId || ""]: initialTab,
   }));
-  const [expandedDay, setExpandedDay] = useState<string | null>(null);
+  const todayDay = new Date().toLocaleDateString("en-GB", {
+    weekday: "long",
+  });
+  const [expandedDay, setExpandedDay] = useState<string | null>(todayDay.toLowerCase());
 
   useEffect(() => {
     const fetchBranchDetails = async () => {
@@ -263,6 +268,7 @@ const AboutPage = () => {
   );
 
   const toggleDayExpansion = (day: string) => {
+    console.log('day', day);
     setExpandedDay(expandedDay === day ? null : day);
   };
 
@@ -551,7 +557,7 @@ const AboutPage = () => {
                 {currentTab === "hours" && (
                   <div className="space-y-4 md:p-6">
                     {Object.keys(weeklySchedule).length > 0 ? (
-                      Object.entries(weeklySchedule).map(([day, times]) => {
+                      Object.entries(weeklySchedule).sort((a: [string, DaySchedule], b: [string, DaySchedule]) => weekdays.indexOf(a[0]) - weekdays.indexOf(b[0])).map(([day, times]) => {
                         const daySchedule = times as DaySchedule;
                         const hasBreakTime = daySchedule.breakTime?.enabled;
                         const hasDelivery = daySchedule.isDeliveryAllowed;
