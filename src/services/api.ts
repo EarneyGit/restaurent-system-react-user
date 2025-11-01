@@ -66,6 +66,9 @@ export interface ProductAttribute {
   name: string;
   type: 'single' | 'multiple' | 'multiple-times';
   requiresSelection: boolean;
+  isMultipleTimes : boolean;
+maxAttribute : number;
+minAttribute : number;
   description?: string;
   choices: {
     id: string;

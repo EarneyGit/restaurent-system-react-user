@@ -315,19 +315,24 @@ const CartItem: React.FC<CartItemProps> = ({
           {showAttributes && (
             <div className="mt-2 space-y-3 border rounded-lg p-4 bg-gray-50">
               {selectedAttributes.map((attr) => (
-                <div key={attr.attributeId}>
+                <div key={attr.attributeId} className="mb-1">
                   <span className="font-medium text-gray-800">
                     {attr.attributeName}:
                   </span>{" "}
                   {attr.selectedItems?.map((item, index) => (
                     <span key={item.itemId} className="ml-1 inline-block">
                       {item.itemName}
-                      {item.itemPrice > 0 && (
-                        <span className="ml-1 text-gray-500 font-medium">
-                          (+{formatCurrency(item.itemPrice)})
+                      {item.quantity > 1 && (
+                        <span className="ml-1 text-gray-600">
+                          × {item.quantity}
                         </span>
                       )}
-                      {index < attr.selectedItems.length - 1 && ", "}
+                      {item.itemPrice > 0 && (
+                        <span className="ml-1 text-gray-500 font-medium">
+                          (+{formatCurrency(item.itemPrice * item.quantity)})
+                        </span>
+                      )}
+                      {index < attr.selectedItems.length - 1 && <span>, </span>}
                     </span>
                   ))}
                 </div>
@@ -420,7 +425,7 @@ const CartPage = () => {
   const [cartSummary, setCartSummary] = useState<CartSummary>({
     subtotal: 0,
     deliveryFee: 0,
-    orderType: 'collection',
+    orderType: "collection",
     serviceCharges: {
       totalMandatory: 0,
       totalOptional: 0,
@@ -671,13 +676,13 @@ const CartPage = () => {
                       )}
 
                       {/* Delivery Fee */}
-                      {cartSummary.orderType === 'delivery' && (
-                      <div className="flex justify-between text-sm items-center">
-                        <span className="text-gray-600">Delivery Fee</span>
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-                          Checkout for delivery fee
-                        </span>
-                      </div>
+                      {cartSummary.orderType === "delivery" && (
+                        <div className="flex justify-between text-sm items-center">
+                          <span className="text-gray-600">Delivery Fee</span>
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                            Checkout for delivery fee
+                          </span>
+                        </div>
                       )}
 
                       {/* Service Charges */}
