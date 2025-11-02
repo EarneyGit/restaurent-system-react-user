@@ -87,7 +87,7 @@ const ProductOptionsModal = ({
         }
       }
 
-      if (option.type === "multiple" && option.isMultipleTimes) {
+      if (option.type === "multiple") {
         setQuantities((prevQty) => {
           const attr = prevQty[option.id] || {};
           const exists = current.includes(choiceId);
@@ -240,8 +240,10 @@ const ProductOptionsModal = ({
         <div className="max-h-[60vh] overflow-y-auto px-8 py-6 space-y-6">
           {options.map((option) => {
             const totalQty = getTotalQuantity(option.id);
-            const isQuantityUpdateNeeded =
-              option.type === "multiple" && option.isMultipleTimes === true;
+            const isQuantityLimited =
+              option.type === "multiple" &&
+              option.minAttribute !== 0 &&
+              option.maxAttribute !== 0;
             return (
               <div key={option.id} className="space-y-3">
                 <div className="flex items-center gap-2">
@@ -252,7 +254,7 @@ const ProductOptionsModal = ({
                     )}
                   </h3>
                   <p className="text-sm text-gray-500 italic">
-                    {isQuantityUpdateNeeded &&
+                    {isQuantityLimited &&
                       `Note : Please select at least ${option.minAttribute} and up to ${option.maxAttribute} items.`}
                   </p>
                 </div>
@@ -262,11 +264,10 @@ const ProductOptionsModal = ({
                       selectedOptions[option.id] || []
                     ).includes(choice.id);
                     const disabled =
-                      option.isMultipleTimes &&
+                      option.type === "multiple" &&
                       option.maxAttribute &&
                       totalQty >= option.maxAttribute &&
                       !selected;
-
                     const qty = quantities[option.id]?.[choice.id] || 0;
 
                     return (
