@@ -60,9 +60,16 @@ const ProductOptionsModal = ({
     }
   }, [isOpen]);
 
+
   const getTotalQuantity = (attrId: string) => {
     const attrQty = quantities[attrId] || {};
-    return Object.values(attrQty).reduce((sum, q) => sum + q, 0);
+    // console.log("Qty", attrQty);
+    let total = 0;
+    for (const qty of Object.values(attrQty)) {
+      total = total + qty;
+      console.log("tl", total);
+    }
+    return total;
   };
 
   const formatPrice = (amount: number) => {
@@ -73,108 +80,185 @@ const ProductOptionsModal = ({
   };
 
   const handleOptionSelect = (option: ProductAttribute, choiceId: string) => {
-    setSelectedOptions((prev) => {
-      const current = prev[option.id] || [];
-      let next: string[] = [];
+    const currentSelections = selectedOptions[option.id] || [];
+    const isAlreadySelected = currentSelections.includes(choiceId);
 
-      if (option.type === "single") {
-        next = [choiceId];
-      } else if (option.type === "multiple") {
-        if (current.includes(choiceId)) {
-          next = current.filter((id) => id !== choiceId);
-        } else {
-          next = [...current, choiceId];
+    if (option.type === "single") {
+      setSelectedOptions({
+        ...selectedOptions,
+        [option.id]: [choiceId],
+      });
+      return;
+    }
+
+    if (option.type === "multiple") {
+      if (isAlreadySelected) {
+        const newSelections = currentSelections?.filter((id) => id !== choiceId);
+        setSelectedOptions({ ...selectedOptions, [option.id]: newSelections });
+
+        if (option.isMultipleTimes) {
+          const newQty = { ...quantities[option.id] };
+          delete newQty[choiceId];
+          setQuantities({
+            ...quantities,
+            [option.id]: newQty,
+          });
         }
-      }
-
-      if (option.type === "multiple") {
-        setQuantities((prevQty) => {
-          const attr = prevQty[option.id] || {};
-          const exists = current.includes(choiceId);
-          const newAttr = { ...attr };
-
-          if (!exists) {
-            newAttr[choiceId] = 1;
-          } else {
-            delete newAttr[choiceId];
+      } else {
+        if (option.isMultipleTimes) {
+          const totalQty = getTotalQuantity(option.id);
+          console.log("mt_totalQty",totalQty);
+          const max = option.maxAttribute || 0;
+          if (totalQty >= max) {
+            return;
           }
 
-          return { ...prevQty, [option.id]: newAttr };
-        });
-      }
+          setSelectedOptions({
+            ...selectedOptions,
+            [option.id]: [...currentSelections, choiceId],
+          });
 
-      return { ...prev, [option.id]: next };
-    });
+          const currentQty = quantities[option.id] || {};
+          setQuantities({
+            ...quantities,
+            [option.id]: {
+              ...currentQty,
+              [choiceId]: 1,
+            },
+          });
+        } else {
+          const currentCount = currentSelections.length;
+          const max = option.maxAttribute || 0;
+          if (currentCount >= max) {
+            return;
+          }
+
+          setSelectedOptions({
+            ...selectedOptions,
+            [option.id]: [...currentSelections, choiceId],
+          });
+        }
+      }
+    }
   };
 
   const updateQuantity = (attrId: string, choiceId: string, delta: number) => {
-    setQuantities((prev) => {
-      const attr = prev[attrId] || {};
-      const current = attr[choiceId] || 1;
-      const next = current + delta;
+    const option = options.find((o) => o.id === attrId);
+    if (!option) return;
 
-      if (next < 1) return prev;
+    const currentQty = quantities[attrId]?.[choiceId] || 1;
+    const newQty = currentQty + delta;
 
-      const total = Object.values(attr).reduce((sum, q) => sum + q, 0);
-      const option = options.find((o) => o.id === attrId);
-      if (
-        option &&
-        option.maxAttribute &&
-        total >= option.maxAttribute &&
-        delta > 0
-      ) {
-        return prev;
+    if (newQty < 1) {
+      return;
+    }
+
+    if (option.maxAttribute) {
+      const otherItemsQty = getTotalQuantity(attrId) - currentQty;
+      const newTotal = otherItemsQty + newQty;
+      if (newTotal > option.maxAttribute) {
+        return;
       }
+    }
 
-      const updated = { ...attr, [choiceId]: next };
-      return { ...prev, [attrId]: updated };
+    const allQty = quantities[attrId] || {};
+    setQuantities({
+      ...quantities,
+      [attrId]: {
+        ...allQty,
+        [choiceId]: newQty,
+      },
     });
   };
 
-  const validateForm = () => {
-    const missing: string[] = [];
+  // Seperate disable function for easy handling based on type.
+  const isItemDisabled = (option: ProductAttribute, choiceId: string) => {
+    const currentSelections = selectedOptions[option.id] || [];
+    const isSelected = currentSelections.includes(choiceId);
 
-    for (const option of options) {
-      const selected = selectedOptions[option.id] || [];
-      const totalQty = getTotalQuantity(option.id);
+    if (isSelected) {
+      return false;
+    }
 
-      if (
-        option.type === "single" &&
-        option.requiresSelection &&
-        selected.length === 0
-      ) {
-        missing.push(option.name);
-      }
+    if (option.type === "single") {
+      return false;
+    }
 
-      if (option.type === "multiple" && !option.isMultipleTimes) {
-        if (option.requiresSelection && selected.length === 0) {
-          missing.push(option.name);
+    if (option.type === "multiple") {
+      if (option.isMultipleTimes) {
+        const totalQty = getTotalQuantity(option.id);
+        const max = option.maxAttribute || 0;
+        if (totalQty >= max) {
+          return true;
         }
-      }
-
-      if (option.type === "multiple" && option.isMultipleTimes) {
-        console.log("totalQty", totalQty);
-        const min = option.minAttribute || 0;
-        const max = option.maxAttribute || Infinity;
-
-        if (totalQty < min) {
-          missing.push(`${option.name} (min ${min})`);
-        } else if (totalQty > max) {
-          missing.push(`${option.name} (max ${max})`);
+      } else {
+        const selectedCount = currentSelections.length;
+        const max = option.maxAttribute || 0;
+        if (selectedCount >= max) {
+          return true;
         }
       }
     }
 
-    if (missing.length > 0) {
-      toast.error(`Please select the required items:\n${missing.join(", ")}`);
-      return false;
+    return false;
+  };
+
+  const validateForm = () => {
+    for (const option of options) {
+      console.log("option", option);
+      const selected = selectedOptions[option.id] || [];
+      const selectedCount = selected.length;
+
+      console.log("selected", selected);
+      if (option.type === "single") {
+        if (option.requiresSelection && selectedCount === 0) {
+          toast.error(`Please select ${option.name}`);
+          return false;
+        }
+      }
+
+      if (option.type === "multiple") {
+        if (option.isMultipleTimes) {
+          const totalQty = getTotalQuantity(option.id);
+          const min = option.minAttribute || 0;
+          const max = option.maxAttribute || 0;
+
+          if (totalQty < min) {
+            toast.error(`${option.name}: Please select at least ${min} items`);
+            return false;
+          }
+
+          if (totalQty > max) {
+            toast.error(`${option.name}: Maximum ${max} items allowed`);
+            return false;
+          }
+        } else {
+          const min = option?.minAttribute || 0;
+          const max = option?.maxAttribute || 0;
+
+          console.log("selectedCount", selectedCount);
+          console.log("min", min);
+
+          if (selectedCount < min) {
+            toast.error(`${option.name}: Please select at least ${min} items`);
+            return false;
+          }
+
+          if (selectedCount > max) {
+            toast.error(`${option.name}: Maximum ${max} items allowed`);
+            return false;
+          }
+        }
+      }
     }
 
     return true;
   };
 
   const handleAddToCart = () => {
-    if (!validateForm()) return;
+    if (!validateForm()) {
+      return;
+    }
 
     if (!isAuthenticated && !sessionId) {
       localStorage.setItem("returnUrl", window.location.pathname);
@@ -183,36 +267,41 @@ const ProductOptionsModal = ({
       return;
     }
 
-    const selectedAttributes: SelectedAttribute[] = options
-      .map((option) => {
-        const selectedIds = selectedOptions[option.id] || [];
-        const items: SelectedAttributeItem[] = [];
+    const selectedAttributes = [];
 
-        for (const id of selectedIds) {
-          const choice = option.choices.find((c) => c.id === id);
-          if (!choice) continue;
+    for (const option of options) {
+      const selectedIds = selectedOptions[option.id] || [];
 
-          let qty = 1;
-          if (option.isMultipleTimes && quantities[option.id]?.[id]) {
-            qty = quantities[option.id][id];
-          }
+      if (selectedIds.length === 0) {
+        continue;
+      }
 
-          items.push({
-            itemId: id,
-            itemName: choice.name,
-            itemPrice: choice.price,
-            quantity: qty,
-          });
+      const items = [];
+
+      for (const choiceId of selectedIds) {
+        const choice = option.choices.find((c) => c.id === choiceId);
+        if (!choice) continue;
+
+        let qty = 1;
+        if (option.isMultipleTimes) {
+          qty = quantities[option.id]?.[choiceId] || 1;
         }
 
-        return {
-          attributeId: option.id,
-          attributeName: option.name,
-          attributeType: option.type,
-          selectedItems: items,
-        };
-      })
-      .filter((attr) => attr.selectedItems.length > 0);
+        items.push({
+          itemId: choiceId,
+          itemName: choice.name,
+          itemPrice: choice.price,
+          quantity: qty,
+        });
+      }
+
+      selectedAttributes.push({
+        attributeId: option.id,
+        attributeName: option.name,
+        attributeType: option.type,
+        selectedItems: items,
+      });
+    }
 
     onAddToCart(selectedAttributes, specialRequirements);
     onClose();
@@ -253,48 +342,46 @@ const ProductOptionsModal = ({
                       <span className="text-red-500 ml-1">*</span>
                     )}
                   </h3>
-                  <p className="text-sm text-gray-500 italic">
-                    {isQuantityLimited &&
-                      `Note : Please select at least ${option.minAttribute} and up to ${option.maxAttribute} items.`}
-                  </p>
+                  {isQuantityLimited && (
+                    <p className="text-sm text-gray-500 italic">
+                      Note: Please select at least {option.minAttribute || 0}{" "}
+                      and up to {option.maxAttribute} items.
+                    </p>
+                  )}
                 </div>
-                <div className="grid gap-2 ">
-                  {option.choices.map((choice) => {
-                    const selected = (
+
+                <div className="grid gap-2">
+                  {option?.choices?.map((choice) => {
+                    const isSelected = (
                       selectedOptions[option.id] || []
                     ).includes(choice.id);
-                    const disabled =
-                      option.type === "multiple" &&
-                      option.maxAttribute &&
-                      totalQty >= option.maxAttribute &&
-                      !selected;
+                    const isDisabled = isItemDisabled(option, choice.id);
                     const qty = quantities[option.id]?.[choice.id] || 0;
 
                     return (
                       <label
                         key={choice.id}
-                        className={`flex items-center cursor-pointer justify-between px-4 py-3 border rounded-xl ${
-                          selected
+                        className={`flex items-center justify-between px-4 py-3 border rounded-xl cursor-pointer ${
+                          isSelected
                             ? "border-yellow-600 bg-yellow-50"
-                            : disabled
-                            ? "opacity-50 cursor-not-allowed"
+                            : isDisabled
+                            ? "opacity-50 cursor-not-allowed border-gray-200 bg-gray-100"
                             : "border-gray-200 hover:border-yellow-600 hover:bg-yellow-50/30"
                         }`}
-                        onClick={() => {
-                          if (!disabled) handleOptionSelect(option, choice.id);
-                        }}
                       >
                         <div className="flex items-center gap-3">
                           <input
                             type={
                               option.type === "single" ? "radio" : "checkbox"
                             }
-                            checked={selected}
-                            disabled={disabled}
-                            onChange={() =>
-                              handleOptionSelect(option, choice.id)
-                            }
-                            className="w-4 h-4 text-yellow-600"
+                            checked={isSelected}
+                            disabled={isDisabled}
+                            onChange={() => {
+                              if (!isDisabled) {
+                                handleOptionSelect(option, choice.id);
+                              }
+                            }}
+                            className="w-4 h-4 text-yellow-600 cursor-pointer"
                           />
                           <span className="text-sm text-gray-700">
                             {choice.name}
@@ -306,7 +393,7 @@ const ProductOptionsModal = ({
                           )}
                         </div>
 
-                        {option.isMultipleTimes && selected && (
+                        {option.isMultipleTimes && isSelected && (
                           <div className="flex items-center gap-2">
                             <button
                               type="button"
@@ -316,11 +403,11 @@ const ProductOptionsModal = ({
                                 updateQuantity(option.id, choice.id, -1);
                               }}
                               disabled={qty <= 1}
-                              className="px-2 py-1 bg-gray-200 rounded hover:bg-gray-300 disabled:opacity-50"
+                              className="px-2 py-1 bg-gray-200 rounded hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                               −
                             </button>
-                            <span className="w-6 text-center text-sm">
+                            <span className="w-6 text-center text-sm font-medium">
                               {qty || 1}
                             </span>
                             <button
@@ -334,7 +421,7 @@ const ProductOptionsModal = ({
                                 option.maxAttribute &&
                                 totalQty >= option.maxAttribute
                               }
-                              className="px-2 py-1 bg-gray-200 rounded hover:bg-gray-300 disabled:opacity-50"
+                              className="px-2 py-1 bg-gray-200 rounded hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                               +
                             </button>
@@ -356,7 +443,8 @@ const ProductOptionsModal = ({
               value={specialRequirements}
               onChange={(e) => setSpecialRequirements(e.target.value)}
               placeholder="E.g., allergies, special instructions..."
-              className="w-full px-4 py-3 text-sm border border-gray-200 rounded-xl resize-none focus:ring-2 focus:ring-yellow-600/40"
+              rows={3}
+              className="w-full px-4 py-3 text-sm border border-gray-200 rounded-xl resize-none focus:ring-2 focus:ring-yellow-600/40 focus:border-yellow-600 outline-none"
             />
           </div>
         </div>
@@ -364,7 +452,7 @@ const ProductOptionsModal = ({
         <div className="px-8 py-6 bg-yellow-50 border-t border-gray-100">
           <button
             onClick={handleAddToCart}
-            className="w-full py-3 bg-yellow-700 text-white rounded-xl font-medium hover:bg-yellow-800"
+            className="w-full py-3 bg-yellow-700 text-white rounded-xl font-medium hover:bg-yellow-800 transition-colors"
           >
             Add to Basket
           </button>
