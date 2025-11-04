@@ -639,7 +639,7 @@ const CartPage = () => {
                             {item.name} × {item.quantity}
                           </span>
                           <span className="font-medium">
-                            {formatCurrency(item.price.total)}
+                            {formatCurrency(item.price.itemTotal)}
                           </span>
                         </div>
                       ))}
@@ -652,7 +652,7 @@ const CartPage = () => {
                         <span className="font-medium">
                           {formatCurrency(
                             cartItems.reduce(
-                              (total, item) => total + item.price.total,
+                              (total, item) => total + item.price.itemTotal,
                               0
                             )
                           )}
@@ -664,13 +664,13 @@ const CartPage = () => {
                         <div className="flex justify-between text-sm">
                           <span className="text-gray-600">Add-ons Total</span>
                           <span className="font-medium">
-                            {formatCurrency(
-                              cartItems.reduce(
-                                (total, item) =>
-                                  total + item.price.attributes * item.quantity,
-                                0
-                              )
-                            )}
+                              {formatCurrency(
+                                cartItems.reduce(
+                                  (total, item) =>
+                                    total + item.price.attributes * item.quantity,
+                                  0
+                                )
+                              )}
                           </span>
                         </div>
                       )}

@@ -14,6 +14,7 @@ const DELIVERY_FEE = 5.0;
 const TAX_RATE = 0.1;
 
 export interface PriceStructure {
+  itemTotal: number;
   base: number;
   currentEffectivePrice: number;
   attributes: number;
