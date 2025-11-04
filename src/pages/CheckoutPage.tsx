@@ -661,6 +661,7 @@ const OrderConfirmationModal: React.FC<OrderConfirmationModalProps> = ({
   const { formatCurrency } = useCart();
 
   if (!isOpen) return null;
+  console.log(orderDetails);
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50  flex items-center justify-center p-4">
@@ -683,7 +684,7 @@ const OrderConfirmationModal: React.FC<OrderConfirmationModalProps> = ({
                 <span>
                   {item.quantity}x {item.name}
                 </span>
-                <span>{formatCurrency(item.price.total)}</span>
+                <span>{formatCurrency(item.price.itemTotal)}</span>
               </div>
             ))}
           </div>
@@ -715,7 +716,18 @@ const OrderConfirmationModal: React.FC<OrderConfirmationModalProps> = ({
               <span className="text-gray-600">Subtotal:</span>
               <span>{formatCurrency(orderDetails.subtotal)}</span>
             </div>
-
+            <div className="flex justify-between text-sm">
+              <span className="text-gray-600">Add-ons:</span>
+              <span>
+                {formatCurrency(
+                  orderDetails.items.reduce(
+                    (total, item) =>
+                      total + item.price.attributes * item.quantity,
+                    0
+                  )
+                )}
+              </span>
+            </div>
             {orderDetails.deliveryCharge ? (
               <div className="flex justify-between text-sm">
                 <span className="text-gray-600">Delivery Charge:</span>
