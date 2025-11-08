@@ -200,3 +200,7 @@ export function safeFormatCurrency(amount: number | undefined | null): string {
   }
   return formatCurrency(Math.max(0, amount));
 } 
+
+// Calculate Product Attribute Amount
+
+// export function calculateAttributeTotal

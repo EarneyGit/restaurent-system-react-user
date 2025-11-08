@@ -38,6 +38,7 @@ import {
   formatDiscountText,
   type OrderItem,
   type DiscountInfo,
+  calculateAttributeTotal,
 } from "@/utils/orderCalculations";
 import { useGuestCart } from "@/context/GuestCartContext";
 
@@ -943,6 +944,27 @@ const OrderSuccessPage = () => {
                       )}
                     </div>
                   )}
+
+                  
+                  {orderDetails &&
+                    calculateAttributeTotal(
+                      orderDetails.products?.flatMap(
+                        (p) => p?.selectedAttributes || []
+                      )
+                    ) > 0 && (
+                      <div className="flex justify-between items-center py-2">
+                        <span className="text-gray-700">Add-ons</span>
+                        <span className="font-medium text-gray-900">
+                          {safeFormatCurrency(
+                            calculateAttributeTotal(
+                              orderDetails.products?.flatMap(
+                                (p) => p?.selectedAttributes || []
+                              )
+                            )
+                          )}
+                        </span>
+                      </div>
+                    )}
 
                   {/* Service Charges */}
                   {orderDetails.serviceCharge &&
