@@ -191,7 +191,7 @@ const StripeForm: React.FC<{
         const { orderStatus, message } = response.data.data;
 
         if (orderStatus === "processing" || orderStatus === "completed") {
-          toast.success("Payment successful!");
+          // toast.success("Payment successful!");
           onSuccess();
         } else if (orderStatus === "cancelled") {
           toast.error("Payment failed. Order cancelled.");
@@ -217,7 +217,12 @@ const StripeForm: React.FC<{
     <div className="space-y-6">
       <div>
         <h3 className="text-lg font-semibold mb-4">Complete Payment</h3>
-        <PaymentElement />
+        <PaymentElement
+          options={{
+            layout: "tabs",
+            paymentMethodOrder: ["card", "link"],
+          }}
+        />
       </div>
       {error && <div className="text-red-600 text-sm text-center">{error}</div>}
       <div className="flex gap-4">
